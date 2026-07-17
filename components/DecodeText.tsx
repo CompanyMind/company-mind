@@ -90,12 +90,23 @@ export function DecodeText({
     }
   }, [started, text, speed, delay])
 
+  /**
+   * ONE span, not two.
+   *
+   * This used to render an `sr-only` copy of the real text alongside the
+   * scrambling one. Visually fine, but the headline was then in the DOM TWICE:
+   * selecting or copying the hero produced "Everything yourEverything your", and
+   * every h1 on the site contained its own text duplicated for crawlers.
+   *
+   * Instead the caller puts the true string on the heading as `aria-label` (see
+   * Hero/Problem/etc), which overrides the children for assistive tech, and this
+   * span is aria-hidden. `display` starts as the real text, so SSR, no-JS and
+   * first paint all emit the genuine headline — the scramble only ever exists
+   * after hydration, for eyes.
+   */
   return (
-    <Tag ref={ref as never} className={cn(className)}>
-      {/* the truth, for machines and assistive tech */}
-      <span className="sr-only">{text}</span>
-      {/* the performance, for eyes only */}
-      <span aria-hidden="true">{display}</span>
+    <Tag ref={ref as never} className={cn(className)} aria-hidden="true">
+      {display}
     </Tag>
   )
 }

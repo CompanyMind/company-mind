@@ -28,7 +28,10 @@ export function Proof() {
         <p className="mono-label mb-6">{proof.label}</p>
 
         <div className="wash max-w-3xl">
-          <h2 className="font-display text-display-lg text-ink">
+          <h2
+            className="font-display text-display-lg text-ink"
+            aria-label={proof.headline.join(' ')}
+          >
             {proof.headline.map((line) => (
               <span key={line} className="mask-line">
                 <DecodeText as="span" text={line} className="block" />

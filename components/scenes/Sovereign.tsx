@@ -20,14 +20,17 @@ import { DecodeText } from '@/components/DecodeText'
  */
 export function Sovereign() {
   return (
-    <section data-scene="sovereign" className="relative z-10 h-[260vh]">
-      <div className="sticky top-0 flex h-dvh items-center">
+    <section data-scene="sovereign" className="relative z-10 py-[12vh] md:h-[260vh] md:py-0">
+      <div className="flex items-center md:sticky md:top-0 md:h-dvh">
         <div className="shell w-full">
           <div className="max-w-full lg:max-w-[46%]">
             <p className="mono-label mb-6">{sovereign.label}</p>
 
             <div className="wash">
-              <h2 className="font-display text-display-lg text-ink">
+              <h2
+                className="font-display text-display-lg text-ink"
+                aria-label={sovereign.headline.join(' ')}
+              >
                 {sovereign.headline.map((line) => (
                   <span key={line} className="mask-line">
                     <DecodeText as="span" text={line} className="block" />

@@ -40,13 +40,16 @@ export function CTA() {
   }
 
   return (
-    <section data-scene="cta" className="relative z-10 h-[160vh]">
-      <div className="sticky top-0 flex h-dvh items-center">
+    <section data-scene="cta" className="relative z-10 py-[12vh] md:h-[160vh] md:py-0">
+      <div className="flex items-center md:sticky md:top-0 md:h-dvh">
         <div className="shell">
           <p className="mono-label mb-6">{homeCta.label}</p>
 
           <div className="wash max-w-4xl">
-            <h2 className="font-display text-display-lg text-ink">
+            <h2
+              className="font-display text-display-lg text-ink"
+              aria-label={homeCta.headline.join(' ')}
+            >
               {homeCta.headline.map((line) => (
                 <span key={line} className="mask-line">
                   <DecodeText as="span" text={line} className="block" />

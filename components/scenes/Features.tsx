@@ -26,7 +26,10 @@ export function Features() {
         <p className="mono-label mb-6">{features.label}</p>
 
         <div className="wash max-w-4xl">
-          <h2 className="font-display text-display-lg text-ink">
+          <h2
+            className="font-display text-display-lg text-ink"
+            aria-label={features.headline.join(' ')}
+          >
             {features.headline.map((line) => (
               <span key={line} className="mask-line">
                 <DecodeText as="span" text={line} className="block" />

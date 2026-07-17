@@ -4,24 +4,35 @@ import { hero } from '@/content/site'
 import { DecodeText } from '@/components/DecodeText'
 
 /**
- * SCENE 1 — HERO
- * The perimeter draws first ("your walls"), then a storm of scattered, tilted,
- * disconnected artifacts inside it. The headline decodes out of noise.
+ * SCENE 1 — HERO.
  *
- * The copy never describes the chaos, because the canvas behind it already is
- * the chaos. It states the product and the differentiator instead.
+ * Centred, per the reference: the storm fills the whole frame and the copy sits
+ * in the middle of it, inside a soft paper wash. That composition says something
+ * a left column cannot — the mess is all around you, and the statement is the
+ * calm centre of it.
+ *
+ * The copy never describes the chaos, because the canvas behind it IS the chaos.
+ * It states the product and the differentiator in one breath.
+ *
+ * Fits in exactly one viewport (h-dvh, no overflow) — see the section audit in
+ * the README. Every scene owes the reader that.
  */
 export function Hero() {
   return (
     <section
       data-scene="hero"
-      className="relative z-10 flex min-h-dvh flex-col justify-center pb-24 pt-[calc(var(--nav-h)+3rem)]"
+      className="relative z-10 grid h-dvh place-items-center overflow-hidden"
     >
-      <div className="shell">
-        <div className="wash max-w-5xl">
-          <p className="mono-label mb-6 animate-fade-in">{hero.eyebrow}</p>
+      <div className="shell w-full text-center">
+        <div className="wash mx-auto max-w-4xl">
+          <p className="mono-label mb-5">{hero.eyebrow}</p>
 
-          <h1 className="font-display text-display-xl text-ink">
+          {/* aria-label carries the true headline; the DecodeText spans inside
+              are aria-hidden. One source of truth, no duplicated DOM text. */}
+          <h1
+            className="font-display text-display-xl text-ink"
+            aria-label={hero.headline.join(' ')}
+          >
             {hero.headline.map((line, i) => (
               <span key={line} className="mask-line">
                 <DecodeText
@@ -35,12 +46,14 @@ export function Hero() {
             ))}
           </h1>
 
-          <p className="mt-8 max-w-measure text-lg leading-relaxed text-ink-soft">{hero.sub}</p>
+          <p className="mx-auto mt-7 max-w-measure text-lg leading-relaxed text-ink-soft">
+            {hero.sub}
+          </p>
         </div>
 
-        {/* Telemetry boots. This is the site's own instrumentation coming
-            online — the same readout the rail holds all the way down. */}
-        <div className="mt-12 flex flex-col gap-1 font-mono text-telemetry text-ink-soft">
+        {/* Telemetry boots. The site's own instrumentation coming online — the
+            same readout the rail holds all the way down. */}
+        <div className="mt-10 flex flex-col items-center gap-1 font-mono text-telemetry text-ink-soft">
           <span className="animate-fade-in [animation-delay:600ms]">&gt; system online</span>
           <span className="flex animate-fade-in items-center gap-2 [animation-delay:900ms]">
             &gt; data egress:
@@ -53,11 +66,11 @@ export function Hero() {
       </div>
 
       {/* Quiet scroll cue — a hairline that breathes, not a bouncing chevron. */}
-      <div className="shell absolute inset-x-0 bottom-8 flex items-center gap-3">
+      <div className="absolute inset-x-0 bottom-8 flex items-center justify-center gap-3">
         <span className="font-mono text-telemetry uppercase tracking-[0.2em] text-ink-soft">
           {hero.scrollCue}
         </span>
-        <span className="h-px w-16 origin-left bg-line" aria-hidden="true" />
+        <span className="h-px w-16 bg-line" aria-hidden="true" />
       </div>
     </section>
   )

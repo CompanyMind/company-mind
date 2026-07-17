@@ -25,14 +25,17 @@ import { DecodeText } from '@/components/DecodeText'
  */
 export function Ask() {
   return (
-    <section data-scene="ask" className="relative z-10 h-[280vh]">
-      <div className="sticky top-0 flex h-dvh items-center">
+    <section data-scene="ask" className="relative z-10 py-[12vh] md:h-[280vh] md:py-0">
+      <div className="flex items-center md:sticky md:top-0 md:h-dvh">
         <div className="shell w-full">
           <div className="max-w-full lg:max-w-[52%]">
-            <p className="mono-label mb-6">{ask.label}</p>
+            <p className="mono-label mb-4">{ask.label}</p>
 
             <div className="wash">
-              <h2 className="font-display text-display-lg text-ink">
+              <h2
+                className="font-display text-display-lg text-ink"
+                aria-label={ask.headline.join(' ')}
+              >
                 {ask.headline.map((line) => (
                   <span key={line} className="mask-line">
                     <DecodeText as="span" text={line} className="block" />
@@ -41,17 +44,17 @@ export function Ask() {
               </h2>
             </div>
 
-            <p className="mt-7 max-w-measure text-lg leading-relaxed text-ink-soft">{ask.body}</p>
+            <p className="mt-5 max-w-measure leading-relaxed text-ink-soft">{ask.body}</p>
 
-            <div className="mt-10 rounded-sm border border-line bg-paper-raised p-6 shadow-card md:p-8">
+            <div className="mt-6 rounded-sm border border-line bg-paper-raised p-5 shadow-card md:p-6">
               <p className="flex items-start gap-3 font-mono text-telemetry text-query-text">
                 <span aria-hidden="true">?</span>
                 <span className="leading-relaxed">{ask.question}</span>
               </p>
 
-              <hr className="my-5 border-line" />
+              <hr className="my-4 border-line" />
 
-              <p className="text-lg leading-loose text-ink">
+              <p className="leading-loose text-ink">
                 {ask.answer.map((clause, i) => (
                   <span key={clause.cite}>
                     {clause.text}
@@ -70,12 +73,12 @@ export function Ask() {
                 ))}
               </p>
 
-              <p className="mt-6 border-t border-line pt-4 text-sm leading-relaxed text-ink-soft">
+              <p className="mt-4 border-t border-line pt-3 text-sm leading-relaxed text-ink-soft">
                 {ask.footnote}
               </p>
             </div>
 
-            <ul className="mt-6 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <ul className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               {ask.sources.map((s) => (
                 <li
                   key={s.id}

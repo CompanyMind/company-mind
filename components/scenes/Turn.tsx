@@ -23,13 +23,16 @@ import { DecodeText } from '@/components/DecodeText'
  */
 export function Turn() {
   return (
-    <section data-scene="turn" className="relative z-10 h-[320vh]">
-      <div className="sticky top-0 grid h-dvh place-items-center">
+    <section data-scene="turn" className="relative z-10 py-[12vh] md:h-[320vh] md:py-0">
+      <div className="grid place-items-center md:sticky md:top-0 md:h-dvh">
         <div className="shell w-full">
           <div className="wash mx-auto max-w-4xl text-center">
             <p className="mono-label mb-6">{turn.label}</p>
 
-            <h2 className="font-display text-display-xl text-ink">
+            <h2
+              className="font-display text-display-xl text-ink"
+              aria-label={turn.headline.join(' ')}
+            >
               {turn.headline.map((line) => (
                 <span key={line} className="mask-line">
                   <DecodeText as="span" text={line} className="block" />
