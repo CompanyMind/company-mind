@@ -33,7 +33,7 @@ export function Ask() {
 
             <div className="wash">
               <h2
-                className="font-display text-display-lg text-ink"
+                className="font-display text-display-md text-ink"
                 aria-label={ask.headline.join(' ')}
               >
                 {ask.headline.map((line) => (
@@ -53,7 +53,7 @@ export function Ask() {
                   which represents nothing at all. */}
               <p
                 id="ask-question"
-                className="flex items-start gap-3 font-mono text-telemetry text-query-text"
+                className="flex items-start gap-3 font-mono text-[13px] leading-relaxed text-query-text"
               >
                 <span aria-hidden="true">?</span>
                 <span className="leading-relaxed">{ask.question}</span>
@@ -61,7 +61,7 @@ export function Ask() {
 
               <hr className="my-4 border-line" />
 
-              <p className="text-body leading-loose text-ink">
+              <p className="text-[15px] leading-[1.9] text-ink">
                 {ask.answer.map((clause, i) => (
                   <span key={clause.cite}>
                     {clause.text}

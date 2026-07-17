@@ -30,7 +30,7 @@ export function Proof() {
 
           <div className="wash max-w-3xl">
             <h2
-              className="font-display text-display-lg text-ink"
+              className="font-display text-display-md text-ink"
               aria-label={proof.headline.join(' ')}
             >
               {proof.headline.map((line) => (

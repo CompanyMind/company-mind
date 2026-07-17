@@ -28,7 +28,7 @@ export function Features() {
 
           <div className="wash max-w-4xl">
             <h2
-              className="font-display text-display-lg text-ink"
+              className="font-display text-display-md text-ink"
               aria-label={features.headline.join(' ')}
             >
               {features.headline.map((line) => (

@@ -28,7 +28,7 @@ export function Sovereign() {
 
             <div className="wash">
               <h2
-                className="font-display text-display-lg text-ink"
+                className="font-display text-display-md text-ink"
                 aria-label={sovereign.headline.join(' ')}
               >
                 {sovereign.headline.map((line) => (
