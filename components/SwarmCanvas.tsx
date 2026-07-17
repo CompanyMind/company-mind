@@ -34,8 +34,16 @@ export function SwarmCanvas({ onTelemetry }: { onTelemetry?: (t: Telemetry) => v
     const cores = navigator.hardwareConcurrency ?? 8
     const lowPower = cores <= 4 || (mobile && cores <= 6)
 
+    // A denser swarm. The mess should feel like a real company's drive, and the
+    // cards are smaller now (0.74..1.00), so there is room for more of them
+    // without the frame turning to soup.
+    //
+    // Affordable because the per-frame work is O(n): spring toward target,
+    // cursor repulsion, wall collision, one blit each. The O(n^2) passes (edge
+    // building and the nearest-node assignment) run once per resize, never per
+    // frame — at n=88 that is ~7.7k distance checks once, which is nothing.
     const engine = new SwarmEngine(canvas, {
-      count: mobile ? 26 : lowPower ? 44 : 64,
+      count: mobile ? 34 : lowPower ? 56 : 88,
       reducedMotion: reduced,
       lowPower,
     })
