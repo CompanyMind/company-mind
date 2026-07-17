@@ -129,6 +129,7 @@ export class SwarmEngine {
   private sections: Partial<Record<SceneId, HTMLElement>> = {}
   private citeEls: (HTMLElement | null)[] = []
   private tipEl: HTMLElement | null = null
+  private queryEl: HTMLElement | null = null
 
   /** Per-frame scratch — read at the top of a frame, never allocated. */
   private prog: Record<SceneId, number> = {
@@ -144,6 +145,7 @@ export class SwarmEngine {
   private scene: SceneId = 'hero'
   private cardRects: (DOMRect | null)[] = []
   private citeRects: (DOMRect | null)[] = []
+  private queryRect: DOMRect | null = null
 
   constructor(canvas: HTMLCanvasElement, opts: SwarmOpts) {
     this.canvas = canvas
@@ -161,6 +163,7 @@ export class SwarmEngine {
     }
     this.citeEls = [1, 2, 3].map((i) => document.getElementById(`cite-${i}`))
     this.tipEl = document.getElementById('swarm-tip')
+    this.queryEl = document.getElementById('ask-question')
 
     this.measureViewport()
     this.build()
@@ -545,6 +548,7 @@ export class SwarmEngine {
     for (const s of SCENES) this.prog[s] = this.progressOf(this.sections[s])
     this.scene = reduced ? 'proof' : this.activeScene()
     this.citeRects = this.citeEls.map((e) => (e ? e.getBoundingClientRect() : null))
+    this.queryRect = this.queryEl ? this.queryEl.getBoundingClientRect() : null
     this.cardRects = []
     document
       .querySelectorAll<HTMLElement>('[data-swarm-slot]')
@@ -807,17 +811,21 @@ export class SwarmEngine {
       ctx.stroke()
     }
 
-    // ONE label, INSIDE the wall's top-left.
+    // ONE label, inside the wall's BOTTOM-left.
     //
-    // The reference hangs it above the line and puts an EGRESS readout at the
-    // bottom-right. Both are wrong here: above the line lands in the navbar, and
-    // bottom-right is exactly where the telemetry rail lives — it would print
-    // "EGRESS: 0 B" underneath a rail already saying "data egress 0 bytes".
-    // Inside the wall, it reads as an annotation ON the drawing, which is the
-    // register the whole site is in.
+    // Every position for this is contested and this is the only free one:
+    //  - above the line (the reference's choice) lands in the navbar;
+    //  - bottom-RIGHT is where the telemetry rail lives — it would print
+    //    "EGRESS 0 B" on top of a rail already saying "data egress 0 bytes";
+    //  - top-left collides with each scene's own mono eyebrow. Every section
+    //    opens with one ("TRUSTWORTHY", "SOVEREIGN", "PROOF") at the same size,
+    //    the same font and very nearly the same y — two mono labels stacked on
+    //    each other reading as one garbled line.
+    // The bottom-left is empty in every scene: the copy is vertically centred
+    // and the hero's scroll cue sits centre-bottom, outside the wall.
     ctx.font = '500 9px "IBM Plex Mono", ui-monospace, monospace'
     ctx.fillStyle = pulse > 0.2 ? this.p.sovereign : this.p.inkSoft
-    ctx.fillText('SECURE PERIMETER — ON-PREM · EGRESS 0 B', m + 14, m + 18)
+    ctx.fillText('SECURE PERIMETER — ON-PREM · EGRESS 0 B', m + 14, this.vh - m - 10)
   }
 
   /**
@@ -834,21 +842,34 @@ export class SwarmEngine {
     const ctx = this.ctx
     const bc = this.brainCfg('ask')
 
-    // the amber query packet arrives from below and enters the core
-    const pin = clamp(pAsk / 0.28, 0, 1)
-    if (pin < 1) {
-      const px = lerp(this.vw * 0.5, bc.cx, ease(pin))
-      const py = lerp(this.vh + 20, bc.cy, ease(pin))
-      ctx.fillStyle = this.p.query
-      ctx.beginPath()
-      ctx.arc(px, py, 4.5, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.strokeStyle = 'rgba(224,123,57,.4)'
-      ctx.lineWidth = 1.5
-      ctx.beginPath()
-      ctx.moveTo(this.vw * 0.5, this.vh + 20)
-      ctx.lineTo(px, py)
-      ctx.stroke()
+    // ---- THE QUESTION ENTERS THE BRAIN ---------------------------------
+    // The --query packet launches from the QUESTION ITSELF and flies into the
+    // core. It used to rise from the bottom edge of the screen, which stands for
+    // nothing — the amber dot appeared out of the void and the viewer had no way
+    // to read it as anything. Anchored to the question's own rect, the beat is
+    // legible without a caption: your question goes in, and (0.34 onward) the
+    // citations come back out to the sources it was answered from.
+    const q = this.queryRect
+    if (q) {
+      const sx = q.right + 6
+      const sy = q.top + q.height / 2
+      const pin = clamp(pAsk / 0.3, 0, 1)
+      if (pin < 1) {
+        const e = ease(pin)
+        const px = lerp(sx, bc.cx, e)
+        const py = lerp(sy, bc.cy, e)
+        // the trail it has travelled so far
+        ctx.strokeStyle = 'rgba(224,123,57,.35)'
+        ctx.lineWidth = 1.5
+        ctx.beginPath()
+        ctx.moveTo(sx, sy)
+        ctx.lineTo(px, py)
+        ctx.stroke()
+        ctx.fillStyle = this.p.query
+        ctx.beginPath()
+        ctx.arc(px, py, 4.5, 0, Math.PI * 2)
+        ctx.fill()
+      }
     }
 
     for (let k = 0; k < this.citeRects.length; k++) {

@@ -47,7 +47,14 @@ export function Ask() {
             <p className="mt-5 max-w-measure leading-relaxed text-ink-soft">{ask.body}</p>
 
             <div className="mt-6 rounded-sm border border-line bg-paper-raised p-5 shadow-card md:p-6">
-              <p className="flex items-start gap-3 font-mono text-telemetry text-query-text">
+              {/* The engine reads this rect and launches the --query packet
+                  FROM here into the brain: the question travels from where it
+                  is asked. Previously it rose from the bottom of the screen,
+                  which represents nothing at all. */}
+              <p
+                id="ask-question"
+                className="flex items-start gap-3 font-mono text-telemetry text-query-text"
+              >
                 <span aria-hidden="true">?</span>
                 <span className="leading-relaxed">{ask.question}</span>
               </p>
