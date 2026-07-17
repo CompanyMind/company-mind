@@ -166,9 +166,17 @@ export class SwarmEngine {
     this.build()
   }
 
-  /** The perimeter inset — "your walls". */
+  /**
+   * The perimeter inset — "your walls".
+   *
+   * Sized to clear the header (--nav-h is 4.5rem/72px), so the walls frame the
+   * CONTENT and the navbar sits cleanly above them. The reference used a flat
+   * 26px, which is right for its own layout but here drew the perimeter line
+   * and its label straight through the header band — turning a clean navbar
+   * into clutter. The wall belongs around the story, not through the chrome.
+   */
   private margin() {
-    return this.vw < 760 ? 14 : 26
+    return Math.min(Math.max(this.vw * 0.05, 20), 72)
   }
 
   /* ---------------------------------------------------------------------- */
@@ -754,12 +762,17 @@ export class SwarmEngine {
       ctx.stroke()
     }
 
+    // ONE label, INSIDE the wall's top-left.
+    //
+    // The reference hangs it above the line and puts an EGRESS readout at the
+    // bottom-right. Both are wrong here: above the line lands in the navbar, and
+    // bottom-right is exactly where the telemetry rail lives — it would print
+    // "EGRESS: 0 B" underneath a rail already saying "data egress 0 bytes".
+    // Inside the wall, it reads as an annotation ON the drawing, which is the
+    // register the whole site is in.
     ctx.font = '500 9px "IBM Plex Mono", ui-monospace, monospace'
     ctx.fillStyle = pulse > 0.2 ? this.p.sovereign : this.p.inkSoft
-    ctx.fillText('SECURE PERIMETER — ON-PREM', m + 16, m - 5)
-    ctx.textAlign = 'right'
-    ctx.fillText('EGRESS: 0 B', this.vw - m - 4, this.vh - m + 13)
-    ctx.textAlign = 'left'
+    ctx.fillText('SECURE PERIMETER — ON-PREM · EGRESS 0 B', m + 14, m + 18)
   }
 
   /**
