@@ -40,9 +40,7 @@ export function Turn() {
               ))}
             </h2>
 
-            <p className="mx-auto mt-8 max-w-measure text-lg leading-relaxed text-ink-soft">
-              {turn.body}
-            </p>
+            <p className="mx-auto mt-8 max-w-measure text-body text-ink-soft">{turn.body}</p>
 
             {/* Lands with the perimeter's --sovereign flush. -text variant
                 because this is TEXT: raw --sovereign is 4.02 and fails AA here. */}

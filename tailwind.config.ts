@@ -56,10 +56,33 @@ const config: Config = {
         // 9.5rem cap that line measured ~1160px against ~1150px of usable
         // shell — it overflowed, and the third line fell below the fold.
         // 5.5rem keeps it confident AND on screen at 1440x900.
-        'display-xl': ['clamp(2.25rem, 6.2vw, 5.5rem)', { lineHeight: '0.9', letterSpacing: '-0.04em' }],
-        'display-lg': ['clamp(2rem, 5vw, 4.25rem)', { lineHeight: '0.92', letterSpacing: '-0.035em' }],
-        'display-md': ['clamp(1.75rem, 3.6vw, 3rem)', { lineHeight: '0.98', letterSpacing: '-0.03em' }],
-        'display-sm': ['clamp(1.25rem, 2.2vw, 1.75rem)', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
+        'display-xl': [
+          'clamp(2.25rem, 6.2vw, 5.5rem)',
+          { lineHeight: '0.9', letterSpacing: '-0.04em' },
+        ],
+        'display-lg': [
+          'clamp(2rem, 5vw, 4.25rem)',
+          { lineHeight: '0.92', letterSpacing: '-0.035em' },
+        ],
+        'display-md': [
+          'clamp(1.75rem, 3.6vw, 3rem)',
+          { lineHeight: '0.98', letterSpacing: '-0.03em' },
+        ],
+        'display-sm': [
+          'clamp(1.25rem, 2.2vw, 1.75rem)',
+          { lineHeight: '1.1', letterSpacing: '-0.02em' },
+        ],
+        // Body — 15px/1.6, matching the reference exactly.
+        //
+        // The site was running body copy at 18px (text-lg), which is a third
+        // larger than the reference's 15px. That is what made everything read
+        // oversized: not the headlines (the reference's are BIGGER than ours —
+        // 116px hero vs 88px) and not the artifact cards (identical sizes), but
+        // the prose sitting between them. Big display next to small body is the
+        // contrast that makes display feel big; big display next to big body
+        // just feels heavy.
+        body: ['0.9375rem', { lineHeight: '1.6' }],
+        'body-sm': ['0.8125rem', { lineHeight: '1.6' }],
         // Mono telemetry — small, wide-tracked, deliberate.
         telemetry: ['0.6875rem', { lineHeight: '1.5', letterSpacing: '0.06em' }],
         label: ['0.75rem', { lineHeight: '1.4', letterSpacing: '0.14em' }],

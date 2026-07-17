@@ -39,9 +39,7 @@ export function Sovereign() {
               </h2>
             </div>
 
-            <p className="mt-7 max-w-measure text-lg leading-relaxed text-ink-soft">
-              {sovereign.body}
-            </p>
+            <p className="mt-7 max-w-measure text-body text-ink-soft">{sovereign.body}</p>
           </div>
 
           <dl className="mt-14 grid gap-px overflow-hidden rounded-sm border border-line bg-line md:grid-cols-3">

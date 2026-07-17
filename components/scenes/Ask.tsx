@@ -44,7 +44,7 @@ export function Ask() {
               </h2>
             </div>
 
-            <p className="mt-5 max-w-measure leading-relaxed text-ink-soft">{ask.body}</p>
+            <p className="mt-5 max-w-measure text-body text-ink-soft">{ask.body}</p>
 
             <div className="mt-6 rounded-sm border border-line bg-paper-raised p-5 shadow-card md:p-6">
               {/* The engine reads this rect and launches the --query packet
@@ -61,7 +61,7 @@ export function Ask() {
 
               <hr className="my-4 border-line" />
 
-              <p className="leading-loose text-ink">
+              <p className="text-body leading-loose text-ink">
                 {ask.answer.map((clause, i) => (
                   <span key={clause.cite}>
                     {clause.text}

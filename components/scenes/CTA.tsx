@@ -58,9 +58,7 @@ export function CTA() {
             </h2>
           </div>
 
-          <p className="plate mt-8 max-w-measure p-5 text-lg leading-relaxed text-ink-soft">
-            {homeCta.body}
-          </p>
+          <p className="plate mt-8 max-w-measure p-5 text-body text-ink-soft">{homeCta.body}</p>
 
           {state === 'ok' ? (
             <p role="status" className="mt-12 font-display text-display-sm text-brain-text">

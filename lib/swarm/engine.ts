@@ -216,7 +216,7 @@ export class SwarmEngine {
         hy: 0,
         nx: 0,
         ny: 0,
-        scale: 0.85 + rnd() * 0.3,
+        scale: 0.74 + rnd() * 0.26,
         lost: rnd() < 0.12,
         buried: rnd() < 0.14,
         dupOf: -1,

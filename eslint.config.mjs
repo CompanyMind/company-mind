@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The founder's reference implementation, kept locally for comparison.
+    // Not part of the build, and not ours to lint.
+    "CompBrain Company Website/**",
   ]),
 ]);
 

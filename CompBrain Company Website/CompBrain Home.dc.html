@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#F3EEE3;color:#1C1B18;font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  a{color:#0F8A7E;text-decoration:none}a:hover{color:#1C1B18}
+  ::selection{background:#0F8A7E;color:#FBF8F1}
+  input::placeholder{color:#6B665C}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(7px)}}
+</style>
+</helmet>
+<canvas id="swarm-canvas" aria-hidden="true" style="position:fixed;inset:0;z-index:0;pointer-events:none"></canvas>
+<div id="swarm-tip" style="position:fixed;top:0;left:0;z-index:30;pointer-events:none;opacity:0;transition:opacity .15s;background:#1C1B18;color:#F3EEE3;font:11px 'IBM Plex Mono',monospace;padding:5px 9px;border-radius:3px;white-space:nowrap"></div>
+
+<header style="position:fixed;top:26px;left:26px;right:26px;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:rgba(243,238,227,0.85);backdrop-filter:blur(6px);border-bottom:1px solid #D8D0BE">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div style="width:13px;height:13px;background:#0F8A7E"></div>
+    <span style="font:700 19px 'Space Grotesk',sans-serif;letter-spacing:-0.02em;color:#1C1B18">CompBrain</span>
+  </div>
+  <nav aria-label="Primary" style="display:flex;gap:32px;align-items:center">
+    <a href="#" style="font:500 13px Inter,sans-serif;color:#6B665C">Product</a>
+    <a href="#" style="font:500 13px Inter,sans-serif;color:#6B665C">Security</a>
+    <a href="#" style="font:500 13px Inter,sans-serif;color:#6B665C">Pricing</a>
+    <a href="#" style="font:500 13px Inter,sans-serif;color:#6B665C">About</a>
+    <a href="#cta" data-magnetic="1" style="font:600 13px Inter,sans-serif;color:#F3EEE3;background:#1C1B18;padding:10px 20px;display:inline-block">Request a demo</a>
+  </nav>
+</header>
+
+<aside id="telemetry" aria-label="System telemetry" style="position:fixed;left:44px;bottom:44px;z-index:5;background:#E8E1D2;border:1px solid #D8D0BE;padding:12px 16px;font:400 10px/1.9 'IBM Plex Mono',monospace;color:#6B665C;box-shadow:0 3px 10px rgba(96,78,48,0.12)">
+  <div style="color:#1C1B18;letter-spacing:.08em">COMPBRAIN v1.0 — ONLINE</div>
+  <div>artifacts indexed&nbsp;&nbsp;<span id="tl-idx" style="color:#0F8A7E">0 / 64</span></div>
+  <div>queries answered&nbsp;&nbsp;<span id="tl-q" style="color:#0F8A7E">0</span></div>
+  <div>data egress&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#D8315B">0 bytes</span></div>
+  <div>section&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span id="tl-sec">HERO</span></div>
+</aside>
+
+<main style="position:relative;z-index:1">
+  <section data-scene="hero" data-screen-label="Hero" style="height:100vh;display:grid;place-items:center;text-align:center">
+    <div style="max-width:1100px;padding:48px;background:radial-gradient(closest-side, rgba(243,238,227,0.9) 50%, rgba(243,238,227,0))">
+      <p style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#6B665C;margin:0 0 22px">SYSTEM ONLINE — DATA EGRESS: 0 BYTES</p>
+      <h1 data-decode="1" style="font:700 clamp(46px,7.4vw,116px)/0.98 'Space Grotesk',sans-serif;letter-spacing:-0.035em;margin:0;text-wrap:balance">Everything your company knows. One brain.</h1>
+      <p style="font:400 18px/1.6 Inter,sans-serif;color:#6B665C;max-width:560px;margin:26px auto 0;text-wrap:pretty">CompBrain ingests every file, chat, email, image and voice memo your company has ever produced — and turns it into one searchable, sovereign brain. On your infrastructure. Cited to the source.</p>
+    </div>
+    <div style="position:absolute;bottom:64px;left:50%;transform:translateX(-50%);font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.16em;color:#6B665C;animation:bob 2.2s ease-in-out infinite">SCROLL TO ORGANIZE ↓</div>
+  </section>
+
+  <section data-scene="problem" data-screen-label="01 The Problem" style="height:200vh;position:relative">
+    <div style="position:sticky;top:0;height:100vh;display:flex;align-items:center">
+      <div style="max-width:600px;margin-left:9vw;padding:44px;background:radial-gradient(closest-side, rgba(243,238,227,0.92) 55%, rgba(243,238,227,0))">
+        <p style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#E07B39;margin:0 0 16px">01 / THE MESS</p>
+        <h2 data-decode="1" style="font:700 clamp(34px,4.2vw,58px)/1.04 'Space Grotesk',sans-serif;letter-spacing:-0.03em;margin:0;text-wrap:balance">Your knowledge is everywhere. Which is nowhere.</h2>
+        <p style="font:400 17px/1.65 Inter,sans-serif;color:#6B665C;margin:22px 0 0;text-wrap:pretty">Buried in inboxes. Duplicated across drives. Trapped in a chat nobody scrolls back through. Every tool your company runs holds a piece of the truth — and no one can find it, trust it, or tell which version is real.</p>
+      </div>
+    </div>
+  </section>
+
+  <section data-scene="turn" data-screen-label="02 The Turn" style="height:320vh;position:relative">
+    <div style="position:sticky;top:0;height:100vh;display:grid;place-items:center;text-align:center">
+      <div style="max-width:900px;padding:48px;background:radial-gradient(closest-side, rgba(243,238,227,0.88) 45%, rgba(243,238,227,0))">
+        <p style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#6B665C;margin:0 0 16px">02 / THE TURN</p>
+        <h2 data-decode="1" style="font:700 clamp(40px,5.6vw,84px)/1 'Space Grotesk',sans-serif;letter-spacing:-0.035em;margin:0">One brain for everything.</h2>
+        <p style="font:400 17px/1.6 Inter,sans-serif;color:#6B665C;max-width:520px;margin:22px auto 0;text-wrap:pretty">Keep scrolling — you're doing this. Ingested. Deduplicated. Connected. And none of it left your walls.</p>
+      </div>
+    </div>
+  </section>
+
+  <section data-scene="ask" data-screen-label="03 Ask Anything" style="height:280vh;position:relative">
+    <div style="position:sticky;top:0;height:100vh;display:flex;align-items:center;justify-content:flex-end">
+      <div style="width:min(560px,92vw);margin-right:7vw;padding:36px;background:radial-gradient(closest-side, rgba(243,238,227,0.92) 60%, rgba(243,238,227,0))">
+        <p style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#E07B39;margin:0 0 14px">03 / ASK ANYTHING</p>
+        <h2 data-decode="1" style="font:700 clamp(30px,3.4vw,46px)/1.05 'Space Grotesk',sans-serif;letter-spacing:-0.03em;margin:0 0 12px;text-wrap:balance">Ask. Get an answer you can check.</h2>
+        <p style="font:400 15px/1.6 Inter,sans-serif;color:#6B665C;margin:0 0 26px;text-wrap:pretty">Every clause traces back to a source in your own data. If CompBrain can't cite it, it doesn't say it.</p>
+        <div style="background:#FBF8F1;border:1px solid #D8D0BE;box-shadow:0 8px 28px rgba(96,78,48,0.14);padding:26px 28px">
+          <p style="font:500 13px 'IBM Plex Mono',monospace;color:#E07B39;margin:0 0 18px">▸ what did we commit to in the Meridian renewal?</p>
+          <div style="border-top:1px solid #D8D0BE;padding-top:18px;font:400 15px/1.9 Inter,sans-serif;color:#1C1B18">Under the renewal signed in March, we committed to a 24-month term at flat pricing&nbsp;<span id="cite-1" style="font:500 10.5px 'IBM Plex Mono',monospace;color:#0F8A7E;border:1px solid #0F8A7E;border-radius:3px;padding:1px 5px">1</span>, quarterly security reviews starting Q3&nbsp;<span id="cite-2" style="font:500 10.5px 'IBM Plex Mono',monospace;color:#0F8A7E;border:1px solid #0F8A7E;border-radius:3px;padding:1px 5px">2</span>, and a 99.9% uptime SLA with service credits&nbsp;<span id="cite-3" style="font:500 10.5px 'IBM Plex Mono',monospace;color:#0F8A7E;border:1px solid #0F8A7E;border-radius:3px;padding:1px 5px">3</span>.</div>
+          <div style="border-top:1px solid #D8D0BE;margin-top:18px;padding-top:14px;display:flex;flex-direction:column;gap:6px;font:400 11px/1.5 'IBM Plex Mono',monospace;color:#6B665C">
+            <div>[1] Meridian_MSA_signed.pdf — p.14</div>
+            <div>[2] re: Meridian renewal — email thread, 217 replies</div>
+            <div>[3] #legal — chat, Mar 3</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section data-scene="sovereign" data-screen-label="04 Sovereign" style="height:260vh;position:relative">
+    <div style="position:sticky;top:0;height:100vh;display:flex;align-items:center;justify-content:flex-end">
+      <div style="max-width:560px;margin-right:9vw;padding:44px;background:radial-gradient(closest-side, rgba(243,238,227,0.92) 55%, rgba(243,238,227,0))">
+        <p style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#D8315B;margin:0 0 16px">04 / SOVEREIGN BY DESIGN</p>
+        <h2 data-decode="1" style="font:700 clamp(34px,4.2vw,58px)/1.04 'Space Grotesk',sans-serif;letter-spacing:-0.03em;margin:0;text-wrap:balance">Your data never leaves your walls.</h2>
+        <p style="font:400 17px/1.65 Inter,sans-serif;color:#6B665C;margin:22px 0 0;text-wrap:pretty">CompBrain runs fully on-prem, inside your own infrastructure. Nothing exits. Nothing foreign enters. Built for the industries where that isn't a preference — finance, legal, healthcare — it's the law.</p>
+        <p style="font:500 15px 'IBM Plex Mono',monospace;color:#1C1B18;margin:26px 0 0">data egress: <span style="color:#D8315B">0 bytes</span> — permanently</p>
+      </div>
+    </div>
+  </section>
+
+  <section data-scene="features" data-screen-label="05 Features" style="min-height:100vh;padding:20vh 8vw 14vh">
+    <div style="max-width:640px;margin-bottom:56px">
+      <p style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#6B665C;margin:0 0 16px">05 / WHAT THE BRAIN DOES</p>
+      <h2 data-decode="1" style="font:700 clamp(32px,3.8vw,52px)/1.05 'Space Grotesk',sans-serif;letter-spacing:-0.03em;margin:0">Four promises. Kept by architecture.</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:22px">
+      <article id="feat-1" style="opacity:0;background:#FBF8F1;border:1px solid #D8D0BE;padding:30px;box-shadow:0 4px 16px rgba(96,78,48,0.08)">
+        <p style="font:500 11px 'IBM Plex Mono',monospace;color:#0F8A7E;margin:0 0 14px">01 — TOTAL INGESTION</p>
+        <h3 style="font:700 21px 'Space Grotesk',sans-serif;letter-spacing:-0.02em;margin:0 0 10px">Every format, one index</h3>
+        <p style="font:400 14px/1.65 Inter,sans-serif;color:#6B665C;margin:0;text-wrap:pretty">Files, chats, email, images, audio — ingested, OCR'd, transcribed, and connected into a single knowledge graph.</p>
+      </article>
+      <article id="feat-2" style="opacity:0;background:#FBF8F1;border:1px solid #D8D0BE;padding:30px;box-shadow:0 4px 16px rgba(96,78,48,0.08)">
+        <p style="font:500 11px 'IBM Plex Mono',monospace;color:#0F8A7E;margin:0 0 14px">02 — CITED ANSWERS</p>
+        <h3 style="font:700 21px 'Space Grotesk',sans-serif;letter-spacing:-0.02em;margin:0 0 10px">Nothing without a source</h3>
+        <p style="font:400 14px/1.65 Inter,sans-serif;color:#6B665C;margin:0;text-wrap:pretty">Every claim in every answer links to the exact document, message or recording it came from. Verifiable, not asserted.</p>
+      </article>
+      <article id="feat-3" style="opacity:0;background:#FBF8F1;border:1px solid #D8D0BE;padding:30px;box-shadow:0 4px 16px rgba(96,78,48,0.08)">
+        <p style="font:500 11px 'IBM Plex Mono',monospace;color:#0F8A7E;margin:0 0 14px">03 — SOVEREIGN DEPLOY</p>
+        <h3 style="font:700 21px 'Space Grotesk',sans-serif;letter-spacing:-0.02em;margin:0 0 10px">On-prem. Air-gap ready.</h3>
+        <p style="font:400 14px/1.65 Inter,sans-serif;color:#6B665C;margin:0;text-wrap:pretty">Runs entirely inside your infrastructure. Zero egress — verifiable at the network level, not promised in a policy.</p>
+      </article>
+      <article id="feat-4" style="opacity:0;background:#FBF8F1;border:1px solid #D8D0BE;padding:30px;box-shadow:0 4px 16px rgba(96,78,48,0.08)">
+        <p style="font:500 11px 'IBM Plex Mono',monospace;color:#0F8A7E;margin:0 0 14px">04 — LINEAGE</p>
+        <h3 style="font:700 21px 'Space Grotesk',sans-serif;letter-spacing:-0.02em;margin:0 0 10px">One canonical truth</h3>
+        <p style="font:400 14px/1.65 Inter,sans-serif;color:#6B665C;margin:0;text-wrap:pretty">Duplicates merge into a single version with full history. No more _final_v4 (copy).</p>
+      </article>
+    </div>
+  </section>
+
+  <section data-scene="proof" data-screen-label="06 Proof" style="height:100vh;display:flex;align-items:center;justify-content:center">
+    <div style="display:flex;gap:clamp(40px,7vw,110px);flex-wrap:wrap;justify-content:center;padding:48px;background:radial-gradient(closest-side, rgba(243,238,227,0.9) 55%, rgba(243,238,227,0))">
+      <div style="text-align:center">
+        <div style="font:700 clamp(40px,4.6vw,64px) 'Space Grotesk',sans-serif;letter-spacing:-0.03em"><span data-count="2400000">0</span></div>
+        <p style="font:400 12px/1.5 'IBM Plex Mono',monospace;color:#6B665C;margin:8px 0 0;max-width:200px">artifacts indexed in a median deployment</p>
+      </div>
+      <div style="text-align:center">
+        <div style="font:700 clamp(40px,4.6vw,64px) 'Space Grotesk',sans-serif;letter-spacing:-0.03em;color:#D8315B"><span data-count="0">0</span></div>
+        <p style="font:400 12px/1.5 'IBM Plex Mono',monospace;color:#6B665C;margin:8px 0 0;max-width:200px">bytes of data egress — ever</p>
+      </div>
+      <div style="text-align:center">
+        <div style="font:700 clamp(40px,4.6vw,64px) 'Space Grotesk',sans-serif;letter-spacing:-0.03em;color:#0F8A7E"><span data-count="3.1" data-dec="1">0</span>s</div>
+        <p style="font:400 12px/1.5 'IBM Plex Mono',monospace;color:#6B665C;margin:8px 0 0;max-width:200px">median time to a cited answer</p>
+      </div>
+    </div>
+  </section>
+
+  <section data-scene="cta" id="cta" data-screen-label="07 CTA" style="height:160vh;position:relative">
+    <div style="position:sticky;top:0;height:100vh;display:grid;place-items:center;text-align:center">
+      <div style="max-width:760px;padding:48px;background:radial-gradient(closest-side, rgba(243,238,227,0.9) 50%, rgba(243,238,227,0))">
+        <h2 data-decode="1" style="font:700 clamp(36px,5vw,72px)/1.02 'Space Grotesk',sans-serif;letter-spacing:-0.035em;margin:0;text-wrap:balance">Give your company its brain back.</h2>
+        <sc-if value="{{ notSubmitted }}" hint-placeholder-val="{{ true }}">
+          <form onSubmit="{{ onSubmit }}" style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:36px">
+            <input type="email" required placeholder="work email" aria-label="Work email" style="font:400 15px 'IBM Plex Mono',monospace;color:#1C1B18;background:transparent;border:none;border-bottom:1.5px solid #1C1B18;padding:12px 4px;width:min(300px,80vw);outline-color:#0F8A7E"></input>
+            <button type="submit" data-magnetic="1" style="font:600 15px Inter,sans-serif;color:#FBF8F1;background:#D8315B;border:none;padding:14px 30px;cursor:pointer" style-hover="background:#1C1B18">Request a demo</button>
+          </form>
+        </sc-if>
+        <sc-if value="{{ submitted }}" hint-placeholder-val="{{ false }}">
+          <p style="font:500 14px 'IBM Plex Mono',monospace;color:#0F8A7E;margin-top:40px">▸ request received — we'll reach out. data egress: still 0 bytes.</p>
+        </sc-if>
+        <p style="font:400 11px 'IBM Plex Mono',monospace;letter-spacing:.1em;color:#6B665C;margin-top:26px">FULLY ON-PREM · EVERY ANSWER CITED · DATA EGRESS: 0 BYTES</p>
+      </div>
+    </div>
+  </section>
+
+  <footer data-screen-label="Footer" style="position:relative;z-index:1;background:#E8E1D2;border-top:1px solid #D8D0BE;padding:52px 8vw 40px">
+    <div style="display:flex;justify-content:space-between;gap:32px;flex-wrap:wrap;align-items:flex-start">
+      <div>
+        <div style="display:flex;align-items:center;gap:9px"><div style="width:11px;height:11px;background:#0F8A7E"></div><span style="font:700 16px 'Space Grotesk',sans-serif;letter-spacing:-0.02em">CompBrain</span></div>
+        <p style="font:400 11px/1.8 'IBM Plex Mono',monospace;color:#6B665C;margin:14px 0 0">system nominal — data egress: 0 bytes</p>
+      </div>
+      <nav aria-label="Footer" style="display:flex;gap:28px;flex-wrap:wrap">
+        <a href="#" style="font:400 13px Inter,sans-serif;color:#6B665C">Product</a>
+        <a href="#" style="font:400 13px Inter,sans-serif;color:#6B665C">Security</a>
+        <a href="#" style="font:400 13px Inter,sans-serif;color:#6B665C">Pricing</a>
+        <a href="#" style="font:400 13px Inter,sans-serif;color:#6B665C">About</a>
+        <a href="#" style="font:400 13px Inter,sans-serif;color:#6B665C">Contact</a>
+      </nav>
+    </div>
+    <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;border-top:1px solid #D8D0BE;margin-top:36px;padding-top:18px;font:400 11px 'IBM Plex Mono',monospace;color:#6B665C">
+      <span>© 2026 CompBrain, Inc.</span>
+      <span><a href="#" style="color:#6B665C">Privacy</a> · <a href="#" style="color:#6B665C">Terms</a></span>
+    </div>
+  </footer>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;swarmDensity&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:64,&quot;min&quot;:20,&quot;max&quot;:120,&quot;step&quot;:2,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Swarm&quot;},&quot;edgeOpacity&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:0.7,&quot;min&quot;:0.2,&quot;max&quot;:1,&quot;step&quot;:0.05,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Swarm&quot;},&quot;showTelemetry&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Chrome&quot;}}">
+class Component extends DCLogic {
+  state = { submitted: false };
+  componentDidMount() { this.boot(); }
+  async boot() {
+    try {
+      const m = await import('./swarm.js');
+      this.engine = m.createEngine({
+        canvas: document.getElementById('swarm-canvas'),
+        count: this.props.swarmDensity ?? (innerWidth < 760 ? 26 : 64),
+        edgeOpacity: this.props.edgeOpacity ?? 0.7
+      });
+    } catch (e) { console.error('swarm init failed', e); }
+    this.initDecode(); this.initMagnetic(); this.syncTelemetry();
+    this.onRs = () => this.syncTelemetry();
+    addEventListener('resize', this.onRs);
+  }
+  componentDidUpdate() {
+    if (this.engine) this.engine.setConfig({ count: this.props.swarmDensity ?? 64, edgeOpacity: this.props.edgeOpacity ?? 0.7 });
+    this.syncTelemetry();
+  }
+  componentWillUnmount() {
+    if (this.engine) this.engine.destroy();
+    if (this.io) this.io.disconnect();
+    removeEventListener('mousemove', this.mm);
+    removeEventListener('resize', this.onRs);
+  }
+  syncTelemetry() {
+    const t = document.getElementById('telemetry');
+    if (t) t.style.display = (this.props.showTelemetry ?? true) && innerWidth > 860 ? 'block' : 'none';
+  }
+  initDecode() {
+    const CH = '█▓▒░<>/#+=';
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.io = new IntersectionObserver(es => es.forEach(en => {
+      if (!en.isIntersecting) return;
+      const el = en.target; this.io.unobserve(el);
+      if (reduced) return;
+      const orig = el.dataset.text, n = orig.length;
+      let i = 0;
+      const iv = setInterval(() => {
+        i += Math.max(1, Math.ceil(n / 20));
+        el.textContent = orig.slice(0, i) + orig.slice(i).replace(/\S/g, () => CH[Math.floor(Math.random() * CH.length)]);
+        if (i >= n) { clearInterval(iv); el.textContent = orig; }
+      }, 40);
+    }), { threshold: 0.4 });
+    document.querySelectorAll('[data-decode]').forEach(el => { el.dataset.text = el.textContent; this.io.observe(el); });
+  }
+  initMagnetic() {
+    const btns = Array.from(document.querySelectorAll('[data-magnetic]'));
+    this.mm = e => {
+      for (const b of btns) {
+        const r = b.getBoundingClientRect();
+        const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+        const d = Math.hypot(dx, dy);
+        b.style.transform = d < 110 ? 'translate(' + dx * 0.16 + 'px,' + dy * 0.16 + 'px)' : '';
+        b.style.transition = 'transform .18s ease-out';
+      }
+    };
+    addEventListener('mousemove', this.mm, { passive: true });
+  }
+  renderVals() {
+    return {
+      submitted: this.state.submitted,
+      notSubmitted: !this.state.submitted,
+      onSubmit: e => { e.preventDefault(); this.setState({ submitted: true }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

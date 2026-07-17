@@ -41,9 +41,7 @@ export function Proof() {
             </h2>
           </div>
 
-          <p className="plate mt-8 max-w-measure p-5 text-lg leading-relaxed text-ink-soft">
-            {proof.body}
-          </p>
+          <p className="plate mt-8 max-w-measure p-5 text-body text-ink-soft">{proof.body}</p>
 
           <dl className="mt-20 grid gap-px overflow-hidden rounded-sm border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
             {proof.metrics.map((m) => (

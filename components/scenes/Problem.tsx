@@ -31,7 +31,7 @@ export function Problem() {
             </h2>
           </div>
 
-          <p className="mt-7 max-w-measure text-lg leading-relaxed text-ink-soft">{problem.body}</p>
+          <p className="mt-7 max-w-measure text-body text-ink-soft">{problem.body}</p>
 
           <ul className="mt-12 grid gap-px overflow-hidden rounded-sm border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
             {problem.beats.map((beat) => (

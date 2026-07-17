@@ -46,9 +46,7 @@ export function Hero() {
             ))}
           </h1>
 
-          <p className="mx-auto mt-7 max-w-measure text-lg leading-relaxed text-ink-soft">
-            {hero.sub}
-          </p>
+          <p className="mx-auto mt-7 max-w-measure text-body text-ink-soft">{hero.sub}</p>
         </div>
 
         {/* Telemetry boots. The site's own instrumentation coming online — the
