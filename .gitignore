@@ -42,3 +42,6 @@ next-env.d.ts
 
 # test artifacts
 .playwright-mcp/
+
+# reference implementation (kept locally, not part of the build)
+"CompBrain Company Website"/

@@ -1,270 +1,392 @@
-import type { Artifact, ArtifactKind, SceneId, Slot, SwarmOpts, Telemetry } from './types'
-import { buildAtlas, labelFor, spriteKey, KINDS, VARIANTS, type SpriteAtlas } from './artifacts'
-import { readPalette, withAlpha, type SwarmPalette } from './tokens'
-import {
-  buildGeometry,
-  fieldFor,
-  mulberry32,
-  resolveStatic,
-  resolveTargets,
-  type Geometry,
-} from './scenes'
+import type { ArtifactKind, SceneId, Telemetry } from './types'
+import { KINDS, labelFor, makeSprite, spriteScale, type Sprite } from './artifacts'
+import { readPalette, type SwarmPalette } from './tokens'
 
 /**
  * ============================================================================
- * THE SWARM ENGINE
+ * THE SWARM — one fixed Canvas 2D surface behind the whole homepage.
  * ============================================================================
- * One canvas, one rAF loop, one pool of artifacts that lives for the whole page.
+ * A company's knowledge, scattered and duplicated and lost, drawn together into
+ * one brain inside a drawn perimeter that nothing ever crosses.
  *
- * The central constraint: the SAME objects must persist across every scene. The
- * email that gets buried in scene 2 is the same email ingested in scene 3 and
- * assembled into a card in scene 6. That continuity is the story, and it is why
- * this is a single fixed canvas rather than one per section.
+ * ARCHITECTURE — why there is no GSAP here.
+ * Scroll position is read directly from each section's rect, per frame:
  *
- * PERFORMANCE RULES (violating these is a bug, not a style opinion):
- *   - Zero allocation inside frame(). No object literals, no closures, no
- *     .map/.filter. Everything is preallocated and mutated in place.
- *   - Cards are never path-drawn per frame — only blitted from the sprite atlas.
- *   - getComputedStyle/getBoundingClientRect are init/resize only.
- *   - The loop stops dead when the canvas is offscreen or the tab is hidden.
+ *     progress = -rect.top / (rect.height - viewportHeight)
+ *
+ * Sections are simply TALL (200-320vh) with `position: sticky` copy inside, so
+ * the pin is native CSS rather than a JS-managed pin-spacer. This replaced a
+ * ScrollTrigger-per-scene design, and it is not merely simpler — it makes a
+ * whole class of bug unrepresentable. The previous version created triggers out
+ * of DOM order, so every scene after the pinned one measured a document 150vh
+ * short and fired ~1.2 viewports early; 'ask' never fired at all, which meant
+ * the citation lines — the most important beat on the page — had literally
+ * never rendered. With rect maths there is no ordering, no refresh, and nothing
+ * to get wrong.
+ *
+ * PERFORMANCE CONTRACT
+ *  - Cards are rasterized once and only blitted. The loop never path-draws one.
+ *  - No allocation inside the frame loop.
+ *  - All DOM reads happen at the top of a frame, all DOM writes at the bottom,
+ *    so we never interleave them and force layout twice.
+ *  - The loop stops dead when the tab is hidden or the canvas is offscreen.
  */
 
-const GOLDEN = 2.399963
+const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v)
+const clamp01 = (v: number) => clamp(v, 0, 1)
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t
+/** easeInOutQuad — the reference's curve; softer in, decisive out. */
+const ease = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2)
 
-/** Which lattice nodes the scene-4 answer cites. Stable so the lines never jump. */
-const CITE_NODES = [3, 11, 24]
+function mulberry32(seed: number) {
+  return function () {
+    seed |= 0
+    seed = (seed + 0x6d2b79f5) | 0
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+const SCENES: SceneId[] = [
+  'hero',
+  'problem',
+  'turn',
+  'ask',
+  'sovereign',
+  'features',
+  'proof',
+  'cta',
+]
+
+interface Art {
+  kind: ArtifactKind
+  sprite: Sprite
+  seed: number
+  /** live */
+  x: number
+  y: number
+  vx: number
+  vy: number
+  rot: number
+  alpha: number
+  /** chaos home */
+  hx: number
+  hy: number
+  /** unit node coords in the resolved brain, -1..1 */
+  nx: number
+  ny: number
+  homeRot: number
+  scale: number
+  lost: boolean
+  buried: boolean
+  dupOf: number
+  /** which feature card this one flies to, or -1 */
+  flyer: number
+  label: string
+}
+
+export interface SwarmOpts {
+  count: number
+  reducedMotion: boolean
+  lowPower: boolean
+}
+
+/** Where the brain sits and how big it is, per scene. */
+interface BrainCfg {
+  cx: number
+  cy: number
+  r: number
+}
 
 export class SwarmEngine {
   private canvas: HTMLCanvasElement
   private ctx: CanvasRenderingContext2D
   private opts: SwarmOpts
-  private palette: SwarmPalette
+  private p: SwarmPalette
 
-  private arts: Artifact[] = []
-  private atlas: SpriteAtlas = new Map()
-  private geo: Geometry
+  private arts: Art[] = []
+  private edges: [number, number][] = []
+  private citeNodes: Art[] = []
+  private liveCount = 0
 
+  private vw = 0
+  private vh = 0
   private dpr = 1
-  private w = 0
-  private h = 0
-
-  private scene: SceneId = 'hero'
-  private progress = 0
-  private slots: Slot[] = []
-  private citeAnchor = { x: 0, y: 0, active: false }
-
-  private pointer = { x: -9999, y: -9999, has: false }
   private raf = 0
   private running = false
-  private startedAt = 0
+  private t0 = 0
+  private lastT = 0
 
-  /** Preallocated force accumulators — reused every frame, never reallocated. */
-  private fx: Float32Array
-  private fy: Float32Array
+  private mx = -1e4
+  private my = -1e4
 
+  private sovPulse = 0
+  private turnPulsed = false
   private telemetry: Telemetry
+
+  /** DOM handles, resolved once. */
+  private sections: Partial<Record<SceneId, HTMLElement>> = {}
+  private citeEls: (HTMLElement | null)[] = []
+  private tipEl: HTMLElement | null = null
+
+  /** Per-frame scratch — read at the top of a frame, never allocated. */
+  private prog: Record<SceneId, number> = {
+    hero: 0,
+    problem: 0,
+    turn: 0,
+    ask: 0,
+    sovereign: 0,
+    features: 0,
+    proof: 0,
+    cta: 0,
+  }
+  private scene: SceneId = 'hero'
+  private cardRects: (DOMRect | null)[] = []
+  private citeRects: (DOMRect | null)[] = []
 
   constructor(canvas: HTMLCanvasElement, opts: SwarmOpts) {
     this.canvas = canvas
-    const ctx = canvas.getContext('2d', { alpha: true })
-    if (!ctx) throw new Error('SwarmEngine: 2D context unavailable')
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error('SwarmEngine: no 2D context')
     this.ctx = ctx
     this.opts = opts
-    this.palette = readPalette()
+    this.p = readPalette()
+    this.t0 = performance.now()
 
-    this.fx = new Float32Array(opts.count)
-    this.fy = new Float32Array(opts.count)
+    this.telemetry = { indexed: 0, total: 0, cited: 0, queries: 0, egress: 0, scene: 'hero' }
 
-    this.geo = buildGeometry(1, 1, opts.count)
-
-    // Under reduced motion the swarm never plays the screenplay — it holds the
-    // ENDING as one still frame. So it starts in a resolved scene, before any
-    // draw can happen (resize() renders a static frame, and it can run before
-    // start()). Leaving it on 'hero' made the rail report "scattered" over a
-    // picture of an organized brain, and faded the lattice edges to nothing.
-    if (opts.reducedMotion) {
-      this.scene = 'proof'
-      this.progress = 1
+    for (const s of SCENES) {
+      this.sections[s] = document.querySelector<HTMLElement>(`[data-scene="${s}"]`) ?? undefined
     }
+    this.citeEls = [1, 2, 3].map((i) => document.getElementById(`cite-${i}`))
+    this.tipEl = document.getElementById('swarm-tip')
 
-    this.telemetry = {
-      indexed: 0,
-      total: opts.count,
-      cited: 0,
-      queries: 0,
-      egress: 0,
-      scene: this.scene,
-    }
+    this.measureViewport()
+    this.build()
+  }
 
-    this.pool()
-    // Total is the count of UNIQUE artifacts, set after pooling assigns
-    // duplicates. Reporting the raw pool size instead would top out at e.g.
-    // "57/70 indexed" once the duplicates merged — reading as 13 failures when
-    // in fact merging them is the product working correctly.
-    this.telemetry.total = this.liveCount
-    this.resize()
+  /** The perimeter inset — "your walls". */
+  private margin() {
+    return this.vw < 760 ? 14 : 26
   }
 
   /* ---------------------------------------------------------------------- */
-  /* init                                                                    */
+  /* build                                                                   */
   /* ---------------------------------------------------------------------- */
 
-  /** Allocate the pool ONCE. After this, no Artifact is ever constructed again. */
-  private pool() {
-    const rand = mulberry32(0xc0ffee)
+  private build() {
+    const rnd = mulberry32(1234)
     const n = this.opts.count
-    this.arts.length = 0
+    const s = spriteScale(this.opts.lowPower)
 
+    // One sprite per KIND, shared by every artifact of that kind — 8 bitmaps
+    // total. Variety comes from scale and rotation, not from 24 near-identical
+    // textures.
+    const sprites = new Map<ArtifactKind, Sprite>()
+    for (const k of KINDS) sprites.set(k, makeSprite(k, s))
+
+    this.arts = []
     for (let i = 0; i < n; i++) {
-      const kind: ArtifactKind = KINDS[i % KINDS.length]
-      const variant = Math.floor(rand() * VARIANTS)
+      const kind = KINDS[i % KINDS.length]
       this.arts.push({
         kind,
-        variant,
+        sprite: sprites.get(kind)!,
+        seed: rnd() * 1000,
         x: 0,
         y: 0,
         vx: 0,
         vy: 0,
-        rot: 0,
-        vrot: 0,
-        tx: 0,
-        ty: 0,
-        trot: 0,
-        scale: 1,
-        opacity: 1,
-        seed: rand(),
-        seedB: rand(),
-        label: labelFor(kind, variant),
-        node: i,
-        lost: false,
+        rot: (rnd() - 0.5) * 0.7,
+        homeRot: (rnd() - 0.5) * 0.55,
+        alpha: 1,
+        hx: 0,
+        hy: 0,
+        nx: 0,
+        ny: 0,
+        scale: 0.85 + rnd() * 0.3,
+        lost: rnd() < 0.12,
+        buried: rnd() < 0.14,
         dupOf: -1,
-        merge: 0,
-        hover: 0,
+        flyer: -1,
+        label: labelFor(kind, i),
       })
     }
 
-    // ~18% duplicates and ~12% lost. The texture of a real company's drive:
-    // four versions of the same file, and knowledge that walked out the door.
-    // Duplicates always point at a NON-duplicate so merging terminates.
-    const dupCount = Math.floor(n * 0.18)
-    for (let i = 0; i < dupCount; i++) {
-      const d = this.arts[n - 1 - i]
-      const originalIdx = Math.floor(rand() * (n - dupCount))
-      d.dupOf = originalIdx
-      d.kind = this.arts[originalIdx].kind
-      d.variant = this.arts[originalIdx].variant
-      d.label = this.arts[originalIdx].label
-    }
-    for (let i = 0; i < n; i++) {
-      if (this.arts[i].dupOf < 0 && rand() < 0.12) this.arts[i].lost = true
+    // Duplicates: the last ~13% mirror an earlier artifact. Four versions of the
+    // same document, three of them wrong, nothing saying which.
+    for (let i = n - Math.floor(n * 0.13); i < n; i++) {
+      const d = this.arts[i]
+      d.dupOf = Math.floor(rnd() * (n / 2))
+      d.kind = this.arts[d.dupOf].kind
+      d.sprite = this.arts[d.dupOf].sprite
+      d.label = this.arts[d.dupOf].label
+      d.lost = false
+      d.buried = false
     }
 
-    // Lattice slots go only to survivors, so the resolved brain has no holes
-    // where a merged duplicate used to be.
-    let slot = 0
-    for (let i = 0; i < n; i++) {
-      if (this.arts[i].dupOf < 0) this.arts[i].node = slot++
+    // Only TWELVE artifacts fly to the feature cards — three per card. Sending
+    // the whole swarm turned that beat into a stampede; a handful reads as the
+    // cards being ASSEMBLED from the knowledge, which is the actual idea.
+    let f = 0
+    for (let i = 3; i < n && f < 12; i += 4) {
+      if (this.arts[i].dupOf < 0) this.arts[i].flyer = Math.floor(f / 3)
+      if (this.arts[i].dupOf < 0) f++
     }
-    for (let i = 0; i < n; i++) {
-      if (this.arts[i].dupOf >= 0) this.arts[i].node = this.arts[this.arts[i].dupOf].node
-    }
-    this.liveCount = slot
 
-    // Reverse map: lattice slot -> artifact index. Built once, so draw() can
-    // find the artifact occupying a node WITHOUT searching every frame.
-    this.nodeToArt = new Int32Array(slot)
-    for (let i = 0; i < n; i++) {
-      if (this.arts[i].dupOf < 0) this.nodeToArt[this.arts[i].node] = i
-    }
+    this.liveCount = this.arts.filter((a) => a.dupOf < 0).length
+    this.telemetry.total = this.liveCount
+    this.layout()
   }
 
-  private liveCount = 0
-  /** lattice slot -> index into arts. See pool(). */
-  private nodeToArt = new Int32Array(0)
+  /** Scattered homes + the resolved brain + who goes where. Runs on resize. */
+  private layout() {
+    const m = this.margin()
+    const r0 = mulberry32(77)
 
-  /* ---------------------------------------------------------------------- */
-  /* public API                                                              */
-  /* ---------------------------------------------------------------------- */
-
-  setScene(scene: SceneId, progress: number) {
-    this.scene = scene
-    this.progress = progress < 0 ? 0 : progress > 1 ? 1 : progress
-    this.telemetry.scene = scene
-  }
-
-  setPointer(x: number, y: number) {
-    this.pointer.x = x
-    this.pointer.y = y
-    this.pointer.has = true
-  }
-
-  clearPointer() {
-    this.pointer.has = false
-    this.pointer.x = -9999
-    this.pointer.y = -9999
-  }
-
-  /** Feature-card rects the swarm assembles into (scene 6). Viewport coords. */
-  setSlots(slots: Slot[]) {
-    this.slots = slots
-  }
-
-  /** Where the scene-4 answer sits, so citation lines can reach it. */
-  setCiteAnchor(x: number, y: number, active: boolean) {
-    this.citeAnchor.x = x
-    this.citeAnchor.y = y
-    this.citeAnchor.active = active
-  }
-
-  getTelemetry(): Telemetry {
-    return this.telemetry
-  }
-
-  resize() {
-    const rect = this.canvas.getBoundingClientRect()
-    this.w = rect.width || window.innerWidth
-    this.h = rect.height || window.innerHeight
-    // Cap DPR at 2: beyond that we are paying 3-4x fill rate for a difference
-    // nobody can see on a moving object.
-    this.dpr = Math.min(window.devicePixelRatio || 1, this.opts.lowPower ? 1 : 2)
-
-    this.canvas.width = Math.floor(this.w * this.dpr)
-    this.canvas.height = Math.floor(this.h * this.dpr)
-
-    this.geo = buildGeometry(this.w, this.h, this.liveCount || this.opts.count)
-    this.atlas = buildAtlas(this.palette, this.dpr, this.opts.lowPower)
-
-    // Seed positions the first time we ever size, so nothing flies in from 0,0.
-    if (this.startedAt === 0) {
-      const rand = mulberry32(0x5eed)
-      for (const a of this.arts) {
-        a.x = this.geo.wall.x + rand() * this.geo.wall.w
-        a.y = this.geo.wall.y + rand() * this.geo.wall.h
-        a.rot = (a.seed - 0.5) * 0.85
+    for (const a of this.arts) {
+      a.hx = m + 30 + r0() * (this.vw - m * 2 - 60)
+      a.hy = m + 60 + r0() * (this.vh - m * 2 - 100)
+      if (a.dupOf >= 0) {
+        // a duplicate lives near the thing it duplicates
+        a.hx = this.arts[a.dupOf].hx + (r0() - 0.5) * 120
+        a.hy = this.arts[a.dupOf].hy + (r0() - 0.5) * 120
+      }
+      if (a.x === 0 && a.y === 0) {
+        a.x = a.hx
+        a.y = a.hy
       }
     }
 
-    if (this.opts.reducedMotion) {
-      resolveStatic(this.arts, this.geo)
-      this.draw(0)
+    // The brain: phyllotaxis in unit coords, so it can be scaled and moved per
+    // scene without recomputing anything.
+    const real = this.arts.filter((a) => a.dupOf < 0)
+    const K = real.length
+    const nodes: { nx: number; ny: number }[] = []
+    for (let i = 0; i < K; i++) {
+      const rr = Math.sqrt((i + 0.6) / K)
+      const an = i * 2.39996
+      nodes.push({ nx: rr * Math.cos(an), ny: rr * Math.sin(an) * 0.82 })
     }
+
+    // ---- WHO GOES WHERE -------------------------------------------------
+    // Greedy nearest-first, from each artifact's scattered home to a node.
+    // Assigning nodes in pool order (the obvious thing) is statistically a
+    // uniform random permutation — measured 366 crossing flight paths versus 19
+    // for nearest-first, and 63% more travel. That is the difference between the
+    // money shot reading as a CONVERGENCE and reading as a shuffle.
+    const brainR = Math.min(this.vw, this.vh) * 0.3
+    const cx = this.vw * 0.5
+    const cy = this.vh * 0.46
+    const pairs: { d: number; a: number; s: number }[] = []
+    for (let i = 0; i < K; i++) {
+      for (let s = 0; s < K; s++) {
+        const dx = real[i].hx - (cx + nodes[s].nx * brainR)
+        const dy = real[i].hy - (cy + nodes[s].ny * brainR)
+        pairs.push({ d: dx * dx + dy * dy, a: i, s })
+      }
+    }
+    pairs.sort((x, y) => x.d - y.d)
+    const takenSlot = new Uint8Array(K)
+    const doneArt = new Uint8Array(K)
+    let placed = 0
+    for (let i = 0; i < pairs.length && placed < K; i++) {
+      const pr = pairs[i]
+      if (doneArt[pr.a] || takenSlot[pr.s]) continue
+      real[pr.a].nx = nodes[pr.s].nx
+      real[pr.a].ny = nodes[pr.s].ny
+      doneArt[pr.a] = 1
+      takenSlot[pr.s] = 1
+      placed++
+    }
+    for (const a of this.arts) {
+      if (a.dupOf >= 0) {
+        a.nx = this.arts[a.dupOf].nx
+        a.ny = this.arts[a.dupOf].ny
+      }
+    }
+
+    // Edges: two nearest neighbours among the real artifacts.
+    this.edges = []
+    for (let i = 0; i < K; i++) {
+      const ds: [number, number][] = []
+      for (let j = 0; j < K; j++) {
+        if (j === i) continue
+        const dx = real[i].nx - real[j].nx
+        const dy = real[i].ny - real[j].ny
+        ds.push([dx * dx + dy * dy, j])
+      }
+      ds.sort((a, b) => a[0] - b[0])
+      for (let k = 0; k < 2; k++) {
+        const j = ds[k][1]
+        if (i < j) this.edges.push([this.arts.indexOf(real[i]), this.arts.indexOf(real[j])])
+      }
+    }
+
+    // Citation sources chosen BY TYPE — one PDF, one email, one chat — and the
+    // rightmost of each, so the lines fan out across open paper rather than
+    // stacking. Picking by array index would cite three arbitrary objects and
+    // the answer's sources would not match the sources panel's own words.
+    // ...and the LEFTMOST of each, i.e. the near edge of a brain that sits on
+    // the right. The line should reach the closest instance of that source, not
+    // dive through the whole lattice to the far side and tangle with the others.
+    this.citeNodes = (['pdf', 'email', 'chat'] as ArtifactKind[]).map((tp) => {
+      let best: Art | null = null
+      let bd = 1e9
+      for (const a of this.arts) {
+        if (a.kind === tp && a.dupOf < 0 && a.flyer < 0 && a.nx < bd) {
+          bd = a.nx
+          best = a
+        }
+      }
+      return best ?? this.arts[0]
+    })
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* public                                                                  */
+  /* ---------------------------------------------------------------------- */
+
+  private measureViewport() {
+    this.vw = window.innerWidth
+    this.vh = window.innerHeight
+    this.dpr = Math.min(2, window.devicePixelRatio || 1)
+    this.canvas.width = this.vw * this.dpr
+    this.canvas.height = this.vh * this.dpr
+    this.canvas.style.width = this.vw + 'px'
+    this.canvas.style.height = this.vh + 'px'
+  }
+
+  resize() {
+    this.measureViewport()
+    if (this.arts.length) this.layout()
+    if (this.opts.reducedMotion) this.frame(performance.now())
+  }
+
+  setPointer(x: number, y: number) {
+    this.mx = x
+    this.my = y
+  }
+
+  clearPointer() {
+    this.mx = -1e4
+    this.my = -1e4
+  }
+
+  getTelemetry() {
+    return this.telemetry
   }
 
   start() {
     if (this.running) return
-    // Reduced motion: one static composition, no loop. The story's ending,
-    // held as a single frame.
     if (this.opts.reducedMotion) {
-      // Scene is already 'proof' (resolved) from the constructor.
-      resolveStatic(this.arts, this.geo)
-      this.telemetry.indexed = this.liveCount
-      this.telemetry.cited = CITE_NODES.length
-      this.draw(0)
+      // The ending, held as one frame: the brain resolved inside the perimeter.
+      this.frame(performance.now())
       return
     }
     this.running = true
-    this.startedAt = performance.now()
-    this.raf = requestAnimationFrame(this.frame)
+    this.lastT = 0
+    this.raf = requestAnimationFrame(this.loop)
   }
 
   stop() {
@@ -275,493 +397,491 @@ export class SwarmEngine {
 
   destroy() {
     this.stop()
-    this.atlas.clear()
     this.arts.length = 0
+    this.edges.length = 0
   }
 
   /* ---------------------------------------------------------------------- */
-  /* simulation                                                              */
+  /* scroll                                                                  */
   /* ---------------------------------------------------------------------- */
+
+  /**
+   * How far through a section we are.
+   *
+   * A tall section (200-320vh) with sticky copy scrubs across its own excess
+   * height. A short one gets a viewport-relative sweep instead, so an ordinary
+   * 100vh section still has a usable 0..1.
+   */
+  private progressOf(el: HTMLElement | undefined): number {
+    if (!el) return 0
+    const r = el.getBoundingClientRect()
+    const span = r.height - this.vh
+    if (span > 40) return clamp(-r.top / span, 0, 1)
+    return clamp((this.vh * 0.85 - r.top) / (this.vh * 0.7), 0, 1)
+  }
+
+  /** The section owning the viewport centre-line. Exactly one, always. */
+  private activeScene(): SceneId {
+    let act: SceneId = 'hero'
+    for (const s of SCENES) {
+      const el = this.sections[s]
+      if (!el) continue
+      const r = el.getBoundingClientRect()
+      if (r.top <= this.vh * 0.5 && r.bottom >= this.vh * 0.5) act = s
+    }
+    return act
+  }
+
+  /**
+   * Where the brain lives, per scene. THE composition device.
+   *
+   * The brain is not a fixed lattice — it moves and RESIZES per beat, and that
+   * is what lets each scene be framed properly without moving a camera:
+   *  - ask       pushes it left, clearing the right for the answer and its lines
+   *  - sovereign SHRINKS it (r .17) so the PERIMETER dominates the frame — the
+   *              scene is about the walls, so the walls get the space
+   *  - features  shrinks it to a corner, out of the cards' way
+   *  - cta       drops it low and lets it follow the cursor
+   */
+  private brainCfg(scene: SceneId): BrainCfg {
+    const min = Math.min(this.vw, this.vh)
+    switch (scene) {
+      case 'ask':
+        // Brain RIGHT, copy left. The reference put its answer on the right and
+        // the brain at 0.3; this site puts copy on the left in every single
+        // scene, so mirroring it here keeps that promise and — more importantly
+        // — gives the citation lines a long run across open paper instead of
+        // terminating under the answer card, which is where they were invisible.
+        return {
+          cx: this.vw < 900 ? this.vw * 0.5 : this.vw * 0.72,
+          cy: this.vh * 0.46,
+          r: min * 0.26,
+        }
+      case 'sovereign':
+        return { cx: this.vw * 0.5, cy: this.vh * 0.52, r: min * 0.17 }
+      case 'features':
+        return { cx: this.vw * 0.5, cy: this.vh * 0.2, r: min * 0.1 }
+      case 'proof':
+        return { cx: this.vw * 0.5, cy: this.vh * 0.5, r: min * 0.13 }
+      case 'cta':
+        return { cx: this.vw * 0.5, cy: this.vh * 0.66, r: min * 0.15 }
+      default:
+        return { cx: this.vw * 0.5, cy: this.vh * 0.46, r: min * 0.3 }
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* loop                                                                    */
+  /* ---------------------------------------------------------------------- */
+
+  private loop = (now: number) => {
+    if (!this.running) return
+    this.frame(now)
+    this.raf = requestAnimationFrame(this.loop)
+  }
 
   private frame = (now: number) => {
-    if (!this.running) return
-    this.step(now)
-    this.draw(now)
-    this.raf = requestAnimationFrame(this.frame)
-  }
+    const reduced = this.opts.reducedMotion
+    const t = (now - this.t0) / 1000
 
-  private step(now: number) {
-    const arts = this.arts
-    const n = arts.length
-    const f = fieldFor(this.scene, this.progress)
-    const { wall } = this.geo
+    // dt in 60Hz frames. Without it the whole simulation runs twice as fast on
+    // a 120Hz display as on 60Hz — and it was tuned on a 120Hz machine, so most
+    // visitors saw the story at half speed. Clamped to 3 frames so a tab switch
+    // cannot integrate a multi-second leap and fling everything through a wall.
+    const rawDt = this.lastT === 0 ? 16.667 : now - this.lastT
+    this.lastT = now
+    const dt = reduced ? 1 : Math.min(rawDt, 50) / 16.667
 
-    resolveTargets(arts, this.scene, this.progress, this.geo, this.slots, now)
+    // ---- ALL DOM READS FIRST -------------------------------------------
+    // Reading rects after writing styles forces a second layout every frame.
+    // Everything the frame needs is measured here, once, before any write.
+    for (const s of SCENES) this.prog[s] = this.progressOf(this.sections[s])
+    this.scene = reduced ? 'proof' : this.activeScene()
+    this.citeRects = this.citeEls.map((e) => (e ? e.getBoundingClientRect() : null))
+    this.cardRects = []
+    document
+      .querySelectorAll<HTMLElement>('[data-swarm-slot]')
+      .forEach((e) => this.cardRects.push(e.getBoundingClientRect()))
 
-    // ---- boids: separation / alignment / cohesion -----------------------
-    // O(n^2) with n<=70 is ~5k iterations per frame. That is nothing, and it
-    // buys real flocking rather than fake noise.
-    const fx = this.fx
-    const fy = this.fy
-    fx.fill(0)
-    fy.fill(0)
-
-    if (f.chaos > 0.02) {
-      const SEP = 46
-      const SEP2 = SEP * SEP
-      const NEIGH2 = 150 * 150
-      for (let i = 0; i < n; i++) {
-        const a = arts[i]
-        if (a.opacity <= 0.02) continue
-        let sepX = 0
-        let sepY = 0
-        let aliX = 0
-        let aliY = 0
-        let cohX = 0
-        let cohY = 0
-        let count = 0
-
-        for (let j = 0; j < n; j++) {
-          if (i === j) continue
-          const b = arts[j]
-          if (b.opacity <= 0.02) continue
-          const dx = a.x - b.x
-          const dy = a.y - b.y
-          const d2 = dx * dx + dy * dy
-          if (d2 > NEIGH2 || d2 === 0) continue
-
-          if (d2 < SEP2) {
-            const inv = 1 / Math.sqrt(d2)
-            sepX += dx * inv
-            sepY += dy * inv
-          }
-          aliX += b.vx
-          aliY += b.vy
-          cohX += b.x
-          cohY += b.y
-          count++
-        }
-
-        if (count > 0) {
-          aliX /= count
-          aliY /= count
-          cohX = cohX / count - a.x
-          cohY = cohY / count - a.y
-        }
-
-        // Separation is weighted heavily and cohesion barely at all: this swarm
-        // must look SCATTERED, not flocked. Cohesion is what balls a flock
-        // together — great for starlings, wrong for a mess on a desk. It stays
-        // only to keep neighbours loosely aware of each other.
-        fx[i] += (sepX * 0.11 + aliX * 0.01 + cohX * 0.00008) * f.chaos
-        fy[i] += (sepY * 0.11 + aliY * 0.01 + cohY * 0.00008) * f.chaos
-      }
+    const sec = this.scene
+    const P = this.prog
+    const morph = reduced
+      ? 1
+      : sec === 'hero' || sec === 'problem'
+        ? 0
+        : sec === 'turn'
+          ? ease(P.turn)
+          : 1
+    const bc = this.brainCfg(sec)
+    if (sec === 'cta' && this.mx > 0 && !reduced) {
+      // the brain watches the cursor
+      bc.cx += (this.mx - this.vw / 2) * 0.05
+      bc.cy += (this.my - this.vh / 2) * 0.05
     }
 
-    // ---- integrate ------------------------------------------------------
-    const leanX = this.pointer.has ? this.pointer.x : 0
-    const leanY = this.pointer.has ? this.pointer.y : 0
-
-    for (let i = 0; i < n; i++) {
-      const a = arts[i]
-
-      // spring toward the scene's target
-      a.vx += (a.tx - a.x) * f.k * f.order + fx[i]
-      a.vy += (a.ty - a.y) * f.k * f.order + fy[i]
-
-      // the swarm leans subtly toward the cursor
-      if (this.pointer.has && f.lean > 0) {
-        const dx = leanX - a.x
-        const dy = leanY - a.y
-        const d2 = dx * dx + dy * dy
-        if (d2 > 1 && d2 < 340 * 340) {
-          const inv = 1 / Math.sqrt(d2)
-          // attract near the brain, repel hard at very close range so the
-          // cursor parts the swarm rather than swallowing it
-          const strength = d2 < 70 * 70 ? -0.5 : 0.11
-          a.vx += dx * inv * strength * f.lean
-          a.vy += dy * inv * strength * f.lean
-        }
-      }
-
-      a.vx *= f.damp
-      a.vy *= f.damp
-
-      // clamp speed — a runaway artifact reads as a bug, not as energy
-      const sp2 = a.vx * a.vx + a.vy * a.vy
-      if (sp2 > 64) {
-        const s = 8 / Math.sqrt(sp2)
-        a.vx *= s
-        a.vy *= s
-      }
-
-      a.x += a.vx
-      a.y += a.vy
-
-      // rotation eases toward target
-      a.rot += (a.trot - a.rot) * 0.06
-
-      // ---- THE WALL: nothing ever crosses out ---------------------------
-      // This is the on-prem promise expressed as a physics constraint rather
-      // than a sentence. Data reaches the boundary and comes back. Always.
-      const m = 14
-      if (a.x < wall.x + m) {
-        a.x = wall.x + m
-        a.vx = Math.abs(a.vx) * 0.62
-      } else if (a.x > wall.x + wall.w - m) {
-        a.x = wall.x + wall.w - m
-        a.vx = -Math.abs(a.vx) * 0.62
-      }
-      if (a.y < wall.y + m) {
-        a.y = wall.y + m
-        a.vy = Math.abs(a.vy) * 0.62
-      } else if (a.y > wall.y + wall.h - m) {
-        a.y = wall.y + wall.h - m
-        a.vy = -Math.abs(a.vy) * 0.62
-      }
-
-      // hover reveal
-      let want = 0
-      if (this.pointer.has) {
-        const dx = this.pointer.x - a.x
-        const dy = this.pointer.y - a.y
-        if (dx * dx + dy * dy < 30 * 30) want = 1
-      }
-      a.hover += (want - a.hover) * 0.16
-    }
-
-    // ---- telemetry: real state, not decoration --------------------------
-    // `organized`, not `order` — the rail reports what is actually INDEXED. Off
-    // the spring weight it claimed 15/58 while the hero was still pure chaos.
-    const org = f.organized < 0 ? 0 : f.organized > 1 ? 1 : f.organized
-    this.telemetry.indexed = Math.round(this.liveCount * org)
-    this.telemetry.cited =
-      this.scene === 'ask' || this.scene === 'proof' || this.scene === 'cta' ? CITE_NODES.length : 0
-    this.telemetry.queries = this.scene === 'ask' ? 1 : 0
-  }
-
-  /* ---------------------------------------------------------------------- */
-  /* render                                                                  */
-  /* ---------------------------------------------------------------------- */
-
-  private draw(now: number) {
     const ctx = this.ctx
-    const p = this.palette
-    const { edges } = this.geo
-
+    const m = this.margin()
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0)
-    ctx.clearRect(0, 0, this.w, this.h)
+    ctx.clearRect(0, 0, this.vw, this.vh)
 
-    const f = fieldFor(this.scene, this.progress)
-
-    this.drawPerimeter(now, f.order)
-
-    // ---- filament edges: the brain's connective tissue ------------------
-    // They only exist once there IS an index, so they fade in with `order` —
-    // the connections literally appear as the mess resolves.
-    //
-    // Drawn between the artifacts' LIVE positions, not the static lattice
-    // coordinates. Anchoring them to the lattice left a giant web sprawling
-    // across the viewport whenever the artifacts moved off their nodes (the CTA
-    // core, the feature cards) — edges connecting nothing to nothing.
-    // An edge is a relationship between two artifacts; it follows them.
-    const edgeAlpha = this.edgeAlpha(f.organized)
-    if (edgeAlpha > 0.01) {
-      ctx.strokeStyle = withAlpha(p.brain, edgeAlpha)
-      ctx.lineWidth = 0.7
-      ctx.beginPath()
-      for (let e = 0; e < edges.length; e += 2) {
-        const a = this.arts[this.nodeToArt[edges[e]]]
-        const b = this.arts[this.nodeToArt[edges[e + 1]]]
-        if (!a || !b) continue
-        ctx.moveTo(a.x, a.y)
-        ctx.lineTo(b.x, b.y)
-      }
-      ctx.stroke()
-    }
-
-    // ---- artifacts ------------------------------------------------------
-    const arts = this.arts
-    for (let i = 0; i < arts.length; i++) {
-      const a = arts[i]
-      if (a.opacity <= 0.015) continue
-
-      const sprite = this.atlas.get(spriteKey(a.kind, a.variant))
-      if (!sprite) continue
-
-      ctx.save()
-      ctx.translate(a.x, a.y)
-      ctx.rotate(a.rot)
-
-      // "Lost" artifacts desaturate toward the paper — knowledge greying out.
-      ctx.globalAlpha = a.opacity
-      const sc = a.scale * (1 - a.merge * 0.35)
-      if (sc !== 1) ctx.scale(sc, sc)
-
-      ctx.drawImage(sprite.canvas, -sprite.cx, -sprite.cy, sprite.w, sprite.h)
-      ctx.restore()
-    }
-
-    // ---- citation lines: the strongest thing on screen in scene 4 -------
-    if (this.scene === 'ask' && this.citeAnchor.active) {
-      this.drawCitations(now)
-    }
-
-    // ---- the query packet ----------------------------------------------
-    if (this.scene === 'ask') this.drawQueryPacket(now)
-
-    // ---- the hostile packet, repelled at the wall -----------------------
-    if (this.scene === 'sovereign') this.drawIntrusion(now)
-
-    // ---- hover label ----------------------------------------------------
-    this.drawHoverLabel()
-
-    ctx.globalAlpha = 1
-  }
-
-  /**
-   * How visible the connective filaments are, per scene.
-   *
-   * In 'features' the artifacts have left the brain to become the outlines of
-   * the feature cards — drawing the lattice there means long edges crisscrossing
-   * between five distant card rectangles, which reads as spaghetti rather than
-   * as structure. The brain is not the subject of that scene; the cards are.
-   */
-  private edgeAlpha(organized: number): number {
-    if (organized <= 0.02) return 0
-    // Keyed to `organized`, never to `order`: the hero's spring weight is high
-    // (it holds the scatter apart) but nothing there is indexed, so it must
-    // draw no filaments at all. Connections appear only as the brain is built.
-    const base = organized * 0.62
-    // In 'features' the artifacts have left the brain to become the outlines of
-    // the feature cards. Drawing the lattice there means long edges crisscrossing
-    // between five distant rectangles — spaghetti, not structure. The cards are
-    // the subject of that scene, not the brain.
-    if (this.scene === 'features') return base * 0.14
-    return base
-  }
-
-  /**
-   * The perimeter — "your walls". A thin confident blueprint line that pulses
-   * --sovereign on key beats. It is drawn FIRST and it is always there: the one
-   * constant the whole page is framed by.
-   */
-  private drawPerimeter(now: number, order: number) {
-    const ctx = this.ctx
-    const p = this.palette
-    const { wall } = this.geo
-
-    // Pulse once when the ingestion completes ("and none of it left your
-    // walls"), and beat slowly at the CTA.
-    let pulse = 0
-    if (this.scene === 'turn') {
-      const t = this.progress
-      // a single clean pulse as order lands
-      pulse = t > 0.72 ? Math.max(0, Math.sin((t - 0.72) * 6.5 * Math.PI)) * 0.9 : 0
-    } else if (this.scene === 'sovereign') {
-      pulse = 0.28 + Math.abs(Math.sin(now * 0.0011)) * 0.45
-    } else if (this.scene === 'cta') {
-      // slow heartbeat
-      const b = (now * 0.00042) % 1
-      pulse = Math.max(0, Math.sin(b * Math.PI * 2)) * 0.5
-    }
-
-    ctx.lineWidth = 1
-    ctx.strokeStyle = withAlpha(p.inkSoft, 0.3 + order * 0.12)
-    ctx.strokeRect(wall.x, wall.y, wall.w, wall.h)
-
-    if (pulse > 0.01) {
-      ctx.lineWidth = 1.6
-      ctx.strokeStyle = withAlpha(p.sovereign, pulse)
-      ctx.strokeRect(wall.x, wall.y, wall.w, wall.h)
-    }
-
-    // blueprint register marks — technical drawing, not decoration
-    ctx.strokeStyle = withAlpha(p.inkSoft, 0.45)
-    ctx.lineWidth = 1
-    const L = 9
-    ctx.beginPath()
-    for (const [cx, cy] of [
-      [wall.x, wall.y],
-      [wall.x + wall.w, wall.y],
-      [wall.x, wall.y + wall.h],
-      [wall.x + wall.w, wall.y + wall.h],
-    ]) {
-      ctx.moveTo(cx - L, cy)
-      ctx.lineTo(cx + L, cy)
-      ctx.moveTo(cx, cy - L)
-      ctx.lineTo(cx, cy + L)
-    }
-    ctx.stroke()
-  }
-
-  /**
-   * Scene 4's whole reason to exist: every clause of the answer draws a live
-   * line back to the exact artifact it came from. Nothing is asserted without a
-   * visible source.
-   */
-  private drawCitations(now: number) {
-    const ctx = this.ctx
-    const p = this.palette
-    const ax = this.citeAnchor.x
-    const ay = this.citeAnchor.y
-
-    for (let c = 0; c < CITE_NODES.length; c++) {
-      const ni = CITE_NODES[c] % Math.max(1, this.liveCount)
-      // Live artifact position, not the lattice slot: a citation must land on
-      // the source you can actually SEE, or it is pointing at nothing.
-      const src = this.arts[this.nodeToArt[ni]]
-      if (!src) continue
-      const nx = src.x
-      const ny = src.y
-
-      // stagger the draw-on so the three lines read as three separate facts
-      const t = Math.min(1, Math.max(0, (now * 0.0012 - c * 0.5) % 3))
-      const reveal = Math.min(1, t * 1.6)
-      if (reveal <= 0) continue
-
-      const mx = (ax + nx) / 2
-      const my = (ay + ny) / 2 - 40
-
-      ctx.strokeStyle = withAlpha(p.brain, 0.85)
-      ctx.lineWidth = 1.4
-      ctx.beginPath()
-      ctx.moveTo(ax, ay + c * 14 - 14)
-      // quadratic toward the source — curved so three lines never overlap
-      const ex = ax + (nx - ax) * reveal
-      const ey = ay + (ny - ay) * reveal
-      ctx.quadraticCurveTo(mx, my, ex, ey)
-      ctx.stroke()
-
-      if (reveal >= 0.98) {
-        // the source node, ringed
-        ctx.strokeStyle = withAlpha(p.brain, 0.9)
-        ctx.lineWidth = 1.2
-        ctx.beginPath()
-        ctx.arc(nx, ny, 17 + Math.sin(now * 0.003 + c) * 1.5, 0, Math.PI * 2)
-        ctx.stroke()
-
-        // the [n] marker
-        ctx.fillStyle = p.brain
-        ctx.beginPath()
-        ctx.arc(nx, ny - 24, 7, 0, Math.PI * 2)
-        ctx.fill()
-        ctx.fillStyle = p.paperRaised
-        ctx.font = '600 9px ui-monospace, monospace'
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        ctx.fillText(String(c + 1), nx, ny - 23.5)
-        ctx.textAlign = 'start'
-        ctx.textBaseline = 'alphabetic'
-      }
-    }
-  }
-
-  /** A live question moving through the system, in --query. */
-  private drawQueryPacket(now: number) {
-    const ctx = this.ctx
-    const p = this.palette
-    const { edges } = this.geo
-    if (edges.length === 0) return
-
-    const SPEED = 0.00055
-    for (let k = 0; k < 3; k++) {
-      const t = (now * SPEED + k * 0.37) % 1
-      const ei = (Math.floor(now * SPEED * 0.5 + k * 3) * 2) % edges.length
-      // Ride the LIVE artifacts, so the packet travels the same filaments the
-      // eye can see rather than an invisible parallel graph.
-      const a = this.arts[this.nodeToArt[edges[ei]]]
-      const b = this.arts[this.nodeToArt[edges[ei + 1]]]
-      if (!a || !b) continue
-
-      const x = a.x + (b.x - a.x) * t
-      const y = a.y + (b.y - a.y) * t
-
-      ctx.fillStyle = withAlpha(p.query, 0.9)
-      ctx.beginPath()
-      ctx.arc(x, y, 3, 0, Math.PI * 2)
-      ctx.fill()
-      // a short comet tail, no glow — this is paper, not neon
-      const tail = Math.max(0, t - 0.08)
-      ctx.strokeStyle = withAlpha(p.query, 0.28)
-      ctx.lineWidth = 2
-      ctx.beginPath()
-      ctx.moveTo(a.x + (b.x - a.x) * tail, a.y + (b.y - a.y) * tail)
-      ctx.lineTo(x, y)
-      ctx.stroke()
-    }
-  }
-
-  /**
-   * Scene 5: something from OUTSIDE tries to get in and is turned away at the
-   * wall. The perimeter is doing its job, visibly.
-   */
-  private drawIntrusion(now: number) {
-    const ctx = this.ctx
-    const p = this.palette
-    const { wall } = this.geo
-
-    const cycle = (now * 0.00035) % 1
-    // approach, hit, recoil
-    const approach = Math.min(1, cycle * 2.2)
-    const hit = cycle > 0.45 && cycle < 0.62
-    const recoil = cycle > 0.45 ? (cycle - 0.45) * 2.4 : 0
-
-    const startX = wall.x - 60
-    const targetX = wall.x - 2
-    const y = wall.y + wall.h * 0.42
-
-    const x = startX + (targetX - startX) * approach - recoil * 70
-
-    if (cycle < 0.95) {
-      ctx.fillStyle = withAlpha(p.sovereign, 0.9 * (1 - recoil))
-      ctx.beginPath()
-      ctx.arc(x, y, 4, 0, Math.PI * 2)
-      ctx.fill()
-    }
-
-    if (hit) {
-      // the wall answers
-      const s = (cycle - 0.45) / 0.17
-      ctx.strokeStyle = withAlpha(p.sovereign, 0.85 * (1 - s))
-      ctx.lineWidth = 2
-      ctx.beginPath()
-      ctx.arc(wall.x, y, 6 + s * 34, -Math.PI / 2.2, Math.PI / 2.2)
-      ctx.stroke()
-    }
-  }
-
-  /** On hover, an artifact says what it actually is. */
-  private drawHoverLabel() {
-    const ctx = this.ctx
-    const p = this.palette
+    // ---- targets + physics ---------------------------------------------
+    const chaos = sec === 'problem' ? P.problem : 0
+    let hoverA: Art | null = null
+    let hoverD = 1e9
 
     for (let i = 0; i < this.arts.length; i++) {
       const a = this.arts[i]
-      if (a.hover < 0.05 || a.opacity < 0.2) continue
+      let tx: number
+      let ty: number
+      let ta = 1
+      let tr = 0
 
-      ctx.globalAlpha = a.hover
-      ctx.font = '400 10px ui-monospace, "IBM Plex Mono", monospace'
-      const tw = ctx.measureText(a.label).width
-      const bx = a.x + 16
-      const by = a.y - 26
-
-      ctx.fillStyle = withAlpha(p.ink, 0.92)
-      if (typeof ctx.roundRect === 'function') {
-        ctx.beginPath()
-        ctx.roundRect(bx, by, tw + 14, 19, 3)
-        ctx.fill()
+      if (a.flyer >= 0 && (sec === 'features' || (sec === 'proof' && P.features > 0.9))) {
+        // fly into the feature card that this artifact becomes part of
+        const cr = this.cardRects[a.flyer]
+        if (cr) {
+          const cp = clamp((this.vh * 0.88 - cr.top) / (this.vh * 0.35), 0, 1)
+          tx = cr.left + 20 + (i % 3) * 30
+          ty = cr.top + 8
+          ta = 1 - cp
+        } else {
+          tx = a.hx
+          ty = a.hy
+        }
+      } else if (morph < 1 || sec === 'hero' || sec === 'problem') {
+        // ---- the mess ----------------------------------------------------
+        const j = reduced ? 0 : 14 + chaos * 26
+        tx = a.hx + Math.sin(t * 0.5 + a.seed) * j
+        ty = a.hy + Math.cos(t * 0.43 + a.seed * 1.7) * j
+        // an email sinks to the bottom and is buried; a doc greys out and goes
+        if (a.buried) ty = lerp(ty, this.vh - m - 20, chaos)
+        ta = a.lost ? lerp(0.4, 0.12, chaos) : a.buried ? lerp(1, 0.18, chaos) : 1
+        tr = a.homeRot * (1 + chaos * 0.6)
+        if (a.dupOf >= 0) {
+          tx += Math.sin(a.seed) * chaos * 90
+          ta = lerp(0.85, 1, chaos)
+        }
+        if (morph > 0) {
+          // THE INGESTION, scrubbed to scroll and staggered per artifact so the
+          // brain accretes rather than snapping into existence on one frame.
+          const d = (a.seed % 1) * 0.45
+          const lp = ease(clamp((morph - d) / 0.55, 0, 1))
+          tx = lerp(tx, bc.cx + a.nx * bc.r, lp)
+          ty = lerp(ty, bc.cy + a.ny * bc.r, lp)
+          ta = lerp(ta, a.dupOf >= 0 ? clamp(1 - lp * 1.6, 0, 1) : 1, lp)
+          tr = lerp(tr, 0, lp)
+        }
       } else {
-        ctx.fillRect(bx, by, tw + 14, 19)
+        // ---- the brain, at rest -----------------------------------------
+        tx = bc.cx + a.nx * bc.r + (reduced ? 0 : Math.sin(t * 0.6 + a.seed) * 3)
+        ty = bc.cy + a.ny * bc.r + (reduced ? 0 : Math.cos(t * 0.5 + a.seed) * 3)
+        ta = a.dupOf >= 0 ? 0 : sec === 'features' ? 0.45 : 1
       }
 
-      ctx.fillStyle = p.paper
-      ctx.textBaseline = 'middle'
-      ctx.fillText(a.label, bx + 7, by + 10)
-      ctx.textBaseline = 'alphabetic'
+      // cursor parts the swarm
+      const dxm = a.x - this.mx
+      const dym = a.y - this.my
+      const dm2 = dxm * dxm + dym * dym
+      if (dm2 < 8100 && !reduced) {
+        const f = (1 - Math.sqrt(dm2) / 90) * 1.1
+        a.vx += (dxm / 90) * f * dt
+        a.vy += (dym / 90) * f * dt
+      }
+
+      a.vx += (tx - a.x) * 0.028 * dt
+      a.vy += (ty - a.y) * 0.028 * dt
+      const damp = Math.pow(0.86, dt)
+      a.vx *= damp
+      a.vy *= damp
+      a.x += a.vx * dt
+      a.y += a.vy * dt
+
+      // ---- THE WALL: nothing ever crosses out --------------------------
+      // The on-prem promise as a physics constraint rather than a sentence.
+      if (a.x < m + 14) {
+        a.x = m + 14
+        a.vx = Math.abs(a.vx) * 0.6
+      }
+      if (a.x > this.vw - m - 14) {
+        a.x = this.vw - m - 14
+        a.vx = -Math.abs(a.vx) * 0.6
+      }
+      if (a.y < m + 12) {
+        a.y = m + 12
+        a.vy = Math.abs(a.vy) * 0.6
+      }
+      if (a.y > this.vh - m - 12) {
+        a.y = this.vh - m - 12
+        a.vy = -Math.abs(a.vy) * 0.6
+      }
+
+      const rotL = 1 - Math.pow(0.92, dt)
+      const alphaL = 1 - Math.pow(0.92, dt)
+      a.rot += (tr - a.rot) * rotL
+      a.alpha += (ta - a.alpha) * alphaL
+
+      if (a.alpha > 0.3 && dm2 < 900 && dm2 < hoverD) {
+        hoverD = dm2
+        hoverA = a
+      }
+    }
+
+    // ---- edges ---------------------------------------------------------
+    const edgeBase = sec === 'turn' ? clamp((morph - 0.55) / 0.35, 0, 1) : morph >= 1 ? 1 : 0
+    // While citations are on screen they must be the STRONGEST thing there, so
+    // the lattice deliberately dims underneath them.
+    const citeHold = sec === 'ask' ? clamp((P.ask - 0.3) / 0.15, 0, 1) : 0
+    if (edgeBase > 0) {
+      ctx.strokeStyle = this.p.brain
+      ctx.lineWidth = 0.8
+      ctx.globalAlpha = edgeBase * (sec === 'features' ? 0.35 : 1) * (1 - citeHold * 0.65) * 0.55
+      ctx.beginPath()
+      for (const [i, j] of this.edges) {
+        ctx.moveTo(this.arts[i].x, this.arts[i].y)
+        ctx.lineTo(this.arts[j].x, this.arts[j].y)
+      }
+      ctx.stroke()
+      ctx.globalAlpha = 1
+
+      // ambient query packets — a live question moving through the index
+      if (!reduced && morph >= 1 && sec !== 'features' && this.edges.length) {
+        ctx.fillStyle = this.p.query
+        for (let k = 0; k < 3; k++) {
+          const e = this.edges[(k * 7 + Math.floor(t / 2.2)) % this.edges.length]
+          const u = (t / 2.2 + k * 0.33) % 1
+          const A = this.arts[e[0]]
+          const B = this.arts[e[1]]
+          ctx.globalAlpha = 0.8 * edgeBase * (1 - citeHold * 0.7)
+          ctx.beginPath()
+          ctx.arc(lerp(A.x, B.x, u), lerp(A.y, B.y, u), 2.4, 0, Math.PI * 2)
+          ctx.fill()
+        }
+        ctx.globalAlpha = 1
+      }
+    }
+
+    // ---- artifacts ------------------------------------------------------
+    const tight = bc.r < Math.min(this.vw, this.vh) * 0.2 && morph >= 1
+    for (const a of this.arts) {
+      if (a.alpha < 0.02) continue
+      ctx.globalAlpha = a.alpha
+      ctx.save()
+      ctx.translate(a.x, a.y)
+      ctx.rotate(a.rot)
+      const sc = a.scale * (morph >= 1 ? 0.8 : 1) * (tight ? 0.62 : 1)
+      ctx.drawImage(
+        a.sprite.canvas,
+        (-a.sprite.w / 2) * sc,
+        (-a.sprite.h / 2) * sc,
+        a.sprite.w * sc,
+        a.sprite.h * sc,
+      )
+      ctx.restore()
+    }
+    ctx.globalAlpha = 1
+
+    if (!reduced) {
+      this.drawAsk(sec, P.ask, t)
+      this.drawSovereign(sec, P.sovereign, m)
+    }
+
+    // ---- turn pulse + cta heartbeat -------------------------------------
+    if (sec === 'turn' && P.turn > 0.96 && !this.turnPulsed) {
+      this.turnPulsed = true
+      this.sovPulse = 1 // "and none of it left your walls"
+    }
+    if (sec === 'turn' && P.turn < 0.5) this.turnPulsed = false
+
+    let sovEmph = 0
+    if (sec === 'sovereign') sovEmph = Math.sin(clamp01(P.sovereign) * Math.PI)
+    if (sec === 'cta' && !reduced) {
+      const hb = (t % 1.9) / 1.9
+      ctx.strokeStyle = `rgba(216,49,91,${(1 - hb) * 0.45})`
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.arc(bc.cx, bc.cy, bc.r * 0.9 + hb * 55, 0, Math.PI * 2)
+      ctx.stroke()
+      if (hb < 0.1) this.sovPulse = Math.max(this.sovPulse, 0.35)
+    }
+    this.sovPulse *= Math.pow(0.94, dt)
+    this.drawPerimeter(this.sovPulse, sovEmph, m)
+
+    // ---- telemetry ------------------------------------------------------
+    this.telemetry.indexed = morph >= 1 ? this.liveCount : Math.floor(morph * this.liveCount)
+    this.telemetry.cited = sec === 'ask' || sec === 'proof' || sec === 'cta' ? 3 : 0
+    this.telemetry.queries = sec === 'ask' && P.ask > 0.3 ? 1 : 0
+    this.telemetry.scene = sec
+
+    // ---- ALL DOM WRITES LAST -------------------------------------------
+    this.writeCiteChips(sec, P.ask)
+    this.writeTip(hoverA, reduced)
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* scene pieces                                                            */
+  /* ---------------------------------------------------------------------- */
+
+  /**
+   * The perimeter — "your walls". A thin confident blueprint line, drawn every
+   * frame, that flushes --sovereign on a beat. Labelled, because a technical
+   * drawing labels its parts.
+   */
+  private drawPerimeter(pulse: number, emph: number, m: number) {
+    const ctx = this.ctx
+    ctx.lineWidth = 1.2 + emph * 0.8 + pulse * 0.8
+    ctx.strokeStyle = `rgba(99,94,84,${0.5 + emph * 0.3})`
+    ctx.strokeRect(m, m, this.vw - m * 2, this.vh - m * 2)
+    if (pulse > 0.01) {
+      ctx.strokeStyle = `rgba(216,49,91,${pulse * 0.9})`
+      ctx.strokeRect(m, m, this.vw - m * 2, this.vh - m * 2)
+    }
+
+    // corner ticks — register marks, not decoration
+    ctx.strokeStyle = `rgba(28,27,24,${0.55 + pulse * 0.4})`
+    ctx.lineWidth = 1.6
+    const T = 11
+    const corners: [number, number, number, number][] = [
+      [m, m, 1, 1],
+      [this.vw - m, m, -1, 1],
+      [m, this.vh - m, 1, -1],
+      [this.vw - m, this.vh - m, -1, -1],
+    ]
+    for (const [x, y, sx, sy] of corners) {
+      ctx.beginPath()
+      ctx.moveTo(x + sx * T, y)
+      ctx.lineTo(x, y)
+      ctx.lineTo(x, y + sy * T)
+      ctx.stroke()
+    }
+
+    ctx.font = '500 9px "IBM Plex Mono", ui-monospace, monospace'
+    ctx.fillStyle = pulse > 0.2 ? this.p.sovereign : this.p.inkSoft
+    ctx.fillText('SECURE PERIMETER — ON-PREM', m + 16, m - 5)
+    ctx.textAlign = 'right'
+    ctx.fillText('EGRESS: 0 B', this.vw - m - 4, this.vh - m + 13)
+    ctx.textAlign = 'left'
+  }
+
+  /**
+   * Scene 4 — the crucial moment. A query enters, then every clause of the
+   * answer draws a line from ITS OWN [n] chip in the sentence back to the exact
+   * artifact it came from, and the chip fills in when the line lands.
+   *
+   * Anchoring to the real chip's rect (rather than a card edge) is what makes
+   * this read as a citation rather than as decoration: the line starts at the
+   * word you are reading.
+   */
+  private drawAsk(sec: SceneId, pAsk: number, t: number) {
+    if (sec !== 'ask') return
+    const ctx = this.ctx
+    const bc = this.brainCfg('ask')
+
+    // the amber query packet arrives from below and enters the core
+    const pin = clamp(pAsk / 0.28, 0, 1)
+    if (pin < 1) {
+      const px = lerp(this.vw * 0.5, bc.cx, ease(pin))
+      const py = lerp(this.vh + 20, bc.cy, ease(pin))
+      ctx.fillStyle = this.p.query
+      ctx.beginPath()
+      ctx.arc(px, py, 4.5, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.strokeStyle = 'rgba(224,123,57,.4)'
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.moveTo(this.vw * 0.5, this.vh + 20)
+      ctx.lineTo(px, py)
+      ctx.stroke()
+    }
+
+    for (let k = 0; k < this.citeRects.length; k++) {
+      const r = this.citeRects[k]
+      const n = this.citeNodes[k]
+      if (!r || !n) continue
+      const lp = ease(clamp((pAsk - 0.34 - k * 0.09) / 0.14, 0, 1))
+      if (lp <= 0) continue
+      const x1 = r.left + r.width / 2
+      const y1 = r.bottom + 2
+      const xe = lerp(x1, n.x, lp)
+      const ye = lerp(y1, n.y, lp)
+      ctx.strokeStyle = this.p.brain
+      ctx.lineWidth = 1.6
+      ctx.globalAlpha = 0.95
+      ctx.beginPath()
+      ctx.moveTo(x1, y1)
+      ctx.quadraticCurveTo(lerp(x1, n.x, 0.5), Math.max(y1, n.y) + 60, xe, ye)
+      ctx.stroke()
+      if (lp > 0.95) {
+        ctx.beginPath()
+        ctx.arc(n.x, n.y, 16 + Math.sin(t * 3) * 2, 0, Math.PI * 2)
+        ctx.stroke()
+      }
       ctx.globalAlpha = 1
     }
   }
-}
 
-export { GOLDEN }
+  /**
+   * Scene 5 — something from OUTSIDE tries to get in and is turned away at the
+   * wall. Not asserted; shown.
+   */
+  private drawSovereign(sec: SceneId, pSov: number, m: number) {
+    if (sec !== 'sovereign') return
+    const ctx = this.ctx
+    const y = this.vh * 0.45
+    const f = clamp(pSov * 2.4, 0, 1)
+    const g = clamp(pSov * 2.4 - 1, 0, 1.2)
+    const px = g > 0 ? lerp(m, -80, ease(clamp(g, 0, 1))) : lerp(-60, m, ease(f))
+
+    if (px > -70) {
+      // the intruder: an ink packet marked with an X
+      ctx.fillStyle = this.p.ink
+      ctx.beginPath()
+      ctx.arc(px - 8, y, 5, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.strokeStyle = this.p.paper
+      ctx.lineWidth = 1.4
+      ctx.beginPath()
+      ctx.moveTo(px - 10.5, y - 2.5)
+      ctx.lineTo(px - 5.5, y + 2.5)
+      ctx.moveTo(px - 5.5, y - 2.5)
+      ctx.lineTo(px - 10.5, y + 2.5)
+      ctx.stroke()
+    }
+    if (f >= 1 && g < 0.5) {
+      // the wall answers
+      const rp = 1 - clamp(g * 2, 0, 1)
+      ctx.strokeStyle = `rgba(216,49,91,${rp})`
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.arc(m, y, 8 + (1 - rp) * 46, -1.2, 1.2)
+      ctx.stroke()
+      this.sovPulse = Math.max(this.sovPulse, rp)
+    }
+  }
+
+  /* ---------------------------------------------------------------------- */
+  /* DOM writes — all of them, at the end of the frame                       */
+  /* ---------------------------------------------------------------------- */
+
+  private writeCiteChips(sec: SceneId, pAsk: number) {
+    for (let k = 0; k < this.citeEls.length; k++) {
+      const ce = this.citeEls[k]
+      if (!ce) continue
+      const lp = sec === 'ask' ? ease(clamp((pAsk - 0.34 - k * 0.09) / 0.14, 0, 1)) : 0
+      const on = lp > 0.9
+      ce.style.background = on ? this.p.brain : 'transparent'
+      ce.style.color = on ? this.p.paper : this.p.brain
+    }
+  }
+
+  private writeTip(hover: Art | null, reduced: boolean) {
+    const tip = this.tipEl
+    if (!tip) return
+    if (hover && !reduced) {
+      tip.textContent = hover.label
+      tip.style.opacity = '1'
+      tip.style.transform = `translate(${Math.min(this.mx + 14, this.vw - 260)}px, ${this.my - 30}px)`
+    } else {
+      tip.style.opacity = '0'
+    }
+  }
+}

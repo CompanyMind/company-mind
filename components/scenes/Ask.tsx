@@ -6,91 +6,90 @@ import { DecodeText } from '@/components/DecodeText'
 /**
  * SCENE 4 — ASK ANYTHING (trust). The crucial moment.
  *
- * A --query packet enters and the brain answers. Every clause of that answer
- * draws a live line back to the specific artifact it came from — the canvas
- * anchors those lines to [data-cite-anchor] below.
+ * A tall section with sticky copy, so the beat can be HELD while the citation
+ * lines draw rather than flying past.
  *
- * Nothing here is asserted without a visible source. That is the product's
- * actual claim, so it is the page's actual behavior.
+ * THE CITATION MECHANIC: each [n] chip carries id="cite-n", and the engine reads
+ * that chip's own rect and draws a line from IT — from the exact word you are
+ * reading — down to the artifact the clause came from, then fills the chip in
+ * when the line lands. Anchoring to the chip rather than to the card's edge is
+ * the difference between a citation and a decoration.
  *
- * The named files are illustrative examples of a hypothetical customer's OWN
- * documents — the texture of a real contract negotiation. They are not a claim
- * about any real customer, because there are none yet.
+ * The engine also dims the whole lattice while these lines are on screen, so
+ * they are unambiguously the strongest thing in the frame. That is the brief's
+ * instruction, and it is also the product's actual claim.
+ *
+ * The copy sits LEFT and the brain moves left-of-centre in this scene
+ * (brainCfg), leaving the right of the frame as open paper for the lines to
+ * travel across. Whitespace here is load-bearing.
  */
 export function Ask() {
   return (
-    <section data-scene="ask" className="relative z-10 py-[18vh]">
-      <div className="shell">
-        <p className="mono-label mb-6">{ask.label}</p>
+    <section data-scene="ask" className="relative z-10 h-[280vh]">
+      <div className="sticky top-0 flex h-dvh items-center">
+        <div className="shell w-full">
+          <div className="max-w-full lg:max-w-[52%]">
+            <p className="mono-label mb-6">{ask.label}</p>
 
-        <div className="wash max-w-4xl">
-          <h2 className="font-display text-display-lg text-ink">
-            {ask.headline.map((line) => (
-              <span key={line} className="mask-line">
-                <DecodeText as="span" text={line} className="block" />
-              </span>
-            ))}
-          </h2>
-        </div>
+            <div className="wash">
+              <h2 className="font-display text-display-lg text-ink">
+                {ask.headline.map((line) => (
+                  <span key={line} className="mask-line">
+                    <DecodeText as="span" text={line} className="block" />
+                  </span>
+                ))}
+              </h2>
+            </div>
 
-        <p className="plate mt-8 max-w-measure p-5 text-lg leading-relaxed text-ink-soft">
-          {ask.body}
-        </p>
+            <p className="mt-7 max-w-measure text-lg leading-relaxed text-ink-soft">{ask.body}</p>
 
-        <div className="mt-16 grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
-          {/* The answer. This is the anchor the citation lines reach for. */}
-          <div
-            data-cite-anchor
-            className="rounded-sm border border-line bg-paper-raised p-7 shadow-card md:p-9"
-          >
-            {/* the question, in the query voice */}
-            <p className="flex items-start gap-3 font-mono text-telemetry text-query-text">
-              <span aria-hidden="true">?</span>
-              <span className="leading-relaxed">{ask.question}</span>
-            </p>
+            <div className="mt-10 rounded-sm border border-line bg-paper-raised p-6 shadow-card md:p-8">
+              <p className="flex items-start gap-3 font-mono text-telemetry text-query-text">
+                <span aria-hidden="true">?</span>
+                <span className="leading-relaxed">{ask.question}</span>
+              </p>
 
-            <hr className="my-6 border-line" />
+              <hr className="my-5 border-line" />
 
-            <p className="text-lg leading-loose text-ink">
-              {ask.answer.map((clause, i) => (
-                <span key={clause.cite}>
-                  {clause.text}
-                  {/* Citation markers are LINKS to their source, not glyphs.
-                      Keyboard-reachable, screen-reader-labelled. */}
-                  <a
-                    href={`#source-${clause.cite}`}
-                    aria-label={`Source ${clause.cite}: ${ask.sources[i]?.name ?? ''}`}
-                    className="mx-0.5 inline-flex h-4 w-4 translate-y-[-2px] items-center justify-center rounded-[2px] bg-brain align-middle font-mono text-[9px] font-medium text-paper-raised transition-transform hover:scale-125"
-                  >
-                    {clause.cite}
-                  </a>{' '}
-                </span>
-              ))}
-            </p>
+              <p className="text-lg leading-loose text-ink">
+                {ask.answer.map((clause, i) => (
+                  <span key={clause.cite}>
+                    {clause.text}
+                    {/* The engine finds this by id, measures it, and draws from
+                        here. It is also a real link to the source, so it works
+                        for keyboards and screen readers with no canvas at all. */}
+                    <a
+                      id={`cite-${clause.cite}`}
+                      href={`#source-${clause.cite}`}
+                      aria-label={`Source ${clause.cite}: ${ask.sources[i]?.name ?? ''}`}
+                      className="mx-1 inline-block rounded-[3px] border border-brain px-1.5 py-px align-middle font-mono text-[0.65rem] font-medium text-brain-text transition-transform hover:scale-110"
+                    >
+                      {clause.cite}
+                    </a>{' '}
+                  </span>
+                ))}
+              </p>
 
-            <p className="mt-7 border-t border-line pt-5 text-sm leading-relaxed text-ink-soft">
-              {ask.footnote}
-            </p>
-          </div>
+              <p className="mt-6 border-t border-line pt-4 text-sm leading-relaxed text-ink-soft">
+                {ask.footnote}
+              </p>
+            </div>
 
-          {/* The sources themselves — named, typed, locatable. */}
-          <div>
-            <h3 className="mono-label mb-4">Sources</h3>
-            <ul className="flex flex-col gap-2.5">
+            <ul className="mt-6 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               {ask.sources.map((s) => (
                 <li
                   key={s.id}
                   id={`source-${s.id}`}
-                  className="flex scroll-mt-24 items-start gap-3 rounded-sm border border-line bg-paper-raised p-3.5"
+                  className="flex min-w-0 flex-1 scroll-mt-24 items-start gap-2.5 rounded-sm border border-line bg-paper-raised p-3"
                 >
-                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-[2px] bg-brain font-mono text-[9px] font-medium text-paper-raised">
+                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-[2px] bg-brain-text font-mono text-[9px] font-medium text-paper">
                     {s.id}
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate font-mono text-telemetry text-ink">
+                    <span className="block truncate font-mono text-[0.6875rem] text-ink">
                       {s.name}
                     </span>
-                    <span className="mt-1 block font-mono text-[0.625rem] text-ink-soft">
+                    <span className="mt-0.5 block font-mono text-[0.625rem] text-ink-soft">
                       {s.detail}
                     </span>
                   </span>
