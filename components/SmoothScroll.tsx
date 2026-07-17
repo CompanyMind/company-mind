@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import Lenis from 'lenis'
+import { addTick, removeTick } from '@/lib/ticker'
 
 /**
  * Lenis smooth scroll, on its own rAF.
@@ -25,15 +26,15 @@ export function SmoothScroll() {
       touchMultiplier: 1.6,
     })
 
-    let raf = 0
-    const tick = (time: number) => {
-      lenis.raf(time)
-      raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
+    // PRIORITY 0 — scroll is written before anything reads it. The engine
+    // registers at 1. See lib/ticker.ts: with two independent rAF loops the
+    // swarm read every rect a frame before Lenis moved the page, and that
+    // one-frame lag is what read as jank.
+    const tick = (time: number) => lenis.raf(time)
+    addTick(tick, 0)
 
     return () => {
-      cancelAnimationFrame(raf)
+      removeTick(tick)
       lenis.destroy()
     }
   }, [])

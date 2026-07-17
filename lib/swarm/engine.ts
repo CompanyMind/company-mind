@@ -1,6 +1,7 @@
 import type { ArtifactKind, SceneId, Telemetry } from './types'
 import { KINDS, labelFor, makeSprite, spriteScale, type Sprite } from './artifacts'
 import { readPalette, type SwarmPalette } from './tokens'
+import { addTick, removeTick } from '@/lib/ticker'
 
 /**
  * ============================================================================
@@ -405,13 +406,15 @@ export class SwarmEngine {
     }
     this.running = true
     this.lastT = 0
-    this.raf = requestAnimationFrame(this.loop)
+    // PRIORITY 1 — after Lenis (0) has written this frame's scroll position, so
+    // the rects we read are the ones the viewer is actually looking at.
+    addTick(this.loop, 1)
   }
 
   stop() {
+    if (!this.running) return
     this.running = false
-    if (this.raf) cancelAnimationFrame(this.raf)
-    this.raf = 0
+    removeTick(this.loop)
   }
 
   destroy() {
@@ -527,7 +530,6 @@ export class SwarmEngine {
   private loop = (now: number) => {
     if (!this.running) return
     this.frame(now)
-    this.raf = requestAnimationFrame(this.loop)
   }
 
   private frame = (now: number) => {

@@ -21,28 +21,30 @@ import { DecodeText } from '@/components/DecodeText'
  */
 export function Features() {
   return (
-    <section data-scene="features" className="relative z-10 py-[18vh]">
-      <div className="shell">
-        <p className="mono-label mb-6">{features.label}</p>
+    <section data-scene="features" className="relative z-10 py-[12vh] md:h-[240vh] md:py-0">
+      <div className="flex items-center md:sticky md:top-0 md:h-dvh">
+        <div className="shell w-full">
+          <p className="mono-label mb-6">{features.label}</p>
 
-        <div className="wash max-w-4xl">
-          <h2
-            className="font-display text-display-lg text-ink"
-            aria-label={features.headline.join(' ')}
-          >
-            {features.headline.map((line) => (
-              <span key={line} className="mask-line">
-                <DecodeText as="span" text={line} className="block" />
-              </span>
+          <div className="wash max-w-4xl">
+            <h2
+              className="font-display text-display-lg text-ink"
+              aria-label={features.headline.join(' ')}
+            >
+              {features.headline.map((line) => (
+                <span key={line} className="mask-line">
+                  <DecodeText as="span" text={line} className="block" />
+                </span>
+              ))}
+            </h2>
+          </div>
+
+          <ul className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {features.items.map((item, i) => (
+              <FeatureCard key={item.n} n={item.n} title={item.title} body={item.body} index={i} />
             ))}
-          </h2>
+          </ul>
         </div>
-
-        <ul className="mt-20 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {features.items.map((item, i) => (
-            <FeatureCard key={item.n} n={item.n} title={item.title} body={item.body} index={i} />
-          ))}
-        </ul>
       </div>
     </section>
   )

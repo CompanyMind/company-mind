@@ -23,32 +23,34 @@ import { DecodeText } from '@/components/DecodeText'
  */
 export function Proof() {
   return (
-    <section data-scene="proof" className="relative z-10 py-[18vh]">
-      <div className="shell">
-        <p className="mono-label mb-6">{proof.label}</p>
+    <section data-scene="proof" className="relative z-10 py-[12vh] md:h-[170vh] md:py-0">
+      <div className="flex items-center md:sticky md:top-0 md:h-dvh">
+        <div className="shell w-full">
+          <p className="mono-label mb-6">{proof.label}</p>
 
-        <div className="wash max-w-3xl">
-          <h2
-            className="font-display text-display-lg text-ink"
-            aria-label={proof.headline.join(' ')}
-          >
-            {proof.headline.map((line) => (
-              <span key={line} className="mask-line">
-                <DecodeText as="span" text={line} className="block" />
-              </span>
+          <div className="wash max-w-3xl">
+            <h2
+              className="font-display text-display-lg text-ink"
+              aria-label={proof.headline.join(' ')}
+            >
+              {proof.headline.map((line) => (
+                <span key={line} className="mask-line">
+                  <DecodeText as="span" text={line} className="block" />
+                </span>
+              ))}
+            </h2>
+          </div>
+
+          <p className="plate mt-8 max-w-measure p-5 text-lg leading-relaxed text-ink-soft">
+            {proof.body}
+          </p>
+
+          <dl className="mt-20 grid gap-px overflow-hidden rounded-sm border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
+            {proof.metrics.map((m) => (
+              <Metric key={m.label} {...m} />
             ))}
-          </h2>
+          </dl>
         </div>
-
-        <p className="plate mt-8 max-w-measure p-5 text-lg leading-relaxed text-ink-soft">
-          {proof.body}
-        </p>
-
-        <dl className="mt-20 grid gap-px overflow-hidden rounded-sm border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
-          {proof.metrics.map((m) => (
-            <Metric key={m.label} {...m} />
-          ))}
-        </dl>
       </div>
     </section>
   )
