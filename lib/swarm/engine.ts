@@ -466,7 +466,17 @@ export class SwarmEngine {
           r: min * 0.26,
         }
       case 'sovereign':
-        return { cx: this.vw * 0.5, cy: this.vh * 0.52, r: min * 0.17 }
+        // Brain RIGHT, copy left. Centred (as the reference had it) puts the
+        // cluster straight through "Nothing leaves. Nothing foreign enters." —
+        // at 1440 the copy runs to x=667 and a centred brain starts at x=567.
+        // It still reads as contained, because the PERIMETER is what dominates
+        // this scene: the brain is deliberately tiny (r = 0.17) so the walls own
+        // the frame. Moving it right costs that nothing and gives the copy air.
+        return {
+          cx: this.vw < 900 ? this.vw * 0.5 : this.vw * 0.72,
+          cy: this.vh * 0.5,
+          r: min * 0.17,
+        }
       case 'features':
         return { cx: this.vw * 0.5, cy: this.vh * 0.2, r: min * 0.1 }
       case 'proof':
