@@ -35,8 +35,22 @@ export interface Geometry {
 export interface Field {
   /** Weight of boids (separation/alignment/cohesion). */
   chaos: number
-  /** Weight of the spring toward the target. */
+  /**
+   * Weight of the spring toward the target. PHYSICS ONLY.
+   *
+   * Do NOT read this as "how organized the brain is". In the hero the target is
+   * each artifact's own SCATTERED home, so `order` is high there simply to stop
+   * boids balling everything into a clump — it says nothing about indexing.
+   * Conflating the two drew lattice edges across the chaotic hero and made the
+   * telemetry claim 15/58 artifacts were indexed before ingestion had begun.
+   */
   order: number
+  /**
+   * 0..1 — the NARRATIVE state: how much of the brain actually exists yet.
+   * Drives the filament edges and the telemetry's indexed count. This is the
+   * story; `order` is just the maths that moves things around.
+   */
+  organized: number
   /** Spring stiffness. */
   k: number
   /** Velocity damping. */
@@ -132,34 +146,44 @@ export function fieldFor(scene: SceneId, p: number): Field {
     // the lattice — it is what keeps the mess spread across the whole wall.
     // Too low and boids cohesion balls everything into clumps with dead space
     // around them, which reads as a rendering bug rather than as chaos.
+    // Nothing is indexed yet, so `organized` is 0 — no filaments, no count.
     case 'hero':
-      return { chaos: 1, order: 0.26, k: 0.007, damp: 0.982, lean: 0.35 }
+      return { chaos: 1, order: 0.26, organized: 0, k: 0.007, damp: 0.982, lean: 0.35 }
     case 'problem':
       // The mess gets worse as you scroll — but it must stay DISTRIBUTED mess.
-      return { chaos: 1 + p * 0.5, order: 0.2 * (1 - p * 0.5), k: 0.006, damp: 0.987, lean: 0.2 }
+      return {
+        chaos: 1 + p * 0.5,
+        order: 0.2 * (1 - p * 0.5),
+        organized: 0,
+        k: 0.006,
+        damp: 0.987,
+        lean: 0.2,
+      }
     case 'turn': {
       // THE MONEY SHOT. Chaos surrenders to order, scrubbed to scroll, so the
-      // visitor feels that THEY caused the organization.
+      // visitor feels that THEY caused the organization. This is the only scene
+      // where `organized` moves — the brain is being built, right now, by them.
       const t = ease(clamp01(p))
       return {
         chaos: 1 - t * 0.98,
         order: t,
+        organized: t,
         k: lerp(0.006, 0.09, t),
         damp: lerp(0.985, 0.86, t),
         lean: 0.1,
       }
     }
     case 'ask':
-      return { chaos: 0.02, order: 1, k: 0.09, damp: 0.86, lean: 0.14 }
+      return { chaos: 0.02, order: 1, organized: 1, k: 0.09, damp: 0.86, lean: 0.14 }
     case 'sovereign':
-      return { chaos: 0.06, order: 1, k: 0.07, damp: 0.88, lean: 0.1 }
+      return { chaos: 0.06, order: 1, organized: 1, k: 0.07, damp: 0.88, lean: 0.1 }
     case 'features':
-      return { chaos: 0.02, order: 1, k: 0.075, damp: 0.87, lean: 0.08 }
+      return { chaos: 0.02, order: 1, organized: 1, k: 0.075, damp: 0.87, lean: 0.08 }
     case 'proof':
-      return { chaos: 0.03, order: 1, k: 0.08, damp: 0.88, lean: 0.1 }
+      return { chaos: 0.03, order: 1, organized: 1, k: 0.08, damp: 0.88, lean: 0.1 }
     case 'cta':
       // Everything gathers. The brain watches the cursor.
-      return { chaos: 0.02, order: 1, k: 0.06, damp: 0.9, lean: 0.5 }
+      return { chaos: 0.02, order: 1, organized: 1, k: 0.06, damp: 0.9, lean: 0.5 }
   }
 }
 

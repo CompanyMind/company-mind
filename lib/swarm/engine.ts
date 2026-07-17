@@ -431,8 +431,10 @@ export class SwarmEngine {
     }
 
     // ---- telemetry: real state, not decoration --------------------------
-    const order = f.order
-    this.telemetry.indexed = Math.round(this.liveCount * Math.min(1, order))
+    // `organized`, not `order` — the rail reports what is actually INDEXED. Off
+    // the spring weight it claimed 15/58 while the hero was still pure chaos.
+    const org = f.organized < 0 ? 0 : f.organized > 1 ? 1 : f.organized
+    this.telemetry.indexed = Math.round(this.liveCount * org)
     this.telemetry.cited =
       this.scene === 'ask' || this.scene === 'proof' || this.scene === 'cta' ? CITE_NODES.length : 0
     this.telemetry.queries = this.scene === 'ask' ? 1 : 0
@@ -463,7 +465,7 @@ export class SwarmEngine {
     // across the viewport whenever the artifacts moved off their nodes (the CTA
     // core, the feature cards) — edges connecting nothing to nothing.
     // An edge is a relationship between two artifacts; it follows them.
-    const edgeAlpha = this.edgeAlpha(f.order)
+    const edgeAlpha = this.edgeAlpha(f.organized)
     if (edgeAlpha > 0.01) {
       ctx.strokeStyle = withAlpha(p.brain, edgeAlpha)
       ctx.lineWidth = 0.7
@@ -525,10 +527,17 @@ export class SwarmEngine {
    * between five distant card rectangles, which reads as spaghetti rather than
    * as structure. The brain is not the subject of that scene; the cards are.
    */
-  private edgeAlpha(order: number): number {
-    if (order <= 0.12) return 0
-    const base = (order - 0.12) * 0.5
-    if (this.scene === 'features') return base * 0.12
+  private edgeAlpha(organized: number): number {
+    if (organized <= 0.02) return 0
+    // Keyed to `organized`, never to `order`: the hero's spring weight is high
+    // (it holds the scatter apart) but nothing there is indexed, so it must
+    // draw no filaments at all. Connections appear only as the brain is built.
+    const base = organized * 0.62
+    // In 'features' the artifacts have left the brain to become the outlines of
+    // the feature cards. Drawing the lattice there means long edges crisscrossing
+    // between five distant rectangles — spaghetti, not structure. The cards are
+    // the subject of that scene, not the brain.
+    if (this.scene === 'features') return base * 0.14
     return base
   }
 

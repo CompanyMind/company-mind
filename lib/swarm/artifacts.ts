@@ -52,7 +52,25 @@ export const KINDS: ArtifactKind[] = [
 /** Three visual variants per kind keeps 70 objects from looking like clones. */
 export const VARIANTS = 3
 
+/**
+ * Rasterize (and therefore draw) the cards larger than their design size.
+ *
+ * Applied to the sprite's BITMAP as well as its blit size, so the artifact gets
+ * physically bigger without being upscaled — scaling at blit time instead would
+ * just resample a small bitmap and make it mushy, which is the opposite of what
+ * we want. Every drawing routine keeps its original coordinates.
+ */
+export const ARTIFACT_SCALE = 1.22
+
 const PAD = 8 // room for the soft paper shadow
+
+/**
+ * The card face. Paper-white rather than --paper-raised: a document lying on a
+ * cream desk IS white, and --paper-raised (#FBF8F1) separates from --paper by
+ * only 1.09:1 — which is why the swarm read as ghosts. One constant so the
+ * bubble tail can never seam against its own bubble.
+ */
+const FACE = '#FFFDF7'
 
 /** Card dimensions in CSS px. Shapes differ because real objects differ. */
 const SIZE: Record<ArtifactKind, [number, number]> = {
@@ -101,7 +119,19 @@ function ruled(
   ctx.fill()
 }
 
-/** The card body every artifact sits on: warm paper, hairline, soft warm shadow. */
+/**
+ * The card body every artifact sits on: white face, crisp edge, soft warm shadow.
+ *
+ * WHY THE EDGE IS DARK. The face is near-white on a cream field, which separates
+ * by only ~1.14:1 — nowhere near enough to define a shape on its own. The
+ * original 10%-ink hairline measured 1.23:1 against the face, i.e. invisible,
+ * and the whole swarm read as pale ghosts. The EDGE is what makes a card an
+ * object; the fill never was. Hence a confident 30% ink outline.
+ *
+ * This is still "objects on warm paper" — a real document IS white against a
+ * cream desk, and it has a real edge. It is not glow, and it is not a hard
+ * drop-shadow.
+ */
 function base(
   ctx: CanvasRenderingContext2D,
   w: number,
@@ -112,20 +142,20 @@ function base(
 ) {
   if (!lowPower) {
     // Warm, low, soft — an object resting on paper. Never a hard drop-shadow.
-    ctx.shadowColor = 'rgba(60, 48, 30, 0.22)'
-    ctx.shadowBlur = 5
-    ctx.shadowOffsetY = 1.5
+    ctx.shadowColor = 'rgba(52, 40, 22, 0.3)'
+    ctx.shadowBlur = 5.5
+    ctx.shadowOffsetY = 2
   }
-  ctx.fillStyle = p.paperRaised
+  ctx.fillStyle = FACE
   rr(ctx, 0, 0, w, h, radius)
   ctx.fill()
   ctx.shadowColor = 'transparent'
   ctx.shadowBlur = 0
   ctx.shadowOffsetY = 0
 
-  ctx.strokeStyle = withAlpha(p.ink, 0.1)
-  ctx.lineWidth = 0.75
-  rr(ctx, 0.4, 0.4, w - 0.8, h - 0.8, radius)
+  ctx.strokeStyle = withAlpha(p.ink, 0.3)
+  ctx.lineWidth = 0.9
+  rr(ctx, 0.45, 0.45, w - 0.9, h - 0.9, radius)
   ctx.stroke()
 }
 
@@ -145,7 +175,7 @@ function drawChat(
   base(ctx, w, h, p, lp, 6)
 
   // the tail — bottom-left, the shape that says "message"
-  ctx.fillStyle = p.paperRaised
+  ctx.fillStyle = FACE
   ctx.beginPath()
   ctx.moveTo(2, h - 5)
   ctx.lineTo(-2.5, h + 1)
@@ -158,12 +188,12 @@ function drawChat(
   rr(ctx, 0, 0, 2.5, h, 1.25)
   ctx.fill()
 
-  const soft = withAlpha(p.inkSoft, 0.5)
-  ruled(ctx, 7, 8, [26, 30, 22][v], withAlpha(p.ink, 0.42))
+  const soft = withAlpha(p.inkSoft, 0.68)
+  ruled(ctx, 7, 8, [26, 30, 22][v], withAlpha(p.ink, 0.62))
   ruled(ctx, 7, 13, [18, 14, 24][v], soft)
 
   // timestamp + double ticks, bottom right
-  ruled(ctx, w - 17, h - 6.5, 6, withAlpha(p.inkSoft, 0.4), 1.4)
+  ruled(ctx, w - 17, h - 6.5, 6, withAlpha(p.inkSoft, 0.58), 1.4)
   ctx.strokeStyle = APP_ACCENT.chat
   ctx.lineWidth = 0.9
   ctx.lineCap = 'round'
@@ -189,14 +219,14 @@ function drawDoc(
   base(ctx, w, h, p, lp, 3)
 
   // folded corner — the universal "this is a document"
-  ctx.fillStyle = withAlpha(APP_ACCENT.doc, 0.22)
+  ctx.fillStyle = withAlpha(APP_ACCENT.doc, 0.34)
   ctx.beginPath()
   ctx.moveTo(w - 9, 0)
   ctx.lineTo(w, 9)
   ctx.lineTo(w, 0)
   ctx.closePath()
   ctx.fill()
-  ctx.strokeStyle = withAlpha(APP_ACCENT.doc, 0.55)
+  ctx.strokeStyle = withAlpha(APP_ACCENT.doc, 0.8)
   ctx.lineWidth = 0.7
   ctx.beginPath()
   ctx.moveTo(w - 9, 0)
@@ -205,8 +235,8 @@ function drawDoc(
   ctx.stroke()
 
   // title line, then body
-  ruled(ctx, 4, 13, w - 14, withAlpha(p.ink, 0.5), 2)
-  const soft = withAlpha(p.inkSoft, 0.42)
+  ruled(ctx, 4, 13, w - 14, withAlpha(p.ink, 0.68), 2)
+  const soft = withAlpha(p.inkSoft, 0.6)
   const pattern = [
     [22, 18, 21, 12],
     [20, 22, 15, 19],
@@ -231,17 +261,17 @@ function drawImage(
   rr(ctx, 2, 2, w - 4, h - 4, 2.5)
   ctx.clip()
 
-  ctx.fillStyle = withAlpha(tint, 0.16)
+  ctx.fillStyle = withAlpha(tint, 0.26)
   ctx.fillRect(2, 2, w - 4, h - 4)
 
   // sun
-  ctx.fillStyle = withAlpha(tint, 0.5)
+  ctx.fillStyle = withAlpha(tint, 0.66)
   ctx.beginPath()
   ctx.arc(w - 10, 9, 2.6, 0, Math.PI * 2)
   ctx.fill()
 
   // mountains
-  ctx.fillStyle = withAlpha(tint, 0.62)
+  ctx.fillStyle = withAlpha(tint, 0.78)
   ctx.beginPath()
   ctx.moveTo(2, h - 4)
   ctx.lineTo(13, 12)
@@ -249,7 +279,7 @@ function drawImage(
   ctx.closePath()
   ctx.fill()
 
-  ctx.fillStyle = withAlpha(tint, 0.42)
+  ctx.fillStyle = withAlpha(tint, 0.58)
   ctx.beginPath()
   ctx.moveTo(15, h - 4)
   ctx.lineTo(25, 16)
@@ -271,7 +301,7 @@ function drawAudio(
   base(ctx, w, h, p, lp, h / 2)
 
   // play button
-  ctx.fillStyle = withAlpha(APP_ACCENT.audio, 0.14)
+  ctx.fillStyle = withAlpha(APP_ACCENT.audio, 0.2)
   ctx.beginPath()
   ctx.arc(9, h / 2, 5.5, 0, Math.PI * 2)
   ctx.fill()
@@ -289,7 +319,7 @@ function drawAudio(
     [2, 5, 8, 10, 6, 3, 7, 9, 4, 2],
     [4, 7, 3, 8, 5, 9, 4, 6, 3, 5],
   ][v]
-  ctx.fillStyle = withAlpha(APP_ACCENT.audio, 0.55)
+  ctx.fillStyle = withAlpha(APP_ACCENT.audio, 0.75)
   bars.forEach((bh, i) => {
     const x = 18 + i * 2.5
     rr(ctx, x, h / 2 - bh / 2, 1.3, bh, 0.65)
@@ -341,7 +371,7 @@ function drawEmail(
   base(ctx, w, h, p, lp, 3)
 
   // envelope glyph
-  ctx.strokeStyle = withAlpha(APP_ACCENT.email, 0.85)
+  ctx.strokeStyle = withAlpha(APP_ACCENT.email, 1)
   ctx.lineWidth = 0.9
   rr(ctx, 4, 6, 11, 8, 1.2)
   ctx.stroke()
@@ -352,9 +382,9 @@ function drawEmail(
   ctx.stroke()
 
   // sender (bold) + subject
-  ruled(ctx, 19, 7.5, [20, 16, 22][v], withAlpha(p.ink, 0.5), 2)
-  ruled(ctx, 19, 12.5, [23, 21, 18][v], withAlpha(p.inkSoft, 0.42))
-  ruled(ctx, 4, 18.5, w - 10, withAlpha(p.inkSoft, 0.3))
+  ruled(ctx, 19, 7.5, [20, 16, 22][v], withAlpha(p.ink, 0.68), 2)
+  ruled(ctx, 19, 12.5, [23, 21, 18][v], withAlpha(p.inkSoft, 0.6))
+  ruled(ctx, 4, 18.5, w - 10, withAlpha(p.inkSoft, 0.48))
 }
 
 /** Spreadsheet: green header, real grid. */
@@ -373,7 +403,7 @@ function drawSheet(
   rr(ctx, 2, 2, w - 4, 5.5, 1.5)
   ctx.fill()
 
-  ctx.strokeStyle = withAlpha(APP_ACCENT.sheet, 0.3)
+  ctx.strokeStyle = withAlpha(APP_ACCENT.sheet, 0.5)
   ctx.lineWidth = 0.6
   ctx.beginPath()
   for (let c = 1; c < 4; c++) {
@@ -389,7 +419,7 @@ function drawSheet(
   ctx.stroke()
 
   // a couple of filled cells so it reads as data, not graph paper
-  ctx.fillStyle = withAlpha(APP_ACCENT.sheet, 0.18)
+  ctx.fillStyle = withAlpha(APP_ACCENT.sheet, 0.3)
   const cell = [
     [1, 1],
     [2, 0],
@@ -409,13 +439,13 @@ function drawSlack(
 ) {
   base(ctx, w, h, p, lp, 4)
 
-  ctx.fillStyle = withAlpha(APP_ACCENT.slack, 0.8)
+  ctx.fillStyle = withAlpha(APP_ACCENT.slack, 0.95)
   rr(ctx, 4, 5, 8, 8, 2.5)
   ctx.fill()
 
-  ruled(ctx, 16, 6, [14, 11, 16][v], withAlpha(p.ink, 0.5), 2)
-  ruled(ctx, 16, 11, [24, 20, 22][v], withAlpha(p.inkSoft, 0.42))
-  ruled(ctx, 4, 18, [30, 26, 34][v], withAlpha(p.inkSoft, 0.32))
+  ruled(ctx, 16, 6, [14, 11, 16][v], withAlpha(p.ink, 0.68), 2)
+  ruled(ctx, 16, 11, [24, 20, 22][v], withAlpha(p.inkSoft, 0.6))
+  ruled(ctx, 4, 18, [30, 26, 34][v], withAlpha(p.inkSoft, 0.5))
 }
 
 const RENDERERS: Record<
@@ -457,17 +487,22 @@ export function buildAtlas(palette: SwarmPalette, dpr: number, lowPower: boolean
 
   for (const kind of KINDS) {
     const [cw, ch] = SIZE[kind]
-    const fw = cw + PAD * 2
-    const fh = ch + PAD * 2
+    const S = ARTIFACT_SCALE
+    // Blit size in CSS px…
+    const fw = (cw + PAD * 2) * S
+    const fh = (ch + PAD * 2) * S
 
     for (let v = 0; v < VARIANTS; v++) {
       const c = document.createElement('canvas')
+      // …and a bitmap rasterized to match, at device resolution. Both the DPR
+      // and the artifact scale go into the transform, so the renderers keep
+      // their design coordinates while the output stays pixel-crisp at size.
       c.width = Math.ceil(fw * dpr)
       c.height = Math.ceil(fh * dpr)
       const ctx = c.getContext('2d')
       if (!ctx) continue
 
-      ctx.scale(dpr, dpr)
+      ctx.scale(dpr * S, dpr * S)
       ctx.translate(PAD, PAD)
       RENDERERS[kind](ctx, cw, ch, palette, v, lowPower)
 

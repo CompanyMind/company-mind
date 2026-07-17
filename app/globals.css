@@ -124,11 +124,16 @@
     /* Anchored at 35% rather than dead centre: headlines are left-aligned and
        ragged-right, so the paper needs to be densest under the left where every
        line has glyphs, and can fall away on the right where the swarm lives. */
+    /* Hugs the type and falls away fast. An earlier, broader/denser version
+       guaranteed contrast but bleached the swarm into ghosts across the whole
+       left half — and the swarm IS the page. Now the artifacts carry their own
+       definition (a real edge, real interior contrast), so the paper only has
+       to protect the glyphs themselves. */
     background: radial-gradient(
-      ellipse 78% 76% at 35% 50%,
-      var(--paper) 0%,
-      color-mix(in srgb, var(--paper) 90%, transparent) 52%,
-      transparent 84%
+      ellipse 66% 70% at 32% 50%,
+      color-mix(in srgb, var(--paper) 97%, transparent) 0%,
+      color-mix(in srgb, var(--paper) 74%, transparent) 46%,
+      transparent 76%
     );
   }
 }
