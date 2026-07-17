@@ -314,20 +314,28 @@ export class SwarmEngine {
       }
     }
 
-    // Edges: two nearest neighbours among the real artifacts.
+    // Edges: two nearest neighbours — among artifacts that STAY IN THE BRAIN.
+    //
+    // Flyers are excluded. They leave the lattice to become the substance of the
+    // feature cards, and while they were still wired into it their filaments
+    // stretched from wherever the cards had scrolled to, right across the
+    // viewport and straight through the copy — long teal streaks over "True by
+    // construction." An artifact that has left the brain is not connected to it.
+    const web = this.arts.filter((a) => a.dupOf < 0 && a.flyer < 0)
+    const W = web.length
     this.edges = []
-    for (let i = 0; i < K; i++) {
+    for (let i = 0; i < W; i++) {
       const ds: [number, number][] = []
-      for (let j = 0; j < K; j++) {
+      for (let j = 0; j < W; j++) {
         if (j === i) continue
-        const dx = real[i].nx - real[j].nx
-        const dy = real[i].ny - real[j].ny
+        const dx = web[i].nx - web[j].nx
+        const dy = web[i].ny - web[j].ny
         ds.push([dx * dx + dy * dy, j])
       }
       ds.sort((a, b) => a[0] - b[0])
-      for (let k = 0; k < 2; k++) {
+      for (let k = 0; k < 2 && k < ds.length; k++) {
         const j = ds[k][1]
-        if (i < j) this.edges.push([this.arts.indexOf(real[i]), this.arts.indexOf(real[j])])
+        if (i < j) this.edges.push([this.arts.indexOf(web[i]), this.arts.indexOf(web[j])])
       }
     }
 
@@ -478,11 +486,32 @@ export class SwarmEngine {
           r: min * 0.17,
         }
       case 'features':
-        return { cx: this.vw * 0.5, cy: this.vh * 0.2, r: min * 0.1 }
+        // Top-RIGHT and small. Centred at 0.2 put the cluster directly on
+        // "Built for the companies that cannot use the cloud." — the brain is
+        // not the subject of this scene at all, the cards are, and 12 of these
+        // artifacts have already left to become them. What remains should get
+        // out of the way and stay out.
+        return {
+          cx: this.vw < 900 ? this.vw * 0.5 : this.vw * 0.84,
+          cy: this.vh * 0.2,
+          r: min * 0.07,
+        }
       case 'proof':
-        return { cx: this.vw * 0.5, cy: this.vh * 0.5, r: min * 0.13 }
+        // Brain right — the copy and the metric grid own the left and centre.
+        return {
+          cx: this.vw < 900 ? this.vw * 0.5 : this.vw * 0.78,
+          cy: this.vh * 0.44,
+          r: min * 0.12,
+        }
       case 'cta':
-        return { cx: this.vw * 0.5, cy: this.vh * 0.66, r: min * 0.15 }
+        // Brain right, clear of the form. It still reads as the finale — one
+        // calm secured core inside the walls, with a slow --sovereign heartbeat
+        // around it — and it is the one place the brain follows the cursor.
+        return {
+          cx: this.vw < 900 ? this.vw * 0.5 : this.vw * 0.74,
+          cy: this.vh * 0.52,
+          r: min * 0.15,
+        }
       default:
         return { cx: this.vw * 0.5, cy: this.vh * 0.46, r: min * 0.3 }
     }
@@ -554,7 +583,11 @@ export class SwarmEngine {
       let ta = 1
       let tr = 0
 
-      if (a.flyer >= 0 && (sec === 'features' || (sec === 'proof' && P.features > 0.9))) {
+      // Flyers fly ONLY in 'features'. The reference also held them at the cards
+      // through 'proof', but by then those cards have scrolled off the top, so
+      // every flyer was chasing a target above the viewport and piling against
+      // the ceiling. In 'proof' they simply rejoin the brain.
+      if (a.flyer >= 0 && sec === 'features') {
         // fly into the feature card that this artifact becomes part of
         const cr = this.cardRects[a.flyer]
         if (cr) {
@@ -593,7 +626,9 @@ export class SwarmEngine {
         // ---- the brain, at rest -----------------------------------------
         tx = bc.cx + a.nx * bc.r + (reduced ? 0 : Math.sin(t * 0.6 + a.seed) * 3)
         ty = bc.cy + a.ny * bc.r + (reduced ? 0 : Math.cos(t * 0.5 + a.seed) * 3)
-        ta = a.dupOf >= 0 ? 0 : sec === 'features' ? 0.45 : 1
+        // Recede hard in 'features' — the cards are the subject there, and a
+        // half-opaque brain behind them is just noise competing with the copy.
+        ta = a.dupOf >= 0 ? 0 : sec === 'features' ? 0.28 : 1
       }
 
       // cursor parts the swarm
