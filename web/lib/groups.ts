@@ -51,6 +51,30 @@ export async function groupMemberUserIds(workspaceId: string): Promise<Map<strin
   return map
 }
 
+// Replace a Telegram identity's group membership (the admin-assigned groups).
+export async function setTelegramLinkGroups(
+  linkId: string,
+  workspaceId: string,
+  groupIds: string[],
+): Promise<void> {
+  await db
+    .delete(groupMembers)
+    .where(
+      and(eq(groupMembers.workspaceId, workspaceId), eq(groupMembers.telegramLinkId, linkId)),
+    )
+  if (groupIds.length) {
+    const valid = await db
+      .select({ id: groups.id })
+      .from(groups)
+      .where(and(eq(groups.workspaceId, workspaceId), inArray(groups.id, groupIds)))
+    if (valid.length) {
+      await db
+        .insert(groupMembers)
+        .values(valid.map((g) => ({ workspaceId, groupId: g.id, telegramLinkId: linkId })))
+    }
+  }
+}
+
 // Replace a group's web-user membership. Only users who belong to the workspace
 // are added.
 export async function setGroupMembers(
