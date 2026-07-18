@@ -30,6 +30,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...but the templates (no secrets, only var names) are committed on purpose.
+!.env.example
+!web/.env.example
 
 # vercel
 .vercel
