@@ -1,9 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import { Space_Grotesk, IBM_Plex_Mono, Inter } from 'next/font/google'
-import { site } from '@/content/site'
 import './globals.css'
 
-// Display — a confident wide grotesque. Massive scale, tight tracking. No serifs.
+// Display — a confident wide grotesque. Massive scale, tight tracking.
 const display = Space_Grotesk({
   subsets: ['latin'],
   weight: ['500', '700'],
@@ -20,43 +19,13 @@ const mono = IBM_Plex_Mono({
 })
 
 // Body — a clean neutral that gets out of the way.
-const body = Inter({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-body',
-})
+const body = Inter({ subsets: ['latin'], display: 'swap', variable: '--font-body' })
 
 export const metadata: Metadata = {
-  metadataBase: new URL(`https://${site.domain}`),
-  title: {
-    default: `${site.name} — ${site.tagline}`,
-    template: `%s — ${site.name}`,
-  },
-  description: site.description,
-  keywords: [
-    'on-premise AI',
-    'enterprise knowledge base',
-    'sovereign AI',
-    'air-gapped AI',
-    'cited answers',
-    'regulated industries',
-    'data residency',
-    'self-hosted knowledge management',
-  ],
-  authors: [{ name: site.name }],
-  openGraph: {
-    type: 'website',
-    siteName: site.name,
-    title: `${site.name} — ${site.tagline}`,
-    description: site.description,
-    url: `https://${site.domain}`,
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: `${site.name} — ${site.tagline}`,
-    description: site.description,
-  },
-  robots: { index: true, follow: true },
+  title: { default: 'CompanyMind', template: '%s — CompanyMind' },
+  description: 'On-premise knowledge platform.',
+  // The product lives behind auth — it is not public content to index.
+  robots: { index: false, follow: false },
 }
 
 export const viewport: Viewport = {

@@ -6,8 +6,6 @@
 
 @layer base {
   html {
-    /* Lenis drives scrolling; native smooth-scroll would fight it. */
-    scroll-behavior: auto;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -17,21 +15,6 @@
     background-color: var(--paper);
     color: var(--ink);
     font-family: var(--font-body), system-ui, sans-serif;
-    overflow-x: clip;
-  }
-
-  /* Faint warm paper grain. Desktop only — it is the first thing to go on
-     low-power devices, and it must never cost a frame. */
-  @media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
-    body::after {
-      content: '';
-      position: fixed;
-      inset: 0;
-      z-index: 9999;
-      pointer-events: none;
-      opacity: 0.035;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
-    }
   }
 
   ::selection {
@@ -60,28 +43,6 @@
 }
 
 @layer components {
-  /* The mono telemetry voice — file names, system state, labels. Never body copy. */
-  .mono-label {
-    font-family: var(--font-mono), ui-monospace, monospace;
-    font-size: 0.75rem;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--ink-soft);
-  }
-
-  /* A headline reveal that masks up from below. Pairs with DecodeText. */
-  .mask-line {
-    display: block;
-    overflow: hidden;
-  }
-
-  .shell {
-    width: 100%;
-    max-width: 82rem;
-    margin-inline: auto;
-    padding-inline: var(--gutter);
-  }
-
   /* App rail navigation — the authed instrument panel. An active item is marked
      by a teal (--brain) spine, echoing "indexed / connected knowledge". */
   .rail-link {
@@ -103,83 +64,8 @@
     border-left-color: var(--brain);
     background-color: color-mix(in srgb, var(--paper-raised) 80%, transparent);
   }
-
-  /* ---------------------------------------------------------------------
-     Copy sits ON TOP of a live canvas, so its contrast would otherwise be
-     indeterminate — WCAG cannot be satisfied against a moving background.
-     Rather than fight that, we lean into the art direction: a block of copy
-     is itself an object resting on the desk, the same as every artifact
-     behind it. Guarantees AA, and reads as a deliberate choice.
-     --------------------------------------------------------------------- */
-  .plate {
-    background-color: color-mix(in srgb, var(--paper) 88%, transparent);
-    backdrop-filter: blur(3px);
-    border-radius: 3px;
-  }
-
-  /* For display type that must feel free rather than boxed: a soft paper wash
-     with no visible edge. Same contrast guarantee, no container.
-
-     Tuned tight on purpose. A generous wash guarantees contrast but bleaches
-     the swarm out of the frame — and the swarm IS the page. This sits close to
-     the glyphs and falls off fast, so the type stays readable while the
-     artifacts still read as a storm around it. */
-  .wash {
-    position: relative;
-    isolation: isolate;
-  }
-
-  .wash::before {
-    content: '';
-    position: absolute;
-    top: -14%;
-    bottom: -14%;
-    /* Bleed outward to the viewport edge, but NEVER past it.
-       A flat -10% resolves against the element's own width: on a 335px-wide
-       column at 375px that is 33.5px, which pushed the wash to -13px..389px and
-       gave the homepage a real 13px horizontal scroll on mobile. Capping the
-       bleed at the gutter means it always reaches the screen edge exactly —
-       generous on desktop (72px), flush at 375 (20px), overflowing at neither. */
-    left: max(-10%, calc(-1 * var(--gutter)));
-    right: max(-10%, calc(-1 * var(--gutter)));
-    z-index: -1;
-    /* Anchored at 35% rather than dead centre: headlines are left-aligned and
-       ragged-right, so the paper needs to be densest under the left where every
-       line has glyphs, and can fall away on the right where the swarm lives. */
-    /* Hugs the type and falls away fast. An earlier, broader/denser version
-       guaranteed contrast but bleached the swarm into ghosts across the whole
-       left half — and the swarm IS the page. Now the artifacts carry their own
-       definition (a real edge, real interior contrast), so the paper only has
-       to protect the glyphs themselves. */
-    background: radial-gradient(
-      ellipse 66% 70% at 32% 50%,
-      color-mix(in srgb, var(--paper) 97%, transparent) 0%,
-      color-mix(in srgb, var(--paper) 74%, transparent) 46%,
-      transparent 76%
-    );
-  }
 }
 
-@layer utilities {
-  /* Screen-reader-only, but still focusable (skip link). */
-  .sr-only-focusable:not(:focus):not(:focus-within) {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border-width: 0;
-  }
-}
-
-/* ---------------------------------------------------------------------------
-   Reduced motion: the swarm freezes into ONE resolved static composition
-   (handled in lib/swarm/engine.ts). Here we disable every CSS-driven
-   animation. Nothing moves; everything stays readable and navigable.
-   --------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -187,6 +73,5 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
   }
 }

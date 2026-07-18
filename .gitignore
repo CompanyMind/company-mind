@@ -2,6 +2,7 @@
 
 # dependencies
 /web/node_modules
+/marketing/node_modules
 /node_modules
 /.pnp
 .pnp.*
@@ -9,6 +10,8 @@
 # next.js
 /web/.next/
 /web/out/
+/marketing/.next/
+/marketing/out/
 
 # production
 /web/build
@@ -40,6 +43,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 web/next-env.d.ts
+marketing/next-env.d.ts
 
 # test artifacts
 .playwright-mcp/

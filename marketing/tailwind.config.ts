@@ -10,7 +10,7 @@ import type { Config } from 'tailwindcss'
  * channels into the token layer would double every token for little gain.
  */
 const config: Config = {
-  content: ['./app/**/*.{ts,tsx}'],
+  content: ['./app/**/*.{ts,tsx}', './components/**/*.{ts,tsx}', './content/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
