@@ -208,7 +208,11 @@ export const groupMembers = pgTable(
     groupId: uuid('group_id')
       .notNull()
       .references(() => groups.id, { onDelete: 'cascade' }),
+    // A member is a web user OR a Telegram identity (exactly one is set).
     userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    telegramLinkId: uuid('telegram_link_id').references(() => telegramLinks.id, {
+      onDelete: 'cascade',
+    }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [index('group_members_group_idx').on(t.groupId)],
@@ -228,4 +232,33 @@ export const documentGroups = pgTable(
       .references(() => groups.id, { onDelete: 'cascade' }),
   },
   (t) => [primaryKey({ columns: [t.documentId, t.groupId] })],
+)
+
+export const telegramBots = pgTable('telegram_bots', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  workspaceId: uuid('workspace_id')
+    .notNull()
+    .unique()
+    .references(() => workspaces.id, { onDelete: 'cascade' }),
+  botTokenEncrypted: text('bot_token_encrypted').notNull(),
+  botUsername: text('bot_username').notNull(),
+  lastUpdateId: bigint('last_update_id', { mode: 'number' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+})
+
+export const telegramLinks = pgTable(
+  'telegram_links',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    telegramUserId: bigint('telegram_user_id', { mode: 'number' }).notNull(),
+    telegramUsername: text('telegram_username'),
+    displayName: text('display_name'),
+    status: text('status').notNull().default('pending'), // pending | approved | blocked
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    approvedAt: timestamp('approved_at', { withTimezone: true }),
+  },
+  (t) => [index('telegram_links_workspace_idx').on(t.workspaceId)],
 )
