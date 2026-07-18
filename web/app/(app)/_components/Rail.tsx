@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 const NAV = [
   { href: '/dashboard', label: 'Ask' },
   { href: '/dashboard/sources', label: 'Sources' },
+  { href: '/dashboard/access', label: 'Access' },
 ]
 
 export function Rail({ workspace, userName }: { workspace: string; userName: string | null }) {

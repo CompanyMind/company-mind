@@ -1,7 +1,7 @@
 import 'server-only'
 import { and, eq, inArray } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { groups, groupMembers, documentGroups } from '@/lib/db/schema'
+import { groups, groupMembers, documentGroups, memberships } from '@/lib/db/schema'
 
 export async function getEveryoneGroup(workspaceId: string): Promise<string> {
   const existing = await db.query.groups.findFirst({
@@ -36,6 +36,42 @@ export async function resolveAccess(
 
 export async function listGroups(workspaceId: string) {
   return db.select().from(groups).where(eq(groups.workspaceId, workspaceId))
+}
+
+export async function groupMemberUserIds(workspaceId: string): Promise<Map<string, string[]>> {
+  const rows = await db
+    .select()
+    .from(groupMembers)
+    .where(eq(groupMembers.workspaceId, workspaceId))
+  const map = new Map<string, string[]>()
+  for (const r of rows) {
+    if (!r.userId) continue
+    map.set(r.groupId, [...(map.get(r.groupId) ?? []), r.userId])
+  }
+  return map
+}
+
+// Replace a group's web-user membership. Only users who belong to the workspace
+// are added.
+export async function setGroupMembers(
+  groupId: string,
+  workspaceId: string,
+  userIds: string[],
+): Promise<void> {
+  await db
+    .delete(groupMembers)
+    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.workspaceId, workspaceId)))
+  if (userIds.length) {
+    const valid = await db
+      .select({ userId: memberships.userId })
+      .from(memberships)
+      .where(and(eq(memberships.workspaceId, workspaceId), inArray(memberships.userId, userIds)))
+    if (valid.length) {
+      await db
+        .insert(groupMembers)
+        .values(valid.map((v) => ({ workspaceId, groupId, userId: v.userId })))
+    }
+  }
 }
 
 export async function documentGroupIds(documentId: string, workspaceId: string): Promise<string[]> {
