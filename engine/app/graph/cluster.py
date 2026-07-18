@@ -32,7 +32,13 @@ def keywords_per_cluster(
     if not any(d.strip() for d in docs):
         return {c: [] for c in order}
     vec = TfidfVectorizer(stop_words="english", max_features=2000)
-    m = vec.fit_transform(docs)
+    try:
+        m = vec.fit_transform(docs)
+    except ValueError:
+        # All non-blank docs consist entirely of stop-words (e.g. "the of and
+        # is") -> empty vocabulary. Same empty-keywords fallback as the blank
+        # guard above.
+        return {c: [] for c in order}
     terms = np.array(vec.get_feature_names_out())
     for i, c in enumerate(order):
         row = m[i].toarray().ravel()

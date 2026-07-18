@@ -28,3 +28,10 @@ def test_keywords_pick_distinguishing_terms():
     labels = np.array([0, 0, 1, 1])
     kw = keywords_per_cluster(texts, labels, top_n=2)
     assert "finance" in kw[0] and "onboarding" in kw[1]
+
+
+def test_stopword_only_returns_empty_keywords():
+    texts = ["the of and is", "the of and is"]
+    labels = np.array([0, 1])
+    kw = keywords_per_cluster(texts, labels)
+    assert kw == {0: [], 1: []}
