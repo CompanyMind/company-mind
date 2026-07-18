@@ -66,6 +66,16 @@ services:
     ports:
       - "3000:3000"
 
+  # Public marketing site. A SEPARATE deployable on purpose: it is public,
+  # stateless, needs no DB/engine/secrets, and NEVER ships to a customer
+  # datacenter. In production it belongs on a CDN/edge host, not on-prem.
+  marketing:
+    build: ./marketing
+    environment:
+      NODE_ENV: production
+    ports:
+      - "3001:3001"
+
 volumes:
   dbdata:
   uploads:
