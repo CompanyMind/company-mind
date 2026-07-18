@@ -43,7 +43,7 @@ export function Nav() {
         <Link
           href="/"
           className="text-ink transition-opacity hover:opacity-70"
-          aria-label="CompBrain — home"
+          aria-label="CompanyMind — home"
         >
           <Wordmark />
         </Link>

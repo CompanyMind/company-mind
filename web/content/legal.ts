@@ -39,7 +39,7 @@ export type LegalSection = {
 export type LegalDoc = {
   /** mono eyebrow */
   readonly label: string
-  /** <title> — the layout template appends "— CompBrain" */
+  /** <title> — the layout template appends "— CompanyMind" */
   readonly title: string
   readonly description: string
   /** One <span> per line of the display headline. */
@@ -63,7 +63,7 @@ export const legalMeta = {
   updatedISO: '2026-07-17',
   updatedLabel: '17 July 2026',
   updatedPrefix: 'Last updated',
-  email: 'hello@compbrain.ai',
+  email: 'hello@companymind.ai',
 } as const
 
 /* ---------------------------------------------------------------------------
@@ -79,7 +79,7 @@ export const privacyDoc: LegalDoc = {
   label: 'Privacy',
   title: 'Privacy',
   description:
-    'What the CompBrain website collects: your contact form submission, and nothing else. No tracking cookies, no ad networks, no data sale.',
+    'What the CompanyMind website collects: your contact form submission, and nothing else. No tracking cookies, no ad networks, no data sale.',
   headline: ['This site collects', 'almost nothing.'],
   standfirst:
     'That is not a posture we adopted for this page. It is the same argument the product makes: data you never collect cannot leak, cannot be sold, and cannot be lost. We hold the marketing site to it too.',
@@ -122,8 +122,8 @@ export const privacyDoc: LegalDoc = {
     {
       heading: 'The product is a different thing entirely',
       body: [
-        'Everything above is about this website. It is not about CompBrain the product, because the two could not be further apart.',
-        'CompBrain deploys inside your infrastructure. Your data stays there. We have no access to it, no copy of it, and no route to it — there is no vendor cloud for it to sit in, because there is no vendor cloud. What happens to data inside your deployment is governed by your controls and by the agreement we sign with you, not by this page.',
+        'Everything above is about this website. It is not about CompanyMind the product, because the two could not be further apart.',
+        'CompanyMind deploys inside your infrastructure. Your data stays there. We have no access to it, no copy of it, and no route to it — there is no vendor cloud for it to sit in, because there is no vendor cloud. What happens to data inside your deployment is governed by your controls and by the agreement we sign with you, not by this page.',
       ],
     },
   ],
@@ -148,10 +148,10 @@ export const termsDoc: LegalDoc = {
   label: 'Terms',
   title: 'Terms',
   description:
-    'Terms for the CompBrain website: what is on it, what the contact form does and does not mean, and where the terms that actually bind live.',
+    'Terms for the CompanyMind website: what is on it, what the contact form does and does not mean, and where the terms that actually bind live.',
   headline: ['This site is', 'not the product.'],
   standfirst:
-    'CompBrain is pre-launch. Here you can read about what we are building and ask to talk to us. These terms cover exactly that, and nothing more.',
+    'CompanyMind is pre-launch. Here you can read about what we are building and ask to talk to us. These terms cover exactly that, and nothing more.',
   sections: [
     {
       heading: 'What these terms cover',

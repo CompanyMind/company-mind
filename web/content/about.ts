@@ -6,7 +6,7 @@
  * inline their own strings.
  *
  * HONESTY RULES apply here harder than anywhere else on the site, because this
- * is the page where a company is most tempted to lie about itself. CompBrain is
+ * is the page where a company is most tempted to lie about itself. CompanyMind is
  * pre-launch: no customers, no revenue, no certifications, and no team page.
  *
  *   1. NO named people. NO bios. NO headshots. NO initials-in-a-circle standing
@@ -27,7 +27,7 @@
 export const aboutMeta = {
   title: 'About',
   description:
-    'The best AI arrives as an API — and the institutions holding the most sensitive data in the economy can never call it. Why CompBrain builds sovereign knowledge infrastructure, and an honest account of where we stand.',
+    'The best AI arrives as an API — and the institutions holding the most sensitive data in the economy can never call it. Why CompanyMind builds sovereign knowledge infrastructure, and an honest account of where we stand.',
 } as const
 
 /* ---------------------------------------------------------------------------
@@ -90,7 +90,7 @@ export const beliefs = {
     {
       n: '01',
       title: 'An answer without a source is a rumor.',
-      body: 'In a regulated business, an unattributed answer is not an answer — it is work. Somebody now has to go find out whether it is true. CompBrain builds answers out of retrieved spans and cites every clause back to the artifact it came from, because an answer you cannot check is worth less than no answer at all.',
+      body: 'In a regulated business, an unattributed answer is not an answer — it is work. Somebody now has to go find out whether it is true. CompanyMind builds answers out of retrieved spans and cites every clause back to the artifact it came from, because an answer you cannot check is worth less than no answer at all.',
     },
     {
       n: '02',
@@ -117,7 +117,7 @@ export const beliefs = {
 export const stage = {
   label: 'Stage',
   headline: ['Pre-launch.', 'We will say so plainly.'],
-  body: 'CompBrain is being built with a small number of regulated teams who have this problem badly enough to help us solve it properly. Everything else about our stage is on this page, in the plainest terms we can manage, because the alternative is asking you to discover it later.',
+  body: 'CompanyMind is being built with a small number of regulated teams who have this problem badly enough to help us solve it properly. Everything else about our stage is on this page, in the plainest terms we can manage, because the alternative is asking you to discover it later.',
   inventory: [
     {
       k: 'Customers',
@@ -150,7 +150,7 @@ export const stage = {
 export const lab = {
   label: 'The lab',
   headline: ['A small lab,', 'on purpose.'],
-  body: 'Sovereign software is an engineering problem long before it is a sales problem. It has to install into a building we have never entered, on hardware we do not control, with no route home and nobody from CompBrain in the room. That work rewards a small team that can hold the whole system in its head. Below is how it divides.',
+  body: 'Sovereign software is an engineering problem long before it is a sales problem. It has to install into a building we have never entered, on hardware we do not control, with no route home and nobody from CompanyMind in the room. That work rewards a small team that can hold the whole system in its head. Below is how it divides.',
   note: 'Roles, not headshots. The names go up when there are real ones.',
   roles: [
     {
@@ -158,14 +158,14 @@ export const lab = {
       title: 'Founder / ML',
       focus: 'position · retrieval · grounding',
       nameSlot: 'name to follow',
-      body: 'Owns the model layer: retrieval, grounding, and the post-training work that keeps an answer inside the source material it was built from. Decides what CompBrain refuses to do. Also the person who replies to your first email.',
+      body: 'Owns the model layer: retrieval, grounding, and the post-training work that keeps an answer inside the source material it was built from. Decides what CompanyMind refuses to do. Also the person who replies to your first email.',
     },
     {
       n: '02',
       title: 'Systems',
       focus: 'deployment · inference · air gap',
       nameSlot: 'name to follow',
-      body: 'Owns the install. Packages CompBrain so it lands in a datacenter we have never seen, runs inference on the customer’s own GPUs, and takes upgrades across an air gap without a support engineer standing next to the rack.',
+      body: 'Owns the install. Packages CompanyMind so it lands in a datacenter we have never seen, runs inference on the customer’s own GPUs, and takes upgrades across an air gap without a support engineer standing next to the rack.',
     },
     {
       n: '03',

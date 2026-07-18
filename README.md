@@ -1,6 +1,6 @@
-# CompBrain — company website
+# CompanyMind — company website
 
-The marketing site for CompBrain: one platform that ingests everything a company knows and turns
+The marketing site for CompanyMind: one platform that ingests everything a company knows and turns
 it into a single brain you can ask, running entirely inside your own infrastructure, where every
 answer traces back to its source.
 
@@ -67,7 +67,7 @@ strings, so copy can be rewritten without touching a single component.
 
 ### The honesty rules are load-bearing
 
-Read the header comment in `content/site.ts` before changing any claim. CompBrain is **pre-launch**:
+Read the header comment in `content/site.ts` before changing any claim. CompanyMind is **pre-launch**:
 no customers, no revenue, **no certifications**. Therefore:
 
 - **Never** claim SOC 2 / HIPAA / ISO 27001 / FedRAMP, or render badge-shaped graphics implying

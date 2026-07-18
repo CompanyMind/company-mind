@@ -6,7 +6,7 @@
  * inline their own strings. See README §"Editing copy".
  *
  * HONESTY RULES apply here with extra force, because a pricing page is where a
- * company is most tempted to lie. CompBrain is pre-launch: no customers, no
+ * company is most tempted to lie. CompanyMind is pre-launch: no customers, no
  * revenue, no certifications. Therefore, on this page specifically:
  *
  *   1. NO dollar amounts, seat counts, discounts, or "starting at" figures.
@@ -32,7 +32,7 @@
 export const pricingMeta = {
   title: 'Pricing',
   description:
-    'Three ways to run CompBrain — a guided pilot, a company-wide deployment, or a fully air-gapped install on your own hardware. On-prem is quoted against your estate, not printed on a page.',
+    'Three ways to run CompanyMind — a guided pilot, a company-wide deployment, or a fully air-gapped install on your own hardware. On-prem is quoted against your estate, not printed on a page.',
 } as const
 
 export const pricingHero = {
@@ -40,7 +40,7 @@ export const pricingHero = {
   // The no-price is the headline, said in the affirmative. It is a statement
   // about how on-prem software is bought, not an apology for a missing number.
   headline: ['Scoped, not', 'shrink-wrapped.'],
-  sub: 'Three ways to run CompBrain, from one team to a room with no internet route. What it costs depends on what it runs on — so we quote it, we do not print it.',
+  sub: 'Three ways to run CompanyMind, from one team to a room with no internet route. What it costs depends on what it runs on — so we quote it, we do not print it.',
 } as const
 
 /**
@@ -150,7 +150,7 @@ export const faq = {
     },
     {
       q: 'What actually happens in a pilot?',
-      a: 'We install CompBrain in your environment and connect a real set of your sources alongside your team. Then your people ask it real questions and check the citations against the originals. You are testing it on your own corpus, on your own hardware, with your own mess — which is the only test that tells you anything.',
+      a: 'We install CompanyMind in your environment and connect a real set of your sources alongside your team. Then your people ask it real questions and check the citations against the originals. You are testing it on your own corpus, on your own hardware, with your own mess — which is the only test that tells you anything.',
     },
     {
       q: 'What does a deployment involve on our side?',
@@ -161,7 +161,7 @@ export const faq = {
       // any hedge here costs the deal permanently. Say no, then say why the
       // architecture is the better answer than a badge would be.
       q: 'Are you SOC 2 or HIPAA certified?',
-      a: 'No. CompBrain holds no certifications, and we will not imply otherwise with a badge. What we offer is architectural: the software runs inside the boundary your obligations already cover, so your controls, your logging and your auditors reach it exactly the way they reach everything else in your estate. The certifications are yours. Our job is to not make them harder to keep.',
+      a: 'No. CompanyMind holds no certifications, and we will not imply otherwise with a badge. What we offer is architectural: the software runs inside the boundary your obligations already cover, so your controls, your logging and your auditors reach it exactly the way they reach everything else in your estate. The certifications are yours. Our job is to not make them harder to keep.',
     },
     {
       q: 'Can we start with a pilot and grow into a deployment?',
@@ -176,7 +176,7 @@ export const pricingCta = {
   // Says the quiet part out loud: we are pre-launch. A regulated buyer will
   // find out in the first five minutes anyway, and finding out from us is worth
   // more than the impression of momentum we would trade it for.
-  body: 'CompBrain is pre-launch. We are building it with a small number of regulated teams who have this problem badly enough to help us solve it properly. Tell us what is scattered and where it is not allowed to go, and we will tell you what a deployment would look like.',
+  body: 'CompanyMind is pre-launch. We are building it with a small number of regulated teams who have this problem badly enough to help us solve it properly. Tell us what is scattered and where it is not allowed to go, and we will tell you what a deployment would look like.',
   submit: 'Start the conversation',
   href: '/contact',
   fineprint: 'One reply from a human. No sequence, no drip, no newsletter.',

@@ -1,5 +1,5 @@
 /**
- * CompBrain design tokens — "warm studio paper"
+ * CompanyMind design tokens — "warm studio paper"
  *
  * SINGLE SOURCE OF TRUTH. Both Tailwind (via tailwind.config.ts) and the
  * canvas swarm (via lib/swarm/tokens.ts, which reads these at runtime with

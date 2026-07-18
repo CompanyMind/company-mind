@@ -8,7 +8,7 @@ import { DecodeText } from '@/components/DecodeText'
 /**
  * SCENE 7 — PROOF.
  *
- * CompBrain is PRE-LAUNCH. There are no customers, so there are no customer
+ * CompanyMind is PRE-LAUNCH. There are no customers, so there are no customer
  * numbers here. Every figure below is true BY CONSTRUCTION — it follows from
  * how the system is built, not from how many people bought it. "0 bytes egress"
  * is not a counter that happens to read zero; there is no outbound path for it

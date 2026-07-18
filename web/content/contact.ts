@@ -6,7 +6,7 @@
  * can be rewritten without touching a component. See README §"Editing copy".
  *
  * HONESTY RULES — inherited from content/site.ts, load-bearing, not stylistic.
- * CompBrain is pre-launch: no customers, no revenue, no certifications.
+ * CompanyMind is pre-launch: no customers, no revenue, no certifications.
  *
  *   1. NEVER claim SOC 2 / HIPAA / ISO 27001 / FedRAMP or any certification.
  *      Frameworks may appear ONLY as obligations the CUSTOMER already has,
@@ -31,7 +31,7 @@
 export const contactMeta = {
   title: 'Contact',
   description:
-    'CompBrain is choosing a small number of regulated teams to build with. If your knowledge is scattered and your data cannot leave your infrastructure, start the conversation.',
+    'CompanyMind is choosing a small number of regulated teams to build with. If your knowledge is scattered and your data cannot leave your infrastructure, start the conversation.',
 } as const
 
 export const contactHero = {
@@ -40,7 +40,7 @@ export const contactHero = {
   // States the stage plainly. A regulated buyer finds out we are pre-launch in
   // the first meeting anyway — saying it first is the only version that earns
   // anything.
-  lede: 'CompBrain is pre-launch. No customers yet, no certifications, no sales motion. What we have is an architecture we will defend and a product still soft enough to bend around the teams who help us build it.',
+  lede: 'CompanyMind is pre-launch. No customers yet, no certifications, no sales motion. What we have is an architecture we will defend and a product still soft enough to bend around the teams who help us build it.',
 } as const
 
 export const contactFit = {
@@ -126,7 +126,7 @@ export const contactForm = {
   },
   fallback: {
     lead: 'Rather just email?',
-    address: 'hello@compbrain.ai',
+    address: 'hello@companymind.ai',
     subject: 'Design partner',
   },
 } as const

@@ -11,7 +11,7 @@ import { MagneticButton } from '@/components/MagneticButton'
  * beats slowly in --sovereign. The brain watches the cursor here (engine lean
  * is at its highest in this scene).
  *
- * This is design-partner recruitment, not a waitlist: CompBrain is pre-launch,
+ * This is design-partner recruitment, not a waitlist: CompanyMind is pre-launch,
  * and asking regulated teams to "join the waitlist" for software that does not
  * ship yet would be the first dishonest thing on the page.
  *

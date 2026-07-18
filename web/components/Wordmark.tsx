@@ -1,5 +1,5 @@
 /**
- * The CompBrain mark: a drawn perimeter with a small lattice inside it.
+ * The CompanyMind mark: a drawn perimeter with a small lattice inside it.
  *
  * This is the whole product in 20x20 — "your walls, and one organized brain
  * within them." It is the same idea the homepage canvas spends 8 scenes making
@@ -43,7 +43,7 @@ export function Wordmark({ className }: { className?: string }) {
           <circle cx="13.5" cy="13.5" r="1.6" fill="var(--brain)" />
         </svg>
         <span className="font-display text-[1.0625rem] font-bold tracking-[-0.03em]">
-          CompBrain
+          CompanyMind
         </span>
       </span>
     </span>

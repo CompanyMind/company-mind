@@ -17,7 +17,7 @@ import { cn } from '@/lib/cn'
 export const metadata: Metadata = {
   title: productMeta.title,
   description: productMeta.description,
-  openGraph: { title: `${productMeta.title} — CompBrain`, description: productMeta.description },
+  openGraph: { title: `${productMeta.title} — CompanyMind`, description: productMeta.description },
 }
 
 /* ---------------------------------------------------------------------------

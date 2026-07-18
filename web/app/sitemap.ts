@@ -54,7 +54,7 @@ const routes: Route[] = [
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return routes.map(({ path, changeFrequency, priority }) => ({
-    // Avoid a trailing slash on the root: `https://compbrain.ai`, not `.../`.
+    // Avoid a trailing slash on the root: `https://companymind.ai`, not `.../`.
     url: path === '/' ? BASE_URL : `${BASE_URL}${path}`,
     lastModified: LAST_MODIFIED,
     changeFrequency,

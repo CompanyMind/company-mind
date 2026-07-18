@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 
 /**
- * The favicon: the CompBrain mark from components/Wordmark.tsx — your walls,
+ * The favicon: the CompanyMind mark from components/Wordmark.tsx — your walls,
  * and one organized brain inside them — teal on warm paper.
  *
  * Why this file and not a .ico: Next.js cannot GENERATE a `favicon`, only an

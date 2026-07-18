@@ -8,7 +8,7 @@ export default function LoginPage() {
   return (
     <main className="grid min-h-dvh place-items-center bg-paper px-6">
       <form action={action} className="w-full max-w-sm rounded-lg bg-paper-raised p-8 shadow-card">
-        <h1 className="font-display text-2xl text-ink">Sign in to CompBrain</h1>
+        <h1 className="font-display text-2xl text-ink">Sign in to CompanyMind</h1>
         <p className="mt-1 text-body-sm text-ink-soft">Closed beta — invite only.</p>
         <label className="mt-6 block text-body-sm text-ink-soft" htmlFor="email">
           Email

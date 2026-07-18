@@ -37,13 +37,13 @@
 export const securityMeta = {
   title: 'Security',
   description:
-    'CompBrain runs entirely inside your perimeter. No outbound path, no vendor access, no shared tenancy — and no certification claims we have not earned. The architecture is the argument.',
+    'CompanyMind runs entirely inside your perimeter. No outbound path, no vendor access, no shared tenancy — and no certification claims we have not earned. The architecture is the argument.',
 } as const
 
 export const securityHero = {
   label: 'Security',
   headline: ['We built it so you', 'never have to trust us.'],
-  sub: 'CompBrain is software that runs inside your perimeter. There is no vendor cloud, no telemetry channel, no support tunnel. Every property on this page follows from where the software runs — which means you can test it on your own network before you believe a word of it.',
+  sub: 'CompanyMind is software that runs inside your perimeter. There is no vendor cloud, no telemetry channel, no support tunnel. Every property on this page follows from where the software runs — which means you can test it on your own network before you believe a word of it.',
 } as const
 
 /**
@@ -60,7 +60,7 @@ export const securityRail = [
 export const perimeter = {
   label: 'The perimeter',
   headline: ['Your walls are', 'the security boundary.'],
-  body: 'CompBrain does not bring a security boundary of its own for you to evaluate. It inherits yours. Choose where it runs; everything else on this page is a consequence of that one choice.',
+  body: 'CompanyMind does not bring a security boundary of its own for you to evaluate. It inherits yours. Choose where it runs; everything else on this page is a consequence of that one choice.',
   modes: [
     {
       n: '01',
@@ -122,7 +122,7 @@ export const dataflow = {
     {
       dir: 'inbound' as const,
       label: 'No inbound path',
-      target: 'CompBrain',
+      target: 'CompanyMind',
       note: 'No tunnel, no backdoor, no remote support session. We cannot reach your deployment.',
     },
   ],
@@ -159,7 +159,7 @@ export const directions = {
 export const permissions = {
   label: 'Access control',
   headline: ['Your permissions,', 'not a new set of ours.'],
-  body: 'The failure mode of every knowledge tool is the flattened index: everything vacuumed into one searchable pool, and now a question from the wrong desk returns the board deck. CompBrain does not build that pool.',
+  body: 'The failure mode of every knowledge tool is the flattened index: everything vacuumed into one searchable pool, and now a question from the wrong desk returns the board deck. CompanyMind does not build that pool.',
   points: [
     'Every indexed span carries the access control of the artifact it came from.',
     'Retrieval filters on the asker’s identity before a single span reaches the model.',
@@ -216,7 +216,7 @@ export const inheritance = {
   rows: [
     {
       control: 'Identity & access',
-      line: 'Your IdP, your SSO, your groups, your joiner-mover-leaver process. CompBrain authenticates against what you already run instead of standing up a user store beside it.',
+      line: 'Your IdP, your SSO, your groups, your joiner-mover-leaver process. CompanyMind authenticates against what you already run instead of standing up a user store beside it.',
     },
     {
       control: 'Network policy',
@@ -242,12 +242,12 @@ export const inheritance = {
   /**
    * FRAMEWORKS — the one place they are named. Read the shape of this sentence
    * carefully before editing it: every framework here is an obligation the
-   * READER already carries. Not one of them is described as something CompBrain
-   * has been audited against, because CompBrain has not been audited at all.
+   * READER already carries. Not one of them is described as something CompanyMind
+   * has been audited against, because CompanyMind has not been audited at all.
    */
   frameworks: {
     label: 'On your obligations',
-    body: 'If your obligations run through HIPAA, GLBA, DORA, PCI DSS or a regulator’s own residency rules, they attach to the environment you already operate and already evidence. Running CompBrain inside that environment keeps it within the boundary those obligations already cover, instead of opening a second boundary that needs its own answer, its own vendor questionnaire and its own exception. The obligation stays yours. The deployment model is built so that meeting it does not require you to make a special case for us.',
+    body: 'If your obligations run through HIPAA, GLBA, DORA, PCI DSS or a regulator’s own residency rules, they attach to the environment you already operate and already evidence. Running CompanyMind inside that environment keeps it within the boundary those obligations already cover, instead of opening a second boundary that needs its own answer, its own vendor questionnaire and its own exception. The obligation stays yours. The deployment model is built so that meeting it does not require you to make a special case for us.',
   },
 } as const
 
@@ -264,7 +264,7 @@ export const notClaiming = {
   items: [
     {
       claim: 'We hold no certifications.',
-      line: 'No SOC 2, no ISO 27001, no HIPAA attestation, no FedRAMP authorization. CompBrain is pre-launch. A vendor page that implies otherwise this early is telling you something about the vendor.',
+      line: 'No SOC 2, no ISO 27001, no HIPAA attestation, no FedRAMP authorization. CompanyMind is pre-launch. A vendor page that implies otherwise this early is telling you something about the vendor.',
     },
     {
       claim: 'We have no customers to point at.',

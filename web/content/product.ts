@@ -33,7 +33,7 @@ type DemoSource = { id: number; kind: ArtifactKind; name: string; detail: string
 export const productMeta = {
   title: 'Product',
   description:
-    'How CompBrain works: every source your company owns, ingested and organized into one index you can ask — with every clause cited to the artifact it came from.',
+    'How CompanyMind works: every source your company owns, ingested and organized into one index you can ask — with every clause cited to the artifact it came from.',
 } as const
 
 /* ---------------------------------------------------------------------------
@@ -43,7 +43,7 @@ export const productMeta = {
 export const productHero = {
   eyebrow: 'How it works',
   headline: ['Everything in.', 'One answer out.', 'Nothing uncited.'],
-  sub: 'CompBrain reads every source your company already owns, organizes it into one connected index, and answers out of it. Each clause in the answer keeps a pointer back to the artifact it came from. All of it runs on your hardware.',
+  sub: 'CompanyMind reads every source your company already owns, organizes it into one connected index, and answers out of it. Each clause in the answer keeps a pointer back to the artifact it came from. All of it runs on your hardware.',
   pipeline: ['ingest', 'organize', 'ask', 'cite'],
 } as const
 
@@ -56,7 +56,7 @@ export const ingest = {
   chapter: '01',
   label: 'Ingest',
   headline: ['Everything you own.', 'Not just the tidy parts.'],
-  body: 'Point CompBrain at a share, a mailbox, a chat export, a folder of scans. It reads what it finds. A contract, a forgotten spreadsheet tab, a photographed whiteboard and an hour-long call all arrive as the same thing: text the brain can reason over, with a path back to the original.',
+  body: 'Point CompanyMind at a share, a mailbox, a chat export, a folder of scans. It reads what it finds. A contract, a forgotten spreadsheet tab, a photographed whiteboard and an hour-long call all arrive as the same thing: text the brain can reason over, with a path back to the original.',
   sources: [
     {
       kind: 'doc',
@@ -222,9 +222,9 @@ export const askDeep = {
     'Every answer carries a citation because there is no other way to build one. The answer is assembled from retrieved spans, so a sentence with no source has nothing to be made of.',
   empty: {
     title: 'When the answer is not there',
-    body: 'CompBrain says so, and shows you where it looked. In a regulated file a confident guess is worse than silence.',
+    body: 'CompanyMind says so, and shows you where it looked. In a regulated file a confident guess is worse than silence.',
   },
-  footnote: 'No source, no claim. If your data does not say it, CompBrain does not say it either.',
+  footnote: 'No source, no claim. If your data does not say it, CompanyMind does not say it either.',
 } as const
 
 /* ---------------------------------------------------------------------------

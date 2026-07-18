@@ -5,7 +5,7 @@
  * Components import from this file and never inline their own strings, so copy
  * can be rewritten without touching a single component. See README §"Editing copy".
  *
- * HONESTY RULES — these are load-bearing, not stylistic. CompBrain is pre-launch:
+ * HONESTY RULES — these are load-bearing, not stylistic. CompanyMind is pre-launch:
  * no customers, no revenue, no certifications. Therefore:
  *
  *   1. NEVER claim SOC 2 / HIPAA / ISO 27001 / FedRAMP or any certification.
@@ -25,11 +25,11 @@
  */
 
 export const site = {
-  name: 'CompBrain',
-  domain: 'compbrain.ai',
+  name: 'CompanyMind',
+  domain: 'companymind.ai',
   tagline: 'Everything your company knows. Behind your own walls.',
   description:
-    'CompBrain turns every file, chat, image and call your company owns into one brain you can ask — deployed entirely inside your own infrastructure, with every answer traced back to its source.',
+    'CompanyMind turns every file, chat, image and call your company owns into one brain you can ask — deployed entirely inside your own infrastructure, with every answer traced back to its source.',
 } as const
 
 export const nav = [
@@ -84,7 +84,7 @@ export const problem = {
 export const turn = {
   label: 'The turn',
   headline: ['One brain.', 'Everything in it.'],
-  body: 'CompBrain ingests every source your company owns and organizes it into a single connected index. Duplicates merge. Formats stop mattering. What was scattered becomes one thing you can ask.',
+  body: 'CompanyMind ingests every source your company owns and organizes it into a single connected index. Duplicates merge. Formats stop mattering. What was scattered becomes one thing you can ask.',
   // Fires when the ingestion completes and the perimeter pulses.
   seal: 'And none of it left your walls.',
 } as const
@@ -110,13 +110,13 @@ export const ask = {
     },
     { id: 3, kind: 'email', name: 're: Meridian redlines', detail: 'Legal · 12 Mar · 09:41' },
   ],
-  footnote: 'No source, no claim. If the data does not say it, CompBrain does not either.',
+  footnote: 'No source, no claim. If the data does not say it, CompanyMind does not either.',
 } as const
 
 export const sovereign = {
   label: 'Sovereign',
   headline: ['Nothing leaves.', 'Nothing foreign enters.'],
-  body: 'CompBrain runs where your data already lives — your datacenter, your VPC, or a machine with no route to the internet at all. There is no vendor cloud to trust, because there is no vendor cloud.',
+  body: 'CompanyMind runs where your data already lives — your datacenter, your VPC, or a machine with no route to the internet at all. There is no vendor cloud to trust, because there is no vendor cloud.',
   beats: [
     { label: 'Outbound', value: 'Nothing calls home. No telemetry, no phone-home, no model API.' },
     { label: 'Inbound', value: 'No inbound path from us. We have no access to your deployment.' },
@@ -199,13 +199,13 @@ export const homeCta = {
   // not a generic "join the waitlist" for a product that ships tomorrow.
   label: 'Design partners',
   headline: ['We are choosing', 'a few design partners.'],
-  body: 'CompBrain is being built with a small number of regulated teams who have this problem badly enough to help us solve it properly. If your knowledge is scattered and your data cannot leave, we should talk.',
+  body: 'CompanyMind is being built with a small number of regulated teams who have this problem badly enough to help us solve it properly. If your knowledge is scattered and your data cannot leave, we should talk.',
   formLabel: 'Work email',
   formPlaceholder: 'you@company.com',
   submit: 'Start the conversation',
   fineprint: 'One reply from a human. No sequence, no drip, no newsletter.',
   success: 'Received. We will be in touch shortly.',
-  error: 'That did not send. Email us directly at hello@compbrain.ai.',
+  error: 'That did not send. Email us directly at hello@companymind.ai.',
 } as const
 
 /* ---------------------------------------------------------------------------

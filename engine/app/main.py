@@ -8,7 +8,7 @@ from .ask.retrieve import retrieve
 from .ask.answer import answer_question
 from .telegram import api as tg_api, store as tg_store
 
-app = FastAPI(title="CompBrain Engine")
+app = FastAPI(title="CompanyMind Engine")
 
 
 @app.get("/health")

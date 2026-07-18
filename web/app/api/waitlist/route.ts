@@ -17,7 +17,7 @@ import { NextResponse, type NextRequest } from 'next/server'
  * One place, marked `DELIVERY` below. Replace the console.log with whichever of
  * these you actually use:
  *   - CRM     → POST the lead to HubSpot / Attio / Pipedrive with a server-side key
- *   - Email   → Resend / Postmark, send to hello@compbrain.ai
+ *   - Email   → Resend / Postmark, send to hello@companymind.ai
  *   - Store   → an insert into Postgres / Supabase / a sheet
  * Whatever you pick: `await` it, and let a thrown error fall through to the 502
  * below. The form's failure state and its mailto fallback are wired to that
