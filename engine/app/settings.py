@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     embed_dim: int = 1024
     # Fernet key for encrypting Telegram bot tokens at rest.
     telegram_enc_key: str = ""
+    # Public URL of the web app, used to build tappable source links in bot replies.
+    app_url: str = ""
 
 
 settings = Settings()

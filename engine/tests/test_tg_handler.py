@@ -89,8 +89,18 @@ def test_telegram_flow():
                     "INSERT INTO group_members (workspace_id, group_id, telegram_link_id) VALUES (%s,%s,%s)",
                     (ws, fin, lid),
                 )
+            from app import settings as s
+
+            s.settings.app_url = "https://app.example"
             reply = handle_update(conn, str(ws), _msg(1001, "What is the retention policy?"))
             assert "Based on your sources" in reply and "thirty days" in reply
+            # each citation is a tappable link into the source viewer
+            assert '<a href="https://app.example/s/' in reply
+            # and the query is recorded in the provenance log with the telegram link
+            n = conn.execute(
+                "SELECT count(*) FROM query_log WHERE telegram_link_id=%s", (lid,)
+            ).fetchone()[0]
+            assert n == 1
             # a different, still-pending user is refused
             assert handle_update(conn, str(ws), _msg(2002, "/start")) == REQUESTED
             assert handle_update(conn, str(ws), _msg(2002, "retention?")) == PENDING

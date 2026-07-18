@@ -1,6 +1,9 @@
+import html
+
 from .store import tg_access
 from ..ask.retrieve import retrieve
 from ..ask.answer import answer_question
+from ..settings import settings
 
 REQUESTED = "Access requested. An admin will approve you shortly."
 PENDING = "Your access is still pending approval."
@@ -48,17 +51,28 @@ def handle_update(conn, workspace_id: str, update: dict) -> str | None:
 
     with conn.transaction():
         conn.execute(
-            "INSERT INTO query_log (workspace_id, user_id, question, retrieved_chunk_ids, model) "
-            "SELECT %s, m.user_id, %s, %s, %s FROM memberships m "
-            "WHERE m.workspace_id=%s AND m.role='owner' LIMIT 1",
+            "INSERT INTO query_log (workspace_id, telegram_link_id, question, retrieved_chunk_ids, model) "
+            "VALUES (%s,%s,%s,%s,%s)",
             (
                 workspace_id,
+                link_id,
                 f"[telegram:{tg_user['id']}] {text}",
                 [r.chunk_id for r in retrieved],
                 "fake-telegram",
-                workspace_id,
             ),
         )
 
-    cites = " ".join(f"[{c.marker}] {c.filename}" for c in result.citations)
-    return result.answer + (f"\n\nSources: {cites}" if cites else "")
+    # Reply as HTML: the answer (escaped) + a Sources footer where each citation
+    # is a tappable link into the sovereign web app's source viewer. The bot
+    # never sends the document itself — only a pointer to it.
+    answer_html = html.escape(result.answer)
+    if not result.citations:
+        return answer_html
+    lines = []
+    for c in result.citations:
+        label = f"[{c.marker}] {html.escape(c.filename)}" + (f" · p.{c.page}" if c.page else "")
+        if settings.app_url:
+            lines.append(f'<a href="{settings.app_url}/s/{c.chunk_id}">{label}</a>')
+        else:
+            lines.append(label)
+    return answer_html + "\n\nSources:\n" + "\n".join(lines)

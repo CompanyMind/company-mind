@@ -27,6 +27,7 @@ services:
       LLM_MODEL: ${LLM_MODEL}
       EMBED_DIM: ${EMBED_DIM}
       TELEGRAM_ENC_KEY: ${TELEGRAM_ENC_KEY}
+      APP_URL: ${APP_URL}
     depends_on:
       db:
         condition: service_healthy
@@ -42,6 +43,7 @@ services:
       LLM_MODEL: ${LLM_MODEL}
       EMBED_DIM: ${EMBED_DIM}
       TELEGRAM_ENC_KEY: ${TELEGRAM_ENC_KEY}
+      APP_URL: ${APP_URL}
     depends_on:
       db:
         condition: service_healthy

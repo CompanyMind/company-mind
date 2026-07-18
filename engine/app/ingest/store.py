@@ -62,9 +62,9 @@ def process_document(
                     ),
                 )
             conn.execute(
-                "UPDATE documents SET status='indexed', error=NULL "
+                "UPDATE documents SET status='indexed', error=NULL, extracted_text=%s "
                 "WHERE id=%s AND workspace_id=%s",
-                (document_id, workspace_id),
+                (parsed.text, document_id, workspace_id),
             )
             conn.execute(
                 "UPDATE ingestion_jobs SET status='done', finished_at=%s "

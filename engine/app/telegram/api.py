@@ -13,8 +13,12 @@ def get_me(token: str) -> dict:
     return call(token, "getMe")
 
 
-def send_message(token: str, chat_id: int, text: str) -> None:
-    call(token, "sendMessage", {"chat_id": chat_id, "text": text})
+def send_message(token: str, chat_id: int, text: str, parse_mode: str | None = None) -> None:
+    params = {"chat_id": chat_id, "text": text}
+    if parse_mode:
+        params["parse_mode"] = parse_mode
+        params["disable_web_page_preview"] = True
+    call(token, "sendMessage", params)
 
 
 def get_updates(token: str, offset: int | None, timeout: int = 20) -> list[dict]:

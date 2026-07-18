@@ -31,7 +31,9 @@ async def _poll_once() -> None:
             chat = (u.get("message") or {}).get("chat", {})
             if reply and chat.get("id"):
                 try:
-                    await asyncio.to_thread(tg_api.send_message, bot["token"], chat["id"], reply)
+                    await asyncio.to_thread(
+                        tg_api.send_message, bot["token"], chat["id"], reply, "HTML"
+                    )
                 except Exception:
                     pass
         if last != (bot["offset"] or 0):
