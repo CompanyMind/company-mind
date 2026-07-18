@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     llm_model: str = ""
     # Must match web/lib/db/schema.ts EMBED_DIM and the embedding model's output.
     embed_dim: int = 1024
+    # Fernet key for encrypting Telegram bot tokens at rest.
+    telegram_enc_key: str = ""
 
 
 settings = Settings()

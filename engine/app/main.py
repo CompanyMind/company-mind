@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, Form, BackgroundTasks, Depends
+from fastapi import FastAPI, UploadFile, Form, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 
 from .health import db_ok, models_ok
@@ -6,6 +6,7 @@ from .security import require_secret
 from .ingest.store import process_document
 from .ask.retrieve import retrieve
 from .ask.answer import answer_question
+from .telegram import api as tg_api, store as tg_store
 
 app = FastAPI(title="CompBrain Engine")
 
@@ -66,3 +67,28 @@ def ask(body: AskBody):
             for c in result.citations
         ],
     }
+
+
+class TgConnectBody(BaseModel):
+    workspace_id: str
+    token: str
+
+
+@app.post("/telegram/connect", dependencies=[Depends(require_secret)])
+def telegram_connect(body: TgConnectBody):
+    me = tg_api.get_me(body.token)
+    if not me.get("ok"):
+        raise HTTPException(status_code=400, detail="invalid bot token")
+    username = me["result"].get("username", "bot")
+    tg_store.connect_bot(body.workspace_id, body.token, username)
+    return {"username": username}
+
+
+class TgWsBody(BaseModel):
+    workspace_id: str
+
+
+@app.post("/telegram/disconnect", dependencies=[Depends(require_secret)])
+def telegram_disconnect(body: TgWsBody):
+    tg_store.disconnect_bot(body.workspace_id)
+    return {"ok": True}
