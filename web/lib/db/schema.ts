@@ -73,6 +73,9 @@ export const documents = pgTable(
     storageKey: text('storage_key').notNull(),
     status: text('status').notNull().default('uploaded'), // uploaded|parsing|indexed|failed
     error: text('error'),
+    // Full extracted text, stored at ingest so the source viewer can render the
+    // document and highlight the exact cited span.
+    extractedText: text('extracted_text'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [index('documents_workspace_idx').on(t.workspaceId)],
@@ -174,9 +177,11 @@ export const queryLog = pgTable('query_log', {
   workspaceId: uuid('workspace_id')
     .notNull()
     .references(() => workspaces.id, { onDelete: 'cascade' }),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
+  // A query comes from a web user OR a Telegram identity — exactly one is set.
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  telegramLinkId: uuid('telegram_link_id').references(() => telegramLinks.id, {
+    onDelete: 'set null',
+  }),
   question: text('question').notNull(),
   retrievedChunkIds: uuid('retrieved_chunk_ids').array(),
   model: text('model'),
