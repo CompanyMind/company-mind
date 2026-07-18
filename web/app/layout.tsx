@@ -1,8 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 import { Space_Grotesk, IBM_Plex_Mono, Inter } from 'next/font/google'
-import { Nav } from '@/components/Nav'
-import { Footer } from '@/components/Footer'
-import { SmoothScroll } from '@/components/SmoothScroll'
 import { site } from '@/content/site'
 import './globals.css'
 
@@ -71,18 +68,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${display.variable} ${mono.variable} ${body.variable}`}>
-      <body className="min-h-dvh bg-paper text-ink antialiased">
-        <SmoothScroll />
-        <a
-          href="#main"
-          className="sr-only-focusable absolute left-4 top-4 z-[100] rounded-sm bg-ink px-4 py-2 font-mono text-telemetry text-paper"
-        >
-          Skip to content
-        </a>
-        <Nav />
-        <main id="main">{children}</main>
-        <Footer />
-      </body>
+      <body className="min-h-dvh bg-paper text-ink antialiased">{children}</body>
     </html>
   )
 }
