@@ -1,8 +1,8 @@
 import 'server-only'
 import { randomBytes, createHash } from 'node:crypto'
 
-export const SESSION_COOKIE = 'cb_session'
-export const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7 // 7 days
+// Re-exported for existing importers; the source of truth is edge-safe constants.
+export { SESSION_COOKIE, SESSION_TTL_MS } from './constants'
 
 export function generateToken(): string {
   return randomBytes(32).toString('base64url')
