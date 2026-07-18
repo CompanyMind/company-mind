@@ -57,9 +57,9 @@ export function Sources({ csrf }: { csrf: string }) {
   }
 
   return (
-    <section className="mt-8">
+    <section className="mt-6">
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-xl text-ink">Sources</h2>
+        <h2 className="sr-only">Documents</h2>
         <label className="cursor-pointer rounded-md bg-ink px-4 py-2 text-body-sm text-paper">
           {busy ? 'Uploading…' : 'Upload documents'}
           <input
