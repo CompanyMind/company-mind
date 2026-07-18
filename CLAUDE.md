@@ -81,3 +81,8 @@ Substantial work goes through the superpowers flow: **brainstorming → writing-
 executing-plans → finishing-a-development-branch**. Specs live in
 `docs/superpowers/specs/`, plans in `docs/superpowers/plans/`. Branch for real changes;
 commit in small, verified steps.
+
+**Log every notable change in `CHANGELOG.md`** — Keep a Changelog format, under the
+`[Unreleased]` section, grouped by Added / Changed / Fixed / Removed. Add the entry in the
+same commit as the change. On a release, rename `[Unreleased]` to the new version + date
+(SemVer) and start a fresh `[Unreleased]`.
