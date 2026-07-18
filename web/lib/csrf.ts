@@ -1,27 +1,29 @@
 import 'server-only'
 import { cookies } from 'next/headers'
-import { randomBytes } from 'node:crypto'
+import { createHmac, timingSafeEqual } from 'node:crypto'
+import { env } from '@/lib/env'
+import { SESSION_COOKIE } from '@/lib/auth/constants'
 
-const CSRF_COOKIE = 'cb_csrf'
+// Double-submit CSRF without a second cookie write: the token is an HMAC of the
+// session token under SESSION_SECRET. The page reads it (no cookie mutation, so
+// it is safe during render) and passes it to the client, which echoes it in the
+// x-csrf-token header; the server recomputes it from the session and compares.
+// A cross-site attacker can neither read the session cookie nor forge the HMAC,
+// which — with SameSite=Lax on the session — closes CSRF on state-changing routes.
+function tokenFor(sessionValue: string): string {
+  return createHmac('sha256', env.SESSION_SECRET).update(sessionValue).digest('hex')
+}
 
 export async function issueCsrf(): Promise<string> {
-  const jar = await cookies()
-  let token = jar.get(CSRF_COOKIE)?.value
-  if (!token) {
-    token = randomBytes(24).toString('base64url')
-    jar.set(CSRF_COOKIE, token, {
-      httpOnly: false, // readable by the client so it can echo it in the header
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-    })
-  }
-  return token
+  const session = (await cookies()).get(SESSION_COOKIE)?.value
+  return session ? tokenFor(session) : ''
 }
 
 export async function verifyCsrf(req: Request): Promise<boolean> {
-  const jar = await cookies()
-  const cookieToken = jar.get(CSRF_COOKIE)?.value
-  const headerToken = req.headers.get('x-csrf-token')
-  return Boolean(cookieToken && headerToken && cookieToken === headerToken)
+  const session = (await cookies()).get(SESSION_COOKIE)?.value
+  const header = req.headers.get('x-csrf-token') ?? ''
+  if (!session || !header) return false
+  const a = Buffer.from(tokenFor(session))
+  const b = Buffer.from(header)
+  return a.length === b.length && timingSafeEqual(a, b)
 }

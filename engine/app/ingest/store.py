@@ -10,12 +10,20 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _vec_literal(vec: list[float]) -> str:
+    # pgvector text input format: "[1,2,3]". Inserted with an explicit ::vector
+    # cast so this does not depend on a driver adapter for lists.
+    return "[" + ",".join(str(x) for x in vec) + "]"
+
+
 def process_document(
     document_id: str, workspace_id: str, filename: str, mime: str, data: bytes
 ) -> None:
+    # NOTE: use conn.transaction(), NOT `with conn:` — in psycopg3 the connection
+    # context manager commits AND closes the connection on exit.
     conn = get_conn()
     try:
-        with conn:
+        with conn.transaction():
             conn.execute(
                 "UPDATE ingestion_jobs SET status='running', started_at=%s "
                 "WHERE document_id=%s AND workspace_id=%s",
@@ -30,7 +38,7 @@ def process_document(
         chunks = chunk_text(parsed.text, parsed.pages)
         vectors = get_provider().embed([c.text for c in chunks]) if chunks else []
 
-        with conn:
+        with conn.transaction():
             # Idempotent: re-ingesting a document replaces its chunks.
             conn.execute(
                 "DELETE FROM chunks WHERE document_id=%s AND workspace_id=%s",
@@ -40,7 +48,7 @@ def process_document(
                 conn.execute(
                     "INSERT INTO chunks (document_id, workspace_id, ordinal, text, page, "
                     "char_start, char_end, token_count, embedding) "
-                    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s::vector)",
                     (
                         document_id,
                         workspace_id,
@@ -50,7 +58,7 @@ def process_document(
                         c.char_start,
                         c.char_end,
                         c.token_count,
-                        vec,
+                        _vec_literal(vec),
                     ),
                 )
             conn.execute(
@@ -64,7 +72,7 @@ def process_document(
                 (_now(), document_id, workspace_id),
             )
     except Exception as e:  # noqa: BLE001 — record the failure, never crash the worker
-        with conn:
+        with conn.transaction():
             conn.execute(
                 "UPDATE documents SET status='failed', error=%s WHERE id=%s AND workspace_id=%s",
                 (str(e)[:500], document_id, workspace_id),
