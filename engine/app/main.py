@@ -10,6 +10,7 @@ from .ingest.store import process_document
 from .ask.service import answer_query
 from .library.source import get_source
 from .library import groups as lib_groups
+from .library import documents as lib_documents
 from .telegram import api as tg_api, store as tg_store
 
 app = FastAPI(title="CompanyMind Engine")
@@ -30,19 +31,23 @@ def health():
 async def ingest(
     background: BackgroundTasks,
     file: UploadFile,
-    document_id: str = Form(...),
     workspace_id: str = Form(...),
+    filename: str = Form(...),
+    mime: str = Form(...),
+    storage_key: str = Form(...),
+    bytes: int = Form(...),
 ):
     data = await file.read()
-    background.add_task(
-        process_document,
-        document_id,
-        workspace_id,
-        file.filename or "upload",
-        file.content_type or "application/octet-stream",
-        data,
-    )
-    return {"status": "accepted"}
+    with get_conn() as conn:
+        doc = lib_documents.create_document(conn, workspace_id, filename, mime, bytes, storage_key)
+    background.add_task(process_document, doc["id"], workspace_id, filename, mime, data)
+    return {"document": doc}
+
+
+@app.get("/documents", dependencies=[Depends(require_secret)])
+def documents_list(workspace_id: str):
+    with get_conn() as conn:
+        return {"documents": lib_documents.list_documents(conn, workspace_id)}
 
 
 class AskBody(BaseModel):

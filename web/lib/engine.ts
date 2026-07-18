@@ -1,16 +1,57 @@
 import 'server-only'
 import { env } from '@/lib/env'
 
-export async function ingestDocument(opts: {
-  documentId: string
+export type DocumentRow = {
+  id: string
+  filename: string
+  mime: string
+  bytes: number
+  status: string
+  error: string | null
+  createdAt: string | null
+  groupIds: string[]
+}
+
+type EngineDoc = {
+  id: string
+  filename: string
+  mime: string
+  bytes: number
+  status: string
+  error: string | null
+  created_at: string | null
+  group_ids?: string[]
+}
+
+export function mapDocument(d: EngineDoc): DocumentRow {
+  return {
+    id: d.id,
+    filename: d.filename,
+    mime: d.mime,
+    bytes: d.bytes,
+    status: d.status,
+    error: d.error,
+    createdAt: d.created_at,
+    groupIds: d.group_ids ?? [],
+  }
+}
+
+// Upload an already-stored file to the engine, which creates the document +
+// ingestion job, defaults it to Everyone, and processes it. Returns the new doc.
+export async function uploadDocument(opts: {
   workspaceId: string
   filename: string
   mime: string
+  bytes: number
+  storageKey: string
   data: Buffer
-}): Promise<void> {
+}): Promise<DocumentRow> {
   const form = new FormData()
-  form.set('document_id', opts.documentId)
   form.set('workspace_id', opts.workspaceId)
+  form.set('filename', opts.filename)
+  form.set('mime', opts.mime)
+  form.set('storage_key', opts.storageKey)
+  form.set('bytes', String(opts.bytes))
   form.set('file', new Blob([new Uint8Array(opts.data)], { type: opts.mime }), opts.filename)
   const res = await fetch(`${env.ENGINE_BASE_URL}/ingest`, {
     method: 'POST',
@@ -18,6 +59,8 @@ export async function ingestDocument(opts: {
     body: form,
   })
   if (!res.ok) throw new Error(`engine /ingest responded ${res.status}`)
+  const { document } = (await res.json()) as { document: EngineDoc }
+  return mapDocument(document)
 }
 
 export type EngineCitation = {

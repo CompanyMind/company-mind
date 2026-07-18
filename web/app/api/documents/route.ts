@@ -1,13 +1,9 @@
 import { NextResponse } from 'next/server'
-import { eq } from 'drizzle-orm'
 import { getCurrentUser } from '@/lib/auth/current-user'
 import { verifyCsrf } from '@/lib/csrf'
 import { saveFile } from '@/lib/storage'
-import { ingestDocument } from '@/lib/engine'
+import { uploadDocument } from '@/lib/engine'
 import { listDocuments } from '@/lib/documents'
-import { getEveryoneGroup, setDocumentGroups } from '@/lib/groups'
-import { db } from '@/lib/db/client'
-import { documents, ingestionJobs } from '@/lib/db/schema'
 
 export const runtime = 'nodejs'
 
@@ -39,41 +35,21 @@ export async function POST(req: Request) {
   if (!mime) return NextResponse.json({ error: 'unsupported type' }, { status: 400 })
   if (file.size > MAX_BYTES) return NextResponse.json({ error: 'too large' }, { status: 400 })
 
+  // Web owns file storage; the engine owns the document record + ingestion.
   const data = Buffer.from(await file.arrayBuffer())
   const { storageKey, bytes } = await saveFile(auth.workspace.id, file.name, data)
 
-  const [doc] = await db
-    .insert(documents)
-    .values({
+  let doc
+  try {
+    doc = await uploadDocument({
       workspaceId: auth.workspace.id,
       filename: file.name,
       mime,
       bytes,
       storageKey,
-      status: 'uploaded',
-    })
-    .returning()
-  await db.insert(ingestionJobs).values({
-    documentId: doc.id,
-    workspaceId: auth.workspace.id,
-    status: 'queued',
-  })
-  // Default a new document to Everyone so it is not accidentally hidden.
-  await setDocumentGroups(doc.id, auth.workspace.id, [await getEveryoneGroup(auth.workspace.id)])
-
-  try {
-    await ingestDocument({
-      documentId: doc.id,
-      workspaceId: auth.workspace.id,
-      filename: file.name,
-      mime,
       data,
     })
   } catch {
-    await db
-      .update(documents)
-      .set({ status: 'failed', error: 'could not reach ingestion engine' })
-      .where(eq(documents.id, doc.id))
     return NextResponse.json({ error: 'ingestion unavailable' }, { status: 502 })
   }
   return NextResponse.json({ document: doc }, { status: 201 })
