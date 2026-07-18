@@ -1,57 +1,123 @@
 import 'server-only'
 import { and, eq, inArray } from 'drizzle-orm'
+import { env } from '@/lib/env'
 import { db } from '@/lib/db/client'
-import { groups, groupMembers, documentGroups, memberships } from '@/lib/db/schema'
+import { groups, groupMembers } from '@/lib/db/schema'
 
-export async function getEveryoneGroup(workspaceId: string): Promise<string> {
-  const existing = await db.query.groups.findFirst({
-    where: and(eq(groups.workspaceId, workspaceId), eq(groups.isDefault, true)),
+// The engine owns the knowledge tables (groups, group_members, document_groups).
+// These are thin clients over its internal API. (setTelegramLinkGroups still uses
+// Drizzle and moves to the engine in the Telegram slice.)
+
+async function engineFetch(path: string, init?: RequestInit): Promise<Response> {
+  return fetch(`${env.ENGINE_BASE_URL}${path}`, {
+    ...init,
+    headers: { 'x-engine-secret': env.ENGINE_INTERNAL_SECRET, ...(init?.headers ?? {}) },
+    cache: 'no-store',
   })
-  if (existing) return existing.id
-  const [g] = await db
-    .insert(groups)
-    .values({ workspaceId, name: 'Everyone', slug: 'everyone', isDefault: true })
-    .returning()
-  return g.id
 }
 
-export type Access = { groupIds: string[]; allAccess: boolean }
+async function engineJson(path: string, init?: RequestInit): Promise<unknown> {
+  const res = await engineFetch(path, init)
+  if (!res.ok) throw new Error(`engine ${path} responded ${res.status}`)
+  return res.json()
+}
 
-// The asking person's access: owners bypass the filter; everyone else is
-// scoped to the Everyone group plus any groups they're a member of.
-export async function resolveAccess(
-  userId: string,
+export type GroupRow = { id: string; name: string; isDefault: boolean; memberUserIds: string[] }
+
+type EngineGroup = { id: string; name: string; is_default: boolean; member_user_ids?: string[] }
+
+export async function listGroups(workspaceId: string): Promise<GroupRow[]> {
+  const data = (await engineJson(`/groups?workspace_id=${workspaceId}`)) as { groups: EngineGroup[] }
+  return data.groups.map((g) => ({
+    id: g.id,
+    name: g.name,
+    isDefault: g.is_default,
+    memberUserIds: g.member_user_ids ?? [],
+  }))
+}
+
+export async function createGroup(
   workspaceId: string,
-  role: string,
-): Promise<Access> {
-  if (role === 'owner') return { groupIds: [], allAccess: true }
-  const everyone = await getEveryoneGroup(workspaceId)
-  const rows = await db
-    .select({ groupId: groupMembers.groupId })
-    .from(groupMembers)
-    .where(and(eq(groupMembers.workspaceId, workspaceId), eq(groupMembers.userId, userId)))
-  const ids = new Set<string>([everyone, ...rows.map((r) => r.groupId)])
-  return { groupIds: [...ids], allAccess: false }
+  name: string,
+): Promise<GroupRow | 'conflict'> {
+  const res = await engineFetch('/groups', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ workspace_id: workspaceId, name }),
+  })
+  if (res.status === 409) return 'conflict'
+  if (!res.ok) throw new Error(`engine POST /groups responded ${res.status}`)
+  const { group } = (await res.json()) as { group: EngineGroup }
+  return { id: group.id, name: group.name, isDefault: group.is_default, memberUserIds: [] }
 }
 
-export async function listGroups(workspaceId: string) {
-  return db.select().from(groups).where(eq(groups.workspaceId, workspaceId))
+export async function renameGroup(
+  workspaceId: string,
+  id: string,
+  name: string,
+): Promise<boolean> {
+  const res = await engineFetch(`/groups/${id}`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ workspace_id: workspaceId, name }),
+  })
+  if (res.status === 404) return false
+  if (!res.ok) throw new Error(`engine PATCH /groups responded ${res.status}`)
+  return true
 }
 
-export async function groupMemberUserIds(workspaceId: string): Promise<Map<string, string[]>> {
-  const rows = await db
-    .select()
-    .from(groupMembers)
-    .where(eq(groupMembers.workspaceId, workspaceId))
-  const map = new Map<string, string[]>()
-  for (const r of rows) {
-    if (!r.userId) continue
-    map.set(r.groupId, [...(map.get(r.groupId) ?? []), r.userId])
-  }
-  return map
+export async function deleteGroup(
+  workspaceId: string,
+  id: string,
+): Promise<'ok' | 'notfound' | 'default'> {
+  const res = await engineFetch(`/groups/${id}?workspace_id=${workspaceId}`, { method: 'DELETE' })
+  if (res.status === 404) return 'notfound'
+  if (res.status === 400) return 'default'
+  if (!res.ok) throw new Error(`engine DELETE /groups responded ${res.status}`)
+  return 'ok'
 }
 
-// Replace a Telegram identity's group membership (the admin-assigned groups).
+export async function setGroupMembers(
+  id: string,
+  workspaceId: string,
+  userIds: string[],
+): Promise<void> {
+  await engineJson(`/groups/${id}/members`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ workspace_id: workspaceId, user_ids: userIds }),
+  })
+}
+
+export async function setDocumentGroups(
+  documentId: string,
+  workspaceId: string,
+  groupIds: string[],
+): Promise<void> {
+  await engineJson(`/documents/${documentId}/groups`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ workspace_id: workspaceId, group_ids: groupIds }),
+  })
+}
+
+export async function documentGroupIds(documentId: string, workspaceId: string): Promise<string[]> {
+  const data = (await engineJson(
+    `/documents/${documentId}/groups?workspace_id=${workspaceId}`,
+  )) as { group_ids: string[] }
+  return data.group_ids ?? []
+}
+
+// The default 'Everyone' group id. Used by the upload route to keep a new document
+// visible; the engine takes over defaulting in the Documents slice.
+export async function getEveryoneGroup(workspaceId: string): Promise<string> {
+  const gs = await listGroups(workspaceId)
+  const ev = gs.find((g) => g.isDefault)
+  if (!ev) throw new Error('workspace has no Everyone group')
+  return ev.id
+}
+
+// Telegram identity → groups. Still Drizzle; moves to the engine in the Telegram slice.
 export async function setTelegramLinkGroups(
   linkId: string,
   workspaceId: string,
@@ -59,9 +125,7 @@ export async function setTelegramLinkGroups(
 ): Promise<void> {
   await db
     .delete(groupMembers)
-    .where(
-      and(eq(groupMembers.workspaceId, workspaceId), eq(groupMembers.telegramLinkId, linkId)),
-    )
+    .where(and(eq(groupMembers.workspaceId, workspaceId), eq(groupMembers.telegramLinkId, linkId)))
   if (groupIds.length) {
     const valid = await db
       .select({ id: groups.id })
@@ -71,63 +135,6 @@ export async function setTelegramLinkGroups(
       await db
         .insert(groupMembers)
         .values(valid.map((g) => ({ workspaceId, groupId: g.id, telegramLinkId: linkId })))
-    }
-  }
-}
-
-// Replace a group's web-user membership. Only users who belong to the workspace
-// are added.
-export async function setGroupMembers(
-  groupId: string,
-  workspaceId: string,
-  userIds: string[],
-): Promise<void> {
-  await db
-    .delete(groupMembers)
-    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.workspaceId, workspaceId)))
-  if (userIds.length) {
-    const valid = await db
-      .select({ userId: memberships.userId })
-      .from(memberships)
-      .where(and(eq(memberships.workspaceId, workspaceId), inArray(memberships.userId, userIds)))
-    if (valid.length) {
-      await db
-        .insert(groupMembers)
-        .values(valid.map((v) => ({ workspaceId, groupId, userId: v.userId })))
-    }
-  }
-}
-
-export async function documentGroupIds(documentId: string, workspaceId: string): Promise<string[]> {
-  const rows = await db
-    .select({ groupId: documentGroups.groupId })
-    .from(documentGroups)
-    .where(
-      and(eq(documentGroups.documentId, documentId), eq(documentGroups.workspaceId, workspaceId)),
-    )
-  return rows.map((r) => r.groupId)
-}
-
-export async function setDocumentGroups(
-  documentId: string,
-  workspaceId: string,
-  groupIds: string[],
-): Promise<void> {
-  await db
-    .delete(documentGroups)
-    .where(
-      and(eq(documentGroups.documentId, documentId), eq(documentGroups.workspaceId, workspaceId)),
-    )
-  if (groupIds.length) {
-    // Only groups that actually belong to this workspace.
-    const valid = await db
-      .select({ id: groups.id })
-      .from(groups)
-      .where(and(eq(groups.workspaceId, workspaceId), inArray(groups.id, groupIds)))
-    if (valid.length) {
-      await db
-        .insert(documentGroups)
-        .values(valid.map((g) => ({ documentId, workspaceId, groupId: g.id })))
     }
   }
 }

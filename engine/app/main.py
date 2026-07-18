@@ -9,6 +9,7 @@ from .access import resolve_access
 from .ingest.store import process_document
 from .ask.service import answer_query
 from .library.source import get_source
+from .library import groups as lib_groups
 from .telegram import api as tg_api, store as tg_store
 
 app = FastAPI(title="CompanyMind Engine")
@@ -88,6 +89,78 @@ def source(chunk_id: str, workspace_id: str, user_id: str = "", role: str = "mem
     if src is None:
         raise HTTPException(status_code=404, detail="not found")
     return src
+
+
+@app.get("/groups", dependencies=[Depends(require_secret)])
+def groups_list(workspace_id: str):
+    with get_conn() as conn:
+        gs = lib_groups.list_groups(conn, workspace_id)
+        members = lib_groups.group_member_user_ids(conn, workspace_id)
+    return {"groups": [{**g, "member_user_ids": members.get(g["id"], [])} for g in gs]}
+
+
+class GroupNameBody(BaseModel):
+    workspace_id: str
+    name: str
+
+
+@app.post("/groups", dependencies=[Depends(require_secret)])
+def groups_create(body: GroupNameBody):
+    with get_conn() as conn:
+        g = lib_groups.create_group(conn, body.workspace_id, body.name)
+    if g is None:
+        raise HTTPException(status_code=409, detail="a group with that name already exists")
+    return {"group": {**g, "member_user_ids": []}}
+
+
+@app.patch("/groups/{group_id}", dependencies=[Depends(require_secret)])
+def groups_rename(group_id: str, body: GroupNameBody):
+    with get_conn() as conn:
+        ok = lib_groups.rename_group(conn, body.workspace_id, group_id, body.name)
+    if not ok:
+        raise HTTPException(status_code=404, detail="not found")
+    return {"ok": True}
+
+
+@app.delete("/groups/{group_id}", dependencies=[Depends(require_secret)])
+def groups_delete(group_id: str, workspace_id: str):
+    with get_conn() as conn:
+        res = lib_groups.delete_group(conn, workspace_id, group_id)
+    if res == "notfound":
+        raise HTTPException(status_code=404, detail="not found")
+    if res == "default":
+        raise HTTPException(status_code=400, detail="the Everyone group cannot be deleted")
+    return {"ok": True}
+
+
+class GroupMembersBody(BaseModel):
+    workspace_id: str
+    user_ids: list[str] = []
+
+
+@app.put("/groups/{group_id}/members", dependencies=[Depends(require_secret)])
+def groups_set_members(group_id: str, body: GroupMembersBody):
+    with get_conn() as conn:
+        lib_groups.set_group_members(conn, body.workspace_id, group_id, body.user_ids)
+    return {"ok": True}
+
+
+@app.get("/documents/{document_id}/groups", dependencies=[Depends(require_secret)])
+def document_groups_get(document_id: str, workspace_id: str):
+    with get_conn() as conn:
+        return {"group_ids": lib_groups.document_group_ids(conn, workspace_id, document_id)}
+
+
+class DocGroupsBody(BaseModel):
+    workspace_id: str
+    group_ids: list[str] = []
+
+
+@app.put("/documents/{document_id}/groups", dependencies=[Depends(require_secret)])
+def document_groups_set(document_id: str, body: DocGroupsBody):
+    with get_conn() as conn:
+        lib_groups.set_document_groups(conn, body.workspace_id, document_id, body.group_ids)
+    return {"ok": True}
 
 
 class TgConnectBody(BaseModel):
