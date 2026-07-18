@@ -24,6 +24,17 @@ class Settings(BaseSettings):
     # For OpenAI text-embedding-3-* this is passed as the `dimensions` request param.
     embed_dim: int = 1024
 
+    # --- Retrieval pipeline ---
+    retrieval_n_vec: int = 40  # dense candidate pool
+    retrieval_n_lex: int = 40  # lexical candidate pool
+    rrf_k: int = 60  # RRF smoothing constant
+    rerank_in: int = 20  # candidates sent to the reranker
+    final_k: int = 8  # chunks kept for the answer
+    doc_cap: int = 3  # max chunks one document contributes to fusion
+    rerank_base_url: str = ""  # self-hosted cross-encoder reranker; empty → LLM/fake
+    rerank_model: str = ""
+    contextual_mode: str = "header"  # off | header | llm
+
     # Fernet key for encrypting Telegram bot tokens at rest.
     telegram_enc_key: str = ""
     # Public URL of the web app, used to build tappable source links in bot replies.
