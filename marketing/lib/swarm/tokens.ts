@@ -29,7 +29,7 @@ const FALLBACK: SwarmPalette = {
   ink: '#1C1B18',
   inkSoft: '#635E54',
   line: '#D8D0BE',
-  brain: '#0F8A7E',
+  brain: '#684BFF',
   query: '#E07B39',
   sovereign: '#D8315B',
 }

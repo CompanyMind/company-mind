@@ -79,7 +79,7 @@ const C = {
   rule: '#C9C4B8',
   ruleStrong: '#8A857A',
   ink: '#1C1B18',
-  brain: '#0F8A7E',
+  brain: '#684BFF',
 } as const
 
 function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {

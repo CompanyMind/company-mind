@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   language — `docs/superpowers/specs/2026-07-18-rearchitecture-domain-vs-delivery-design.md`.
 
 ### Changed
+- Brand accent switched from teal to **electric violet**. `--brain` → `#684bff`,
+  `--brain-text` → `#5636d6` (WCAG-recomputed: 4.49–4.90 UI, 5.57+ AA text). Propagated
+  across both apps' `tokens.css`, the OG image, and the swarm palette fallback; Tailwind
+  `brain` classes and the runtime swarm pick it up from the token automatically.
 - Retrieval is now a **hybrid pipeline**: dense (pgvector) + Postgres full-text (GIN), fused
   with **reciprocal rank fusion**, per-document capped, **reranked** (LLM by default, or a
   self-hosted cross-encoder via `RERANK_BASE_URL`), then **neighbor-expanded** (adjacent

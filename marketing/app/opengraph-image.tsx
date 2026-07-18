@@ -33,7 +33,7 @@ const PAPER = '#F3EEE3'
 const INK = '#1C1B18'
 const INK_SOFT = '#635E54'
 const LINE = '#D8D0BE'
-const BRAIN = '#0F8A7E' // teal: LINES AND SHAPES ONLY, never text (contrast law)
+const BRAIN = '#684BFF' // violet: LINES AND SHAPES ONLY, never text (contrast law)
 
 /** Where the walls are drawn, in px from each edge of the 1200x630 frame. */
 const INSET = 36

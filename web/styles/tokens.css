@@ -11,7 +11,7 @@
  *
  *   --ink        14.89 / 16.24 / 13.23  AAA   → any text
  *   --ink-soft    5.57 /  6.07 /  4.95  AA    → body + secondary text
- *   --brain       3.66 /  3.99 /  3.25  UI    → LINES AND SHAPES ONLY
+ *   --brain       4.49 /  4.90 /  3.99  UI    → LINES AND SHAPES ONLY
  *   --query       2.57 /  2.80 /  2.28  FAIL  → GRAPHICS ONLY, NEVER TEXT
  *   --sovereign   4.02 /  4.39 /  3.58  UI    → graphics + LARGE display only
  *
@@ -44,12 +44,12 @@
                               it does not get to be the one unusable thing here. */
 
   /* ---- Accent inks: graphics only (see contrast law above) ---- */
-  --brain: #0f8a7e; /* deep teal — indexed, organized, connected knowledge */
+  --brain: #684bff; /* electric violet — indexed, organized, connected knowledge */
   --query: #e07b39; /* burnt amber — a live question moving through */
   --sovereign: #d8315b; /* crimson-rose — RARE. perimeter pulse + final CTA. */
 
   /* ---- Accent inks, text-safe (darkened until AA on all surfaces) ---- */
-  --brain-text: #0a6b61; /* 5.52 AA */
+  --brain-text: #5636d6; /* 5.57 AA */
   --query-text: #9a4a18; /* 5.39 AA */
   --sovereign-text: #b02348; /* 5.71 AA */
 
