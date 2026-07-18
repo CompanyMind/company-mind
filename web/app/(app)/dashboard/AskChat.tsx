@@ -2,7 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-type Cite = { marker: number; filename: string; page: number | null; snippet: string }
+type Cite = {
+  marker: number
+  chunkId: string
+  filename: string
+  page: number | null
+  snippet: string
+}
 type Msg = { id: string; role: 'user' | 'assistant'; content: string; citations: Cite[] }
 
 // Render answer text with [n] turned into inline citation buttons.
@@ -109,19 +115,29 @@ export function AskChat({ csrf }: { csrf: string }) {
                 onCite={(n) => setOpen((o) => ({ ...o, [m.id]: o[m.id] === n ? null : n }))}
               />
               {m.citations.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
+                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
                   {m.citations.map((c) => (
-                    <button
-                      key={c.marker}
-                      onClick={() =>
-                        setOpen((o) => ({ ...o, [m.id]: o[m.id] === c.marker ? null : c.marker }))
-                      }
-                      data-active={open[m.id] === c.marker}
-                      className="rounded-md border border-line px-2 py-1 font-mono text-[0.7rem] text-ink-soft data-[active=true]:border-brain data-[active=true]:text-brain-text"
-                    >
-                      [{c.marker}] {c.filename}
-                      {c.page ? ` · p.${c.page}` : ''}
-                    </button>
+                    <span key={c.marker} className="inline-flex items-center">
+                      <button
+                        onClick={() =>
+                          setOpen((o) => ({ ...o, [m.id]: o[m.id] === c.marker ? null : c.marker }))
+                        }
+                        data-active={open[m.id] === c.marker}
+                        className="rounded-l-md border border-line px-2 py-1 font-mono text-[0.7rem] text-ink-soft data-[active=true]:border-brain data-[active=true]:text-brain-text"
+                      >
+                        [{c.marker}] {c.filename}
+                        {c.page ? ` · p.${c.page}` : ''}
+                      </button>
+                      <a
+                        href={`/s/${c.chunkId}`}
+                        target="_blank"
+                        rel="noopener"
+                        title="Open source"
+                        className="rounded-r-md border border-l-0 border-line px-1.5 py-1 font-mono text-[0.7rem] text-ink-soft hover:border-brain hover:text-brain-text"
+                      >
+                        ↗
+                      </a>
+                    </span>
                   ))}
                 </div>
               )}

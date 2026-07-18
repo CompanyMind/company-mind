@@ -8,7 +8,13 @@ export type ChatMessage = {
   id: string
   role: 'user' | 'assistant'
   content: string
-  citations: { marker: number; filename: string; page: number | null; snippet: string }[]
+  citations: {
+    marker: number
+    chunkId: string
+    filename: string
+    page: number | null
+    snippet: string
+  }[]
 }
 
 export async function getOrCreateChat(workspaceId: string, userId: string): Promise<string> {
@@ -32,7 +38,13 @@ export async function listMessages(chatId: string, workspaceId: string): Promise
     citations: cites
       .filter((c) => c.messageId === m.id)
       .sort((a, b) => a.marker - b.marker)
-      .map((c) => ({ marker: c.marker, filename: c.filename, page: c.page, snippet: c.snippet })),
+      .map((c) => ({
+        marker: c.marker,
+        chunkId: c.chunkId,
+        filename: c.filename,
+        page: c.page,
+        snippet: c.snippet,
+      })),
   }))
 }
 
@@ -79,7 +91,13 @@ export async function saveTurn(opts: {
     citations: opts.engineCitations
       .slice()
       .sort((a, b) => a.marker - b.marker)
-      .map((c) => ({ marker: c.marker, filename: c.filename, page: c.page, snippet: c.snippet })),
+      .map((c) => ({
+        marker: c.marker,
+        chunkId: c.chunk_id,
+        filename: c.filename,
+        page: c.page,
+        snippet: c.snippet,
+      })),
   }
 }
 
