@@ -22,4 +22,7 @@ export const env = {
   get ENGINE_BASE_URL() {
     return process.env.ENGINE_BASE_URL ?? ''
   },
+  get STORAGE_DIR() {
+    return process.env.STORAGE_DIR ?? '.storage'
+  },
 }

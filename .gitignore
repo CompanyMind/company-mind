@@ -46,3 +46,6 @@ web/next-env.d.ts
 
 # reference implementation (kept locally, not part of the build)
 "CompBrain Company Website"/
+
+# uploaded files (dev)
+/web/.storage/

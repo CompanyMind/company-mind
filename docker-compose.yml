@@ -25,6 +25,7 @@ services:
       MODELS_BASE_URL: ${MODELS_BASE_URL}
       EMBED_MODEL: ${EMBED_MODEL}
       LLM_MODEL: ${LLM_MODEL}
+      EMBED_DIM: ${EMBED_DIM}
     depends_on:
       db:
         condition: service_healthy
@@ -37,7 +38,10 @@ services:
       SESSION_SECRET: ${SESSION_SECRET}
       ENGINE_INTERNAL_SECRET: ${ENGINE_INTERNAL_SECRET}
       ENGINE_BASE_URL: ${ENGINE_BASE_URL}
+      STORAGE_DIR: /data/uploads
       NODE_ENV: production
+    volumes:
+      - uploads:/data/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -46,3 +50,4 @@ services:
 
 volumes:
   dbdata:
+  uploads:
