@@ -27,6 +27,9 @@ services:
       EMBED_MODEL: ${EMBED_MODEL}
       LLM_MODEL: ${LLM_MODEL}
       EMBED_DIM: ${EMBED_DIM}
+      RERANK_BASE_URL: ${RERANK_BASE_URL:-}
+      RERANK_MODEL: ${RERANK_MODEL:-}
+      CONTEXTUAL_MODE: ${CONTEXTUAL_MODE:-header}
       TELEGRAM_ENC_KEY: ${TELEGRAM_ENC_KEY}
       APP_URL: ${APP_URL}
     depends_on:
@@ -44,6 +47,9 @@ services:
       EMBED_MODEL: ${EMBED_MODEL}
       LLM_MODEL: ${LLM_MODEL}
       EMBED_DIM: ${EMBED_DIM}
+      RERANK_BASE_URL: ${RERANK_BASE_URL:-}
+      RERANK_MODEL: ${RERANK_MODEL:-}
+      CONTEXTUAL_MODE: ${CONTEXTUAL_MODE:-header}
       TELEGRAM_ENC_KEY: ${TELEGRAM_ENC_KEY}
       APP_URL: ${APP_URL}
     depends_on:

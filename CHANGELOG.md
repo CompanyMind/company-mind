@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   language — `docs/superpowers/specs/2026-07-18-rearchitecture-domain-vs-delivery-design.md`.
 
 ### Changed
+- Retrieval is now a **hybrid pipeline**: dense (pgvector) + Postgres full-text (GIN), fused
+  with **reciprocal rank fusion**, per-document capped, **reranked** (LLM by default, or a
+  self-hosted cross-encoder via `RERANK_BASE_URL`), then **neighbor-expanded** (adjacent
+  chunks added to the answer context; citations still resolve to the matched span). Chunks are
+  embedded with a **contextual header** (`CONTEXTUAL_MODE`). Both retrievers share one
+  permission predicate. Adapted from Cerebras's knowledge-base architecture — Postgres-only,
+  no Qdrant.
 - Chunking is now **300 words per chunk with 50 words of overlap** (was 120/20). Params
   renamed to `target_words` / `overlap_words` since they count whitespace words, not tokens.
 - Default model provider is now **OpenAI's API** — LLM `gpt-5.4-nano-2026-03-17`,
