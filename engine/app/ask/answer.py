@@ -33,7 +33,9 @@ class Answered:
 
 
 def _context_block(retrieved: list[Retrieved]) -> str:
-    return "\n\n".join(f"[{i}] {r.text}" for i, r in enumerate(retrieved, start=1))
+    # Feed the neighbor-expanded context to the model; citations still resolve to
+    # the matched span (r.text) below.
+    return "\n\n".join(f"[{i}] {r.context or r.text}" for i, r in enumerate(retrieved, start=1))
 
 
 def _fake_answer(question: str, retrieved: list[Retrieved]) -> str:

@@ -18,3 +18,9 @@ def test_answer_cites_resolvable_markers_only():
     assert out.insufficient is False
     assert any(c.marker == 1 and c.chunk_id == "chunk-1" for c in out.citations)
     assert all(1 <= c.marker <= 1 for c in out.citations)
+
+
+def test_citation_snippet_uses_matched_text_not_expanded_context():
+    r = Retrieved("chunk-1", "doc-1", "f.txt", 1, 0, 5, "MATCH", 0.9, context="NEIGHBOR MATCH NEIGHBOR")
+    out = answer_question("what?", [r])
+    assert out.citations[0].snippet.startswith("MATCH")
