@@ -1,7 +1,8 @@
 from fastapi import FastAPI, UploadFile, Form, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 
-from .health import db_ok, models_ok
+from .health import db_ok, models_ok, embed_dim_ok
+from .settings import settings
 from .security import require_secret
 from .ingest.store import process_document
 from .ask.retrieve import retrieve
@@ -13,7 +14,13 @@ app = FastAPI(title="CompanyMind Engine")
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "db": db_ok(), "models": models_ok()}
+    return {
+        "status": "ok",
+        "db": db_ok(),
+        "models": models_ok(),
+        "embed_dim": settings.embed_dim,
+        "embed_dim_ok": embed_dim_ok(),
+    }
 
 
 @app.post("/ingest", status_code=202, dependencies=[Depends(require_secret)])

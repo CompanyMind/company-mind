@@ -6,11 +6,8 @@ from ..telegram.handler import handle_update
 
 
 async def _poll_once() -> None:
-    conn = get_conn()
-    try:
+    with get_conn() as conn:
         bots = tg_store.connected_bots(conn)
-    finally:
-        conn.close()
 
     for bot in bots:
         offset = (bot["offset"] or 0) + 1
@@ -21,13 +18,11 @@ async def _poll_once() -> None:
         last = bot["offset"] or 0
         for u in updates:
             last = max(last, u["update_id"])
-            c = get_conn()
             try:
-                reply = handle_update(c, bot["workspace_id"], u)
+                with get_conn() as c:
+                    reply = handle_update(c, bot["workspace_id"], u)
             except Exception:
                 reply = None
-            finally:
-                c.close()
             chat = (u.get("message") or {}).get("chat", {})
             if reply and chat.get("id"):
                 try:
@@ -37,15 +32,12 @@ async def _poll_once() -> None:
                 except Exception:
                     pass
         if last != (bot["offset"] or 0):
-            c = get_conn()
-            try:
+            with get_conn() as c:
                 with c.transaction():
                     c.execute(
                         "UPDATE telegram_bots SET last_update_id=%s WHERE workspace_id=%s",
                         (last, bot["workspace_id"]),
                     )
-            finally:
-                c.close()
 
 
 async def run() -> None:

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Engine connection **pool** (`psycopg-pool`) replaces connect-per-call across ask, ingest, and the bot worker. `/health` now reports `embed_dim` and an `embed_dim_ok` drift check (the DB's `vector(N)` column is the source of truth for embedding width).
 - Brand logo — the "layered vault" mark (nested walls + violet `#684BFF` core).
   `public/logo.svg` (exact mark) in both apps, plus a theme-adaptive `app/icon.svg`
   favicon whose walls flip to paper on dark browser chrome so the mark never disappears.

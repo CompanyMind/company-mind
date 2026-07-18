@@ -3,8 +3,7 @@ from ..db import get_conn
 
 
 def connect_bot(workspace_id: str, token: str, username: str) -> None:
-    conn = get_conn()
-    try:
+    with get_conn() as conn:
         with conn.transaction():
             conn.execute(
                 "INSERT INTO telegram_bots (workspace_id, bot_token_encrypted, bot_username) "
@@ -12,17 +11,12 @@ def connect_bot(workspace_id: str, token: str, username: str) -> None:
                 "SET bot_token_encrypted=EXCLUDED.bot_token_encrypted, bot_username=EXCLUDED.bot_username",
                 (workspace_id, encrypt(token), username),
             )
-    finally:
-        conn.close()
 
 
 def disconnect_bot(workspace_id: str) -> None:
-    conn = get_conn()
-    try:
+    with get_conn() as conn:
         with conn.transaction():
             conn.execute("DELETE FROM telegram_bots WHERE workspace_id=%s", (workspace_id,))
-    finally:
-        conn.close()
 
 
 def connected_bots(conn) -> list[dict]:

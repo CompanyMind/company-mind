@@ -112,8 +112,7 @@ def retrieve(
     qvec = get_provider().embed([contextualize_query(query)])[0]
     qlit = "[" + ",".join(str(x) for x in qvec) + "]"
 
-    conn = get_conn()
-    try:
+    with get_conn() as conn:
         dense = _dense_ids(conn, workspace_id, qlit, all_access, gids, settings.retrieval_n_vec)
         lexical = _lexical_ids(conn, workspace_id, query, all_access, gids, settings.retrieval_n_lex)
         fused = [cid for cid, _ in rrf([dense, lexical], k=settings.rrf_k)]
@@ -131,5 +130,3 @@ def retrieve(
         results = [_to_retrieved(c, meta[c]) for c in ranked_ids if c in meta]
         _expand_neighbors(conn, workspace_id, results, meta)
         return results
-    finally:
-        conn.close()
