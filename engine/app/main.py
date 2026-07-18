@@ -1,8 +1,11 @@
 from fastapi import FastAPI, UploadFile, Form, BackgroundTasks, Depends
+from pydantic import BaseModel
 
 from .health import db_ok, models_ok
 from .security import require_secret
 from .ingest.store import process_document
+from .ask.retrieve import retrieve
+from .ask.answer import answer_question
 
 app = FastAPI(title="CompBrain Engine")
 
@@ -29,3 +32,30 @@ async def ingest(
         data,
     )
     return {"status": "accepted"}
+
+
+class AskBody(BaseModel):
+    workspace_id: str
+    question: str
+
+
+@app.post("/ask", dependencies=[Depends(require_secret)])
+def ask(body: AskBody):
+    retrieved = retrieve(body.workspace_id, body.question)
+    result = answer_question(body.question, retrieved)
+    return {
+        "answer": result.answer,
+        "insufficient": result.insufficient,
+        "retrieved_chunk_ids": [r.chunk_id for r in retrieved],
+        "citations": [
+            {
+                "marker": c.marker,
+                "chunk_id": c.chunk_id,
+                "document_id": c.document_id,
+                "filename": c.filename,
+                "page": c.page,
+                "snippet": c.snippet,
+            }
+            for c in result.citations
+        ],
+    }
