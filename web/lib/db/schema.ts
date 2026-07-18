@@ -1,4 +1,18 @@
-import { pgTable, uuid, text, timestamp, primaryKey, index } from 'drizzle-orm/pg-core'
+import {
+  pgTable,
+  uuid,
+  text,
+  timestamp,
+  primaryKey,
+  index,
+  integer,
+  bigint,
+  vector,
+} from 'drizzle-orm/pg-core'
+
+// EMBED_DIM — pinned. Must equal engine/app/settings.py embed_dim. Changing it
+// requires regenerating the migration and re-embedding every chunk.
+export const EMBED_DIM = 1024
 
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -43,4 +57,60 @@ export const sessions = pgTable(
     ip: text('ip'),
   },
   (t) => [index('sessions_user_idx').on(t.userId)],
+)
+
+export const documents = pgTable(
+  'documents',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    filename: text('filename').notNull(),
+    mime: text('mime').notNull(),
+    bytes: bigint('bytes', { mode: 'number' }).notNull(),
+    storageKey: text('storage_key').notNull(),
+    status: text('status').notNull().default('uploaded'), // uploaded|parsing|indexed|failed
+    error: text('error'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index('documents_workspace_idx').on(t.workspaceId)],
+)
+
+export const ingestionJobs = pgTable('ingestion_jobs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  documentId: uuid('document_id')
+    .notNull()
+    .references(() => documents.id, { onDelete: 'cascade' }),
+  workspaceId: uuid('workspace_id')
+    .notNull()
+    .references(() => workspaces.id, { onDelete: 'cascade' }),
+  status: text('status').notNull().default('queued'), // queued|running|done|failed
+  error: text('error'),
+  startedAt: timestamp('started_at', { withTimezone: true }),
+  finishedAt: timestamp('finished_at', { withTimezone: true }),
+})
+
+export const chunks = pgTable(
+  'chunks',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    documentId: uuid('document_id')
+      .notNull()
+      .references(() => documents.id, { onDelete: 'cascade' }),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    ordinal: integer('ordinal').notNull(),
+    text: text('text').notNull(),
+    page: integer('page'),
+    charStart: integer('char_start'),
+    charEnd: integer('char_end'),
+    tokenCount: integer('token_count'),
+    embedding: vector('embedding', { dimensions: EMBED_DIM }),
+  },
+  (t) => [
+    index('chunks_workspace_idx').on(t.workspaceId),
+    index('chunks_embedding_idx').using('hnsw', t.embedding.op('vector_cosine_ops')),
+  ],
 )
