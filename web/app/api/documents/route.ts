@@ -5,6 +5,7 @@ import { verifyCsrf } from '@/lib/csrf'
 import { saveFile } from '@/lib/storage'
 import { ingestDocument } from '@/lib/engine'
 import { listDocuments } from '@/lib/documents'
+import { getEveryoneGroup, setDocumentGroups } from '@/lib/groups'
 import { db } from '@/lib/db/client'
 import { documents, ingestionJobs } from '@/lib/db/schema'
 
@@ -57,6 +58,8 @@ export async function POST(req: Request) {
     workspaceId: auth.workspace.id,
     status: 'queued',
   })
+  // Default a new document to Everyone so it is not accidentally hidden.
+  await setDocumentGroups(doc.id, auth.workspace.id, [await getEveryoneGroup(auth.workspace.id)])
 
   try {
     await ingestDocument({
