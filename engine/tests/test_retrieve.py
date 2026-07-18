@@ -65,6 +65,26 @@ def test_retrieval_is_workspace_scoped():
                 conn.execute("DELETE FROM workspaces WHERE id IN (%s,%s)", (ws1, ws2))
 
 
+def test_lexical_retrieves_exact_token_without_semantic_overlap():
+    # FakeEmbeddings is not semantic, so among many noise docs a dense-only search
+    # cannot reliably float the exact-token doc to the top. Lexical + RRF must.
+    ws = uuid.uuid4()
+    with psycopg.connect(DB) as conn:
+        with conn.transaction():
+            _seed_ws(conn, ws)
+            for i in range(20):
+                _seed_doc(conn, ws, f"noise document number {i} about weather and lunch")
+            _seed_doc(conn, ws, "the flag CKPT_PREFETCH controls warmup")
+    try:
+        hits = retrieve(str(ws), "CKPT_PREFETCH", all_access=True)
+        assert hits, "expected at least one hit"
+        assert "CKPT_PREFETCH" in hits[0].text  # lexical + RRF floats it to the top
+    finally:
+        with psycopg.connect(DB) as conn:
+            with conn.transaction():
+                conn.execute("DELETE FROM workspaces WHERE id=%s", (ws,))
+
+
 def test_retrieval_respects_group_filter():
     ws = uuid.uuid4()
     with psycopg.connect(DB) as conn:
