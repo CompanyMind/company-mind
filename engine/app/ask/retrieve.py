@@ -16,19 +16,32 @@ class Retrieved:
     score: float
 
 
-def retrieve(workspace_id: str, query: str, k: int = 8) -> list[Retrieved]:
+def retrieve(
+    workspace_id: str,
+    query: str,
+    k: int = 8,
+    group_ids: list[str] | None = None,
+    all_access: bool = False,
+) -> list[Retrieved]:
     qvec = get_provider().embed([query])[0]
     lit = "[" + ",".join(str(x) for x in qvec) + "]"
+    gids = group_ids or []
     conn = get_conn()
     try:
+        # Permission filter lives here, in one predicate: unless the caller has
+        # all_access (owner), a chunk is only visible if its document is tagged
+        # with one of the caller's groups.
         rows = conn.execute(
             "SELECT c.id, c.document_id, d.filename, c.page, c.char_start, c.char_end, c.text, "
             "       1 - (c.embedding <=> %s::vector) AS score "
             "FROM chunks c JOIN documents d ON d.id = c.document_id "
             "WHERE c.workspace_id = %s AND c.embedding IS NOT NULL "
+            "  AND ( %s OR EXISTS (SELECT 1 FROM document_groups dg "
+            "                      WHERE dg.document_id = c.document_id "
+            "                        AND dg.group_id = ANY(%s::uuid[])) ) "
             "ORDER BY c.embedding <=> %s::vector "
             "LIMIT %s",
-            (lit, workspace_id, lit, k),
+            (lit, workspace_id, all_access, gids, lit, k),
         ).fetchall()
     finally:
         conn.close()

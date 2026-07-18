@@ -37,11 +37,18 @@ async def ingest(
 class AskBody(BaseModel):
     workspace_id: str
     question: str
+    group_ids: list[str] = []
+    all_access: bool = False
 
 
 @app.post("/ask", dependencies=[Depends(require_secret)])
 def ask(body: AskBody):
-    retrieved = retrieve(body.workspace_id, body.question)
+    retrieved = retrieve(
+        body.workspace_id,
+        body.question,
+        group_ids=body.group_ids,
+        all_access=body.all_access,
+    )
     result = answer_question(body.question, retrieved)
     return {
         "answer": result.answer,
