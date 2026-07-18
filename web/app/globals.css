@@ -82,6 +82,28 @@
     padding-inline: var(--gutter);
   }
 
+  /* App rail navigation — the authed instrument panel. An active item is marked
+     by a teal (--brain) spine, echoing "indexed / connected knowledge". */
+  .rail-link {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    color: var(--ink-soft);
+    font-size: 0.9375rem;
+    border-left: 2px solid transparent;
+  }
+  .rail-link:hover {
+    color: var(--ink);
+    background-color: color-mix(in srgb, var(--paper-raised) 60%, transparent);
+  }
+  .rail-link[data-active='true'] {
+    color: var(--ink);
+    border-left-color: var(--brain);
+    background-color: color-mix(in srgb, var(--paper-raised) 80%, transparent);
+  }
+
   /* ---------------------------------------------------------------------
      Copy sits ON TOP of a live canvas, so its contrast would otherwise be
      indeterminate — WCAG cannot be satisfied against a moving background.
