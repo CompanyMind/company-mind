@@ -1,0 +1,1 @@
+CREATE INDEX "chunks_content_tsv_idx" ON "chunks" USING gin (to_tsvector('english', "text"));

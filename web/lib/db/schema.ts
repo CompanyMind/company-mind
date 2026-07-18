@@ -10,6 +10,7 @@ import {
   vector,
   boolean,
 } from 'drizzle-orm/pg-core'
+import { sql } from 'drizzle-orm'
 
 // EMBED_DIM — pinned. Must equal engine/app/settings.py embed_dim. Changing it
 // requires regenerating the migration and re-embedding every chunk.
@@ -116,6 +117,9 @@ export const chunks = pgTable(
   (t) => [
     index('chunks_workspace_idx').on(t.workspaceId),
     index('chunks_embedding_idx').using('hnsw', t.embedding.op('vector_cosine_ops')),
+    // Lexical half of hybrid retrieval — must match the to_tsvector('english', …)
+    // expression used by the engine's lexical query, or Postgres won't use it.
+    index('chunks_content_tsv_idx').using('gin', sql`to_tsvector('english', ${t.text})`),
   ],
 )
 
