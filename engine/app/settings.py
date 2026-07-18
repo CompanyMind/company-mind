@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     models_base_url: str = ""
     embed_model: str = ""
     llm_model: str = ""
+    # Must match web/lib/db/schema.ts EMBED_DIM and the embedding model's output.
+    embed_dim: int = 1024
 
 
 settings = Settings()
