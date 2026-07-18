@@ -24,12 +24,20 @@ Root `docker-compose.yml` runs: `db` (pgvector/pg16), `engine`, `bot`, `web`, `m
 
 ## Migration status (strangler)
 
-Step 0 (split marketing) ✅. **Not yet done — do not assume these hold:**
-- The access rule is still **duplicated** — `web/lib/groups.ts` (`resolveAccess`) AND
-  `engine/app/ask/retrieve.py` (SQL predicate). Step 1 moves it entirely into the engine.
-- Postgres is still **shared** by web + engine (integration DB). Step 2 splits it.
-- Telegram (`engine/app/telegram/handler.py`) still writes `query_log` directly. Step 3
-  makes it an API client.
+The domain-vs-delivery re-architecture is essentially complete:
+- **Step 0** — marketing split into its own deployable ✅
+- **Step 1** — the access rule lives once, in the engine (`engine/app/access.py::resolve_access`),
+  used by ask + the source viewer ✅
+- **Step 2** — web is a **BFF**: `web/lib/{documents,groups,source,telegram}.ts` and the
+  knowledge API routes call engine endpoints, never Drizzle. The engine owns all
+  knowledge-table access (`engine/app/library/*`, `ask/service.py`). **One Postgres kept by
+  decision** (no physical DB split) — web still owns the auth tables + `chats/messages/citations`
+  and defines the schema in Drizzle; only the engine reads/writes the knowledge tables ✅
+- **Step 3** — Telegram is an engine API client; one ask path (`ask/service.py::answer_query`) ✅
+- **Step 4** — connection pool + `EMBED_DIM` drift check ✅
+
+Only intentionally deferred: the physical two-database split (contradicts the single-Postgres
+lesson), IDF/age-decay retrieval scorers, and the agentic planner/MCP surfaces.
 
 ## Conventions & invariants
 

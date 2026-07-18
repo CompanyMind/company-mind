@@ -1,12 +1,8 @@
 import 'server-only'
-import { and, eq, inArray } from 'drizzle-orm'
 import { env } from '@/lib/env'
-import { db } from '@/lib/db/client'
-import { groups, groupMembers } from '@/lib/db/schema'
 
 // The engine owns the knowledge tables (groups, group_members, document_groups).
-// These are thin clients over its internal API. (setTelegramLinkGroups still uses
-// Drizzle and moves to the engine in the Telegram slice.)
+// These are thin clients over its internal API.
 
 async function engineFetch(path: string, init?: RequestInit): Promise<Response> {
   return fetch(`${env.ENGINE_BASE_URL}${path}`, {
@@ -108,33 +104,3 @@ export async function documentGroupIds(documentId: string, workspaceId: string):
   return data.group_ids ?? []
 }
 
-// The default 'Everyone' group id. Used by the upload route to keep a new document
-// visible; the engine takes over defaulting in the Documents slice.
-export async function getEveryoneGroup(workspaceId: string): Promise<string> {
-  const gs = await listGroups(workspaceId)
-  const ev = gs.find((g) => g.isDefault)
-  if (!ev) throw new Error('workspace has no Everyone group')
-  return ev.id
-}
-
-// Telegram identity → groups. Still Drizzle; moves to the engine in the Telegram slice.
-export async function setTelegramLinkGroups(
-  linkId: string,
-  workspaceId: string,
-  groupIds: string[],
-): Promise<void> {
-  await db
-    .delete(groupMembers)
-    .where(and(eq(groupMembers.workspaceId, workspaceId), eq(groupMembers.telegramLinkId, linkId)))
-  if (groupIds.length) {
-    const valid = await db
-      .select({ id: groups.id })
-      .from(groups)
-      .where(and(eq(groups.workspaceId, workspaceId), inArray(groups.id, groupIds)))
-    if (valid.length) {
-      await db
-        .insert(groupMembers)
-        .values(valid.map((g) => ({ workspaceId, groupId: g.id, telegramLinkId: linkId })))
-    }
-  }
-}

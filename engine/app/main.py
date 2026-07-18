@@ -191,3 +191,43 @@ class TgWsBody(BaseModel):
 def telegram_disconnect(body: TgWsBody):
     tg_store.disconnect_bot(body.workspace_id)
     return {"ok": True}
+
+
+@app.get("/telegram/status", dependencies=[Depends(require_secret)])
+def telegram_status(workspace_id: str):
+    with get_conn() as conn:
+        return tg_store.status(conn, workspace_id)
+
+
+@app.get("/telegram/links", dependencies=[Depends(require_secret)])
+def telegram_links(workspace_id: str):
+    with get_conn() as conn:
+        return {"links": tg_store.list_links(conn, workspace_id)}
+
+
+class TgLinkActionBody(BaseModel):
+    workspace_id: str
+    action: str
+
+
+@app.post("/telegram/links/{link_id}", dependencies=[Depends(require_secret)])
+def telegram_link_action(link_id: str, body: TgLinkActionBody):
+    with get_conn() as conn:
+        res = tg_store.set_link_status(conn, body.workspace_id, link_id, body.action)
+    if res == "notfound":
+        raise HTTPException(status_code=404, detail="not found")
+    if res == "unknown":
+        raise HTTPException(status_code=400, detail="unknown action")
+    return {"ok": True}
+
+
+class TgLinkGroupsBody(BaseModel):
+    workspace_id: str
+    group_ids: list[str] = []
+
+
+@app.put("/telegram/links/{link_id}/groups", dependencies=[Depends(require_secret)])
+def telegram_link_groups(link_id: str, body: TgLinkGroupsBody):
+    with get_conn() as conn:
+        tg_store.set_link_groups(conn, body.workspace_id, link_id, body.group_ids)
+    return {"ok": True}
