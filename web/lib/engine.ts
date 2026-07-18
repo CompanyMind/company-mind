@@ -19,3 +19,31 @@ export async function ingestDocument(opts: {
   })
   if (!res.ok) throw new Error(`engine /ingest responded ${res.status}`)
 }
+
+export type EngineCitation = {
+  marker: number
+  chunk_id: string
+  document_id: string
+  filename: string
+  page: number | null
+  snippet: string
+}
+export type EngineAnswer = {
+  answer: string
+  insufficient: boolean
+  retrieved_chunk_ids: string[]
+  citations: EngineCitation[]
+}
+
+export async function askEngine(workspaceId: string, question: string): Promise<EngineAnswer> {
+  const res = await fetch(`${env.ENGINE_BASE_URL}/ask`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-engine-secret': env.ENGINE_INTERNAL_SECRET,
+    },
+    body: JSON.stringify({ workspace_id: workspaceId, question }),
+  })
+  if (!res.ok) throw new Error(`engine /ask responded ${res.status}`)
+  return res.json()
+}
