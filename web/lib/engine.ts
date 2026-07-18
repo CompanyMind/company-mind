@@ -35,14 +35,23 @@ export type EngineAnswer = {
   citations: EngineCitation[]
 }
 
-export async function askEngine(workspaceId: string, question: string): Promise<EngineAnswer> {
+export async function askEngine(
+  workspaceId: string,
+  question: string,
+  access: { groupIds: string[]; allAccess: boolean },
+): Promise<EngineAnswer> {
   const res = await fetch(`${env.ENGINE_BASE_URL}/ask`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
       'x-engine-secret': env.ENGINE_INTERNAL_SECRET,
     },
-    body: JSON.stringify({ workspace_id: workspaceId, question }),
+    body: JSON.stringify({
+      workspace_id: workspaceId,
+      question,
+      group_ids: access.groupIds,
+      all_access: access.allAccess,
+    }),
   })
   if (!res.ok) throw new Error(`engine /ask responded ${res.status}`)
   return res.json()
