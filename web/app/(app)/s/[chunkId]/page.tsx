@@ -1,6 +1,5 @@
 import { and, eq } from 'drizzle-orm'
 import { getCurrentUser } from '@/lib/auth/current-user'
-import { resolveAccess } from '@/lib/groups'
 import { getSource } from '@/lib/source'
 import { db } from '@/lib/db/client'
 import { memberships } from '@/lib/db/schema'
@@ -11,6 +10,8 @@ export const runtime = 'nodejs'
 export default async function SourcePage({ params }: { params: Promise<{ chunkId: string }> }) {
   const auth = await getCurrentUser()
   const { chunkId } = await params
+  // Role comes from the auth-owned memberships table; the engine resolves the
+  // group-level access itself and returns the source (or null).
   const mem = auth
     ? await db.query.memberships.findFirst({
         where: and(
@@ -19,10 +20,9 @@ export default async function SourcePage({ params }: { params: Promise<{ chunkId
         ),
       })
     : null
-  const access = auth
-    ? await resolveAccess(auth.user.id, auth.workspace.id, mem?.role ?? 'member')
-    : { groupIds: [], allAccess: false }
-  const src = auth ? await getSource(chunkId, auth.workspace.id, access) : null
+  const src = auth
+    ? await getSource(chunkId, auth.workspace.id, auth.user.id, mem?.role ?? 'member')
+    : null
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-6">
