@@ -1,8 +1,7 @@
 import html
 
 from .store import tg_access
-from ..ask.retrieve import retrieve
-from ..ask.answer import answer_question
+from ..ask.service import answer_query
 from ..settings import settings
 
 REQUESTED = "Access requested. An admin will approve you shortly."
@@ -44,23 +43,18 @@ def handle_update(conn, workspace_id: str, update: dict) -> str | None:
     if status == "blocked":
         return BLOCKED
 
-    # Approved: answer, scoped to exactly the groups this Telegram identity can see.
+    # Approved: answer via the single ask path, scoped to exactly the groups this
+    # Telegram identity can see. The service performs retrieval, answering, and the
+    # audit-log write (tagged with this telegram link).
     group_ids = tg_access(conn, workspace_id, link_id)
-    retrieved = retrieve(workspace_id, text, group_ids=group_ids, all_access=False)
-    result = answer_question(text, retrieved)
-
-    with conn.transaction():
-        conn.execute(
-            "INSERT INTO query_log (workspace_id, telegram_link_id, question, retrieved_chunk_ids, model) "
-            "VALUES (%s,%s,%s,%s,%s)",
-            (
-                workspace_id,
-                link_id,
-                f"[telegram:{tg_user['id']}] {text}",
-                [r.chunk_id for r in retrieved],
-                "fake-telegram",
-            ),
-        )
+    result = answer_query(
+        workspace_id,
+        text,
+        group_ids=group_ids,
+        all_access=False,
+        telegram_link_id=link_id,
+        log_question=f"[telegram:{tg_user['id']}] {text}",
+    )
 
     # Reply as HTML: the answer (escaped) + a Sources footer where each citation
     # is a tappable link into the sovereign web app's source viewer. The bot

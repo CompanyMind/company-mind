@@ -6,7 +6,7 @@ import { askEngine } from '@/lib/engine'
 import { resolveAccess } from '@/lib/groups'
 import { db } from '@/lib/db/client'
 import { memberships } from '@/lib/db/schema'
-import { getOrCreateChat, listMessages, saveTurn, logQuery } from '@/lib/chat'
+import { getOrCreateChat, listMessages, saveTurn } from '@/lib/chat'
 
 export const runtime = 'nodejs'
 
@@ -36,11 +36,13 @@ export async function POST(req: Request) {
 
   let result
   try {
-    result = await askEngine(auth.workspace.id, q, access)
+    result = await askEngine(auth.workspace.id, q, access, auth.user.id)
   } catch {
     return NextResponse.json({ error: 'the answer engine is unavailable' }, { status: 502 })
   }
 
+  // The engine writes the query_log audit row itself (single ask path). Web only
+  // persists the chat turn for the dashboard transcript.
   const chatId = await getOrCreateChat(auth.workspace.id, auth.user.id)
   const assistant = await saveTurn({
     chatId,
@@ -48,13 +50,6 @@ export async function POST(req: Request) {
     question: q,
     answer: result.answer,
     engineCitations: result.citations,
-  })
-  await logQuery({
-    workspaceId: auth.workspace.id,
-    userId: auth.user.id,
-    question: q,
-    retrievedChunkIds: result.retrieved_chunk_ids,
-    model: process.env.LLM_MODEL || 'fake',
   })
   return NextResponse.json({ message: assistant, insufficient: result.insufficient })
 }

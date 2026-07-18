@@ -1,7 +1,7 @@
 import 'server-only'
 import { and, asc, eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { chats, messages, citations, queryLog } from '@/lib/db/schema'
+import { chats, messages, citations } from '@/lib/db/schema'
 import type { EngineCitation } from '@/lib/engine'
 
 export type ChatMessage = {
@@ -101,18 +101,3 @@ export async function saveTurn(opts: {
   }
 }
 
-export async function logQuery(opts: {
-  workspaceId: string
-  userId: string
-  question: string
-  retrievedChunkIds: string[]
-  model: string
-}): Promise<void> {
-  await db.insert(queryLog).values({
-    workspaceId: opts.workspaceId,
-    userId: opts.userId,
-    question: opts.question,
-    retrievedChunkIds: opts.retrievedChunkIds,
-    model: opts.model,
-  })
-}

@@ -5,8 +5,7 @@ from .health import db_ok, models_ok, embed_dim_ok
 from .settings import settings
 from .security import require_secret
 from .ingest.store import process_document
-from .ask.retrieve import retrieve
-from .ask.answer import answer_question
+from .ask.service import answer_query
 from .telegram import api as tg_api, store as tg_store
 
 app = FastAPI(title="CompanyMind Engine")
@@ -47,21 +46,22 @@ class AskBody(BaseModel):
     question: str
     group_ids: list[str] = []
     all_access: bool = False
+    user_id: str | None = None  # the authenticated web principal (for the audit log)
 
 
 @app.post("/ask", dependencies=[Depends(require_secret)])
 def ask(body: AskBody):
-    retrieved = retrieve(
+    result = answer_query(
         body.workspace_id,
         body.question,
         group_ids=body.group_ids,
         all_access=body.all_access,
+        user_id=body.user_id,
     )
-    result = answer_question(body.question, retrieved)
     return {
         "answer": result.answer,
         "insufficient": result.insufficient,
-        "retrieved_chunk_ids": [r.chunk_id for r in retrieved],
+        "retrieved_chunk_ids": result.retrieved_chunk_ids,
         "citations": [
             {
                 "marker": c.marker,

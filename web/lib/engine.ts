@@ -39,6 +39,7 @@ export async function askEngine(
   workspaceId: string,
   question: string,
   access: { groupIds: string[]; allAccess: boolean },
+  userId: string,
 ): Promise<EngineAnswer> {
   const res = await fetch(`${env.ENGINE_BASE_URL}/ask`, {
     method: 'POST',
@@ -51,6 +52,7 @@ export async function askEngine(
       question,
       group_ids: access.groupIds,
       all_access: access.allAccess,
+      user_id: userId, // the engine writes the audit row (one ask path for every surface)
     }),
   })
   if (!res.ok) throw new Error(`engine /ask responded ${res.status}`)
