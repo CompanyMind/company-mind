@@ -24,19 +24,20 @@ def _page_for(pages: list[Page], pos: int) -> int | None:
 def chunk_text(
     text: str,
     pages: list[Page],
-    target_tokens: int = 120,
-    overlap: int = 20,
+    target_words: int = 300,
+    overlap_words: int = 50,
 ) -> list[Chunk]:
-    # Tokens ~= whitespace-delimited words; keep each word's char span so chunks
-    # map back to exact source offsets (the basis for citations in Plan 3).
+    # Fixed-size sliding window of whitespace-delimited words: 300-word chunks
+    # with 50 words of overlap by default. Each word keeps its char span so a
+    # chunk maps back to the exact source offsets that citations highlight.
     words = [(m.group(0), m.start(), m.end()) for m in re.finditer(r"\S+", text)]
     if not words:
         return []
-    step = max(1, target_tokens - overlap)
+    step = max(1, target_words - overlap_words)
     chunks: list[Chunk] = []
     ordinal = 0
     for i in range(0, len(words), step):
-        window = words[i : i + target_tokens]
+        window = words[i : i + target_words]
         if not window:
             break
         start = window[0][1]
@@ -52,6 +53,6 @@ def chunk_text(
             )
         )
         ordinal += 1
-        if i + target_tokens >= len(words):
+        if i + target_words >= len(words):
             break
     return chunks

@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   language — `docs/superpowers/specs/2026-07-18-rearchitecture-domain-vs-delivery-design.md`.
 
 ### Changed
+- Chunking is now **300 words per chunk with 50 words of overlap** (was 120/20). Params
+  renamed to `target_words` / `overlap_words` since they count whitespace words, not tokens.
 - Default model provider is now **OpenAI's API** — LLM `gpt-5.4-nano-2026-03-17`,
   embeddings `text-embedding-3-small` at 1024 dims (via the `dimensions` param). Added an
   `OPENAI_API_KEY` (Bearer) setting. The deterministic fake providers now gate on
