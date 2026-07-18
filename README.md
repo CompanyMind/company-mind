@@ -60,5 +60,5 @@ plans live in `docs/superpowers/plans/`.
 ## Repos of record
 
 Product code (`web/`, `engine/`) is the deliverable. `marketing/` is the public site.
-`docs/` holds the specs and plans. `CompBrain Company Website/` is a kept-local reference
-implementation, not part of any build.
+`docs/` holds the specs and plans. `reference/` is a kept-local design reference (the
+original site comp), not part of any build.

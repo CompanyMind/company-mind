@@ -49,7 +49,7 @@ marketing/next-env.d.ts
 .playwright-mcp/
 
 # reference implementation (kept locally, not part of the build)
-"CompBrain Company Website"/
+/reference/
 
 # uploaded files (dev)
 /web/.storage/
