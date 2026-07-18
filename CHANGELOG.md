@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Brand logo — the "layered vault" mark (nested walls + teal core). `public/logo.svg`
+  (exact mark) in both apps, plus a theme-adaptive `app/icon.svg` favicon whose walls
+  flip to paper on dark browser chrome so the mark never disappears.
 - `marketing/` as a standalone Next app — the public site is now a separate deployable
   that never ships to a customer datacenter.
 - Project `CLAUDE.md` and this `CHANGELOG.md`.
@@ -22,3 +25,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - Marketing code (routes, components, `lib/swarm`, `content`, hooks, SEO shell) from `web/`.
 - Unused `web/` deps: `clsx`, `lenis`, `tailwind-merge`.
+- Marketing's dynamic `app/icon.tsx` (replaced by the static `icon.svg`).
