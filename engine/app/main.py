@@ -47,9 +47,8 @@ async def ingest(
 class AskBody(BaseModel):
     workspace_id: str
     question: str
-    group_ids: list[str] = []
-    all_access: bool = False
-    user_id: str | None = None  # the authenticated web principal (for the audit log)
+    user_id: str | None = None  # authenticated web principal
+    role: str = "member"  # engine resolves this principal's access itself
 
 
 @app.post("/ask", dependencies=[Depends(require_secret)])
@@ -57,9 +56,8 @@ def ask(body: AskBody):
     result = answer_query(
         body.workspace_id,
         body.question,
-        group_ids=body.group_ids,
-        all_access=body.all_access,
         user_id=body.user_id,
+        role=body.role,
     )
     return {
         "answer": result.answer,

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from ..access import resolve_access
 from ..db import get_conn
 from ..settings import settings, use_real_models
 from .answer import Citation, answer_question
@@ -25,12 +26,18 @@ def answer_query(
     group_ids: list[str] | None = None,
     all_access: bool = False,
     user_id: str | None = None,
+    role: str | None = None,
     telegram_link_id: str | None = None,
     log_question: str | None = None,
 ) -> AskResult:
     """The single ask path used by every surface (web, Telegram, future MCP):
     permission-scoped retrieval → grounded answer → audit log. Exactly one
-    principal (`user_id` OR `telegram_link_id`) identifies the caller."""
+    principal (`user_id`+`role` for a web user, OR `telegram_link_id` with
+    pre-resolved `group_ids` for a Telegram identity) identifies the caller.
+    When `role` is given, access is resolved here — the single access rule."""
+    if role is not None:
+        with get_conn() as conn:
+            group_ids, all_access = resolve_access(conn, workspace_id, user_id or "", role)
     retrieved = retrieve(workspace_id, question, group_ids=group_ids, all_access=all_access)
     result = answer_question(question, retrieved)
     chunk_ids = [r.chunk_id for r in retrieved]
