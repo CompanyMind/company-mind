@@ -9,6 +9,8 @@ import {
   bigint,
   vector,
   boolean,
+  doublePrecision,
+  jsonb,
 } from 'drizzle-orm/pg-core'
 import { sql } from 'drizzle-orm'
 
@@ -270,4 +272,84 @@ export const telegramLinks = pgTable(
     approvedAt: timestamp('approved_at', { withTimezone: true }),
   },
   (t) => [index('telegram_links_workspace_idx').on(t.workspaceId)],
+)
+
+export const graphBuildJobs = pgTable('graph_build_jobs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  workspaceId: uuid('workspace_id')
+    .notNull()
+    .references(() => workspaces.id, { onDelete: 'cascade' }),
+  status: text('status').notNull().default('queued'), // queued|running|done|failed
+  error: text('error'),
+  startedAt: timestamp('started_at', { withTimezone: true }),
+  finishedAt: timestamp('finished_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+})
+
+export const graphTopics = pgTable(
+  'graph_topics',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    label: text('label').notNull(),
+    keywords: text('keywords').array(),
+    centroid: vector('centroid', { dimensions: EMBED_DIM }),
+    docCount: integer('doc_count').notNull().default(0),
+    x: doublePrecision('x').notNull().default(0),
+    y: doublePrecision('y').notNull().default(0),
+    computedAt: timestamp('computed_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index('graph_topics_workspace_idx').on(t.workspaceId)],
+)
+
+export const graphTopicMembers = pgTable(
+  'graph_topic_members',
+  {
+    topicId: uuid('topic_id')
+      .notNull()
+      .references(() => graphTopics.id, { onDelete: 'cascade' }),
+    documentId: uuid('document_id')
+      .notNull()
+      .references(() => documents.id, { onDelete: 'cascade' }),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+  },
+  (t) => [primaryKey({ columns: [t.topicId, t.documentId] })],
+)
+
+export const graphDocMeta = pgTable('graph_doc_meta', {
+  documentId: uuid('document_id')
+    .primaryKey()
+    .references(() => documents.id, { onDelete: 'cascade' }),
+  workspaceId: uuid('workspace_id')
+    .notNull()
+    .references(() => workspaces.id, { onDelete: 'cascade' }),
+  topicId: uuid('topic_id').references(() => graphTopics.id, { onDelete: 'set null' }),
+  degree: integer('degree').notNull().default(0),
+  exposureScore: doublePrecision('exposure_score').notNull().default(0),
+  isOrphan: boolean('is_orphan').notNull().default(false),
+  lastRetrievedAt: timestamp('last_retrieved_at', { withTimezone: true }),
+  computedAt: timestamp('computed_at', { withTimezone: true }).defaultNow().notNull(),
+})
+
+export const graphFindings = pgTable(
+  'graph_findings',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    kind: text('kind').notNull(), // permission_anomaly|over_exposure|orphan|dead|stale
+    documentId: uuid('document_id')
+      .notNull()
+      .references(() => documents.id, { onDelete: 'cascade' }),
+    severity: doublePrecision('severity').notNull().default(0),
+    detail: jsonb('detail'),
+    status: text('status').notNull().default('open'), // open|dismissed
+    computedAt: timestamp('computed_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index('graph_findings_workspace_idx').on(t.workspaceId)],
 )
