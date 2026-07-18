@@ -114,3 +114,70 @@ export const chunks = pgTable(
     index('chunks_embedding_idx').using('hnsw', t.embedding.op('vector_cosine_ops')),
   ],
 )
+
+export const chats = pgTable(
+  'chats',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    title: text('title'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index('chats_workspace_idx').on(t.workspaceId)],
+)
+
+export const messages = pgTable(
+  'messages',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    chatId: uuid('chat_id')
+      .notNull()
+      .references(() => chats.id, { onDelete: 'cascade' }),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    role: text('role').notNull(), // 'user' | 'assistant'
+    content: text('content').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [index('messages_chat_idx').on(t.chatId)],
+)
+
+export const citations = pgTable('citations', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  messageId: uuid('message_id')
+    .notNull()
+    .references(() => messages.id, { onDelete: 'cascade' }),
+  workspaceId: uuid('workspace_id')
+    .notNull()
+    .references(() => workspaces.id, { onDelete: 'cascade' }),
+  chunkId: uuid('chunk_id')
+    .notNull()
+    .references(() => chunks.id, { onDelete: 'cascade' }),
+  marker: integer('marker').notNull(), // the [n]
+  documentId: uuid('document_id')
+    .notNull()
+    .references(() => documents.id, { onDelete: 'cascade' }),
+  filename: text('filename').notNull(),
+  page: integer('page'),
+  snippet: text('snippet').notNull(),
+})
+
+export const queryLog = pgTable('query_log', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  workspaceId: uuid('workspace_id')
+    .notNull()
+    .references(() => workspaces.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  question: text('question').notNull(),
+  retrievedChunkIds: uuid('retrieved_chunk_ids').array(),
+  model: text('model'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+})
