@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 import httpx
 
-from ..settings import settings
+from ..settings import settings, use_real_models
 from .retrieve import Retrieved
 
 REFUSAL = "I couldn't find anything in your sources to answer that."
@@ -46,6 +46,11 @@ def _fake_answer(question: str, retrieved: list[Retrieved]) -> str:
 
 
 def _llm_answer(question: str, retrieved: list[Retrieved]) -> str:
+    headers = (
+        {"Authorization": f"Bearer {settings.openai_api_key}"}
+        if settings.openai_api_key
+        else {}
+    )
     r = httpx.post(
         f"{settings.models_base_url.rstrip('/')}/chat/completions",
         json={
@@ -59,6 +64,7 @@ def _llm_answer(question: str, retrieved: list[Retrieved]) -> str:
             ],
             "temperature": 0,
         },
+        headers=headers,
         timeout=120,
     )
     r.raise_for_status()
@@ -71,7 +77,7 @@ def answer_question(question: str, retrieved: list[Retrieved]) -> Answered:
 
     text = (
         _llm_answer(question, retrieved)
-        if settings.models_base_url
+        if use_real_models()
         else _fake_answer(question, retrieved)
     )
 

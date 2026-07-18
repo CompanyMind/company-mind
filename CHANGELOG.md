@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   language — `docs/superpowers/specs/2026-07-18-rearchitecture-domain-vs-delivery-design.md`.
 
 ### Changed
+- Default model provider is now **OpenAI's API** — LLM `gpt-5.4-nano-2026-03-17`,
+  embeddings `text-embedding-3-small` at 1024 dims (via the `dimensions` param). Added an
+  `OPENAI_API_KEY` (Bearer) setting. The deterministic fake providers now gate on
+  credentials, so tests and offline dev still fall back to them. On-prem deployments
+  override `MODELS_BASE_URL` with a self-hosted endpoint so nothing leaves their network.
 - Slimmed `web/` to the product only: new minimal root layout, product-scoped `globals.css`.
 - Trimmed the root README to essentials.
 - Renamed the design-reference folder `CompBrain Company Website/` → `reference/`.

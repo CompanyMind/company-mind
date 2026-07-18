@@ -4,7 +4,7 @@ from typing import Protocol
 
 import httpx
 
-from ..settings import settings
+from ..settings import settings, use_real_models
 
 
 class EmbeddingsProvider(Protocol):
@@ -38,15 +38,20 @@ class FakeEmbeddings:
 
 
 class OpenAICompatEmbeddings:
-    def __init__(self, base_url: str, model: str, dim: int) -> None:
+    def __init__(self, base_url: str, model: str, dim: int, api_key: str = "") -> None:
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.dim = dim
+        self.api_key = api_key
 
     def embed(self, texts: list[str]) -> list[list[float]]:
+        headers = {"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}
+        # `dimensions` pins the output width to EMBED_DIM — OpenAI text-embedding-3-*
+        # supports it; self-hosted OpenAI-compatible servers accept or ignore it.
         r = httpx.post(
             f"{self.base_url}/embeddings",
-            json={"model": self.model, "input": texts},
+            json={"model": self.model, "input": texts, "dimensions": self.dim},
+            headers=headers,
             timeout=60,
         )
         r.raise_for_status()
@@ -55,8 +60,11 @@ class OpenAICompatEmbeddings:
 
 
 def get_provider() -> EmbeddingsProvider:
-    if settings.models_base_url:
+    if use_real_models():
         return OpenAICompatEmbeddings(
-            settings.models_base_url, settings.embed_model, settings.embed_dim
+            settings.models_base_url,
+            settings.embed_model,
+            settings.embed_dim,
+            settings.openai_api_key,
         )
     return FakeEmbeddings(settings.embed_dim)
