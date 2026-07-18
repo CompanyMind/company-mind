@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Brand logo — the "layered vault" mark (nested walls + violet `#684BFF` core).
   `public/logo.svg` (exact mark) in both apps, plus a theme-adaptive `app/icon.svg`
   favicon whose walls flip to paper on dark browser chrome so the mark never disappears.
+  A teal `#0f8a7e` variant lives at `web/public/logo-teal.svg`.
 - `marketing/` as a standalone Next app — the public site is now a separate deployable
   that never ships to a customer datacenter.
 - Project `CLAUDE.md` and this `CHANGELOG.md`.
