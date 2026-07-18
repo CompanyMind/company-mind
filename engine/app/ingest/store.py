@@ -1,8 +1,10 @@
 from datetime import datetime, timezone
 
 from ..db import get_conn
+from ..settings import settings
 from .parse import extract_text
 from .chunk import chunk_text
+from .contextualize import contextualize
 from .embed import get_provider
 
 
@@ -36,7 +38,13 @@ def process_document(
 
         parsed = extract_text(filename, mime, data)
         chunks = chunk_text(parsed.text, parsed.pages)
-        vectors = get_provider().embed([c.text for c in chunks]) if chunks else []
+        # Embed a contextualized representation (filename/page header) while the
+        # raw chunk text is stored below for citations. Improves recall on short
+        # chunks (Anthropic contextual retrieval, lightweight variant).
+        embed_inputs = [
+            contextualize(c.text, filename, c.page, settings.contextual_mode) for c in chunks
+        ]
+        vectors = get_provider().embed(embed_inputs) if chunks else []
 
         with conn.transaction():
             # Idempotent: re-ingesting a document replaces its chunks.
