@@ -37,6 +37,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   already named neutrally and needed no changes.
 
 ### Fixed
+- Atlas department colors: only 4 of 13 departments rendered in color, the other 9 fell back
+  to the same warm grey as "Everyone" — the palette was a hardcoded 5-name `DEPT_COLORS` map,
+  but a department is just the first non-default access group name, so the set of names is
+  open-ended and any new group went grey (91 of 152 documents, once the demo corpus was
+  loaded). It also carried a dead `People` key that never matched the real `HR` group. The
+  established departments stay pinned as anchors (Sales keeps the brand violet); everything
+  else now derives a hue seeded from its own name, assigned across the departments actually
+  present with forward probing so two departments can't land on the same hue — the seed alone
+  collided (IT/Support, Security/Marketing). "Everyone" stays grey on purpose.
+- Atlas hover: nodes underneath the department legend could not be hovered at all. The legend
+  floated over the canvas (~12% of it) and, while its wrapper was `pointer-events-none`, every
+  row is a clickable filter button that opts back in — and those buttons are full-width, so
+  they were effectively the whole box, swallowing hover for any node parked behind them.
+  Legend moved out of the canvas into its own toolbar row of chips; the canvas is now
+  unobstructed (verified: points that hit-tested to `BUTTON` now hit-test to `CANVAS`).
+- Atlas hover: only the node's dot was hoverable, never its filename label. At 150+ documents
+  a dot is 2.6–11px across while its caption is the largest thing on screen, so aiming at the
+  text — the natural target — hovered nothing. `nodePointerAreaPaint` now also covers the
+  label's text box whenever the label is drawn.
+- Atlas hover: nodes are now painted largest-degree-first so the smallest paint last. hover is
+  resolved through a colour-indexed buffer where each node paints over the previous one, so a
+  small dot in the dense core could have its hit area buried by hub neighbours that happened
+  to come later in the array.
 - Brain Map hover: every hover showed two overlapping tooltips — our own (filename ·
   connections · department) and force-graph's built-in one (which defaults to `node.name`,
   the raw filename) rendering right underneath it. Suppressed the built-in one

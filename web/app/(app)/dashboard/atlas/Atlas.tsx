@@ -37,20 +37,66 @@ const LENS_OPTIONS: { id: Lens; label: string }[] = [
   { id: 'deadstale', label: 'Dead/Stale' },
 ]
 
-// Department palette — six hues chosen to sit on the warm-paper ground
-// (#F3EEE3) with roughly even chroma so no one department shouts. Sales keeps
-// the brand violet; "Everyone" (shared-with-all) is a deliberately quiet warm
-// grey so over-shared docs read as un-owned rather than as their own category.
-const DEPT_COLORS: Record<string, string> = {
+// Department palette. Hues sit on the warm-paper ground (#F3EEE3) at roughly
+// even chroma so no one department shouts. A department is whatever the first
+// non-default access group is called (engine `_department`), so the set of names
+// is open — a workspace can create any group it likes. Hard-coding a name->hex
+// map therefore rots the moment someone adds a group: every unlisted department
+// collapsed into the same grey as "Everyone", which read as "un-owned" and made
+// most of the map colorless. So only the established departments are pinned, and
+// anything else derives a stable hue from its own name.
+//
+// "Everyone" (shared-with-all) stays a deliberately quiet warm grey so
+// over-shared docs read as un-owned rather than as their own category.
+const EVERYONE_GREY = '#9c948a'
+const DEPT_ANCHORS: Record<string, string> = {
   Engineering: '#3b6fe0',
   Finance: '#12a074',
   Legal: '#dd8a2b',
-  People: '#d6567f',
-  Sales: '#684bff',
-  Everyone: '#9c948a',
+  Sales: '#684bff', // the brand violet
+  Everyone: EVERYONE_GREY,
 }
-const DEPT_FALLBACK = '#9c948a'
-const deptColor = (d: string) => DEPT_COLORS[d] ?? DEPT_FALLBACK
+
+// Hues for everything not pinned above, spaced around the wheel and kept clear
+// of the anchor hues (~33 orange, ~163 green, ~220 blue, ~253 violet) so a
+// derived department is never mistaken for an anchored one. Saturation and
+// lightness are fixed to match the anchors' weight on paper.
+const DERIVED_HUES = [185, 330, 352, 300, 92, 55, 205, 270, 138, 15, 240, 115]
+
+// Seeded per name (FNV-1a) rather than per position in the dataset, so a
+// department keeps its color as documents are added, removed, or re-ranked.
+function hueSeed(name: string): number {
+  let h = 0x811c9dc5
+  for (let i = 0; i < name.length; i++) {
+    h ^= name.charCodeAt(i)
+    h = Math.imul(h, 0x01000193) >>> 0
+  }
+  return h % DERIVED_HUES.length
+}
+
+const derivedColor = (i: number) => `hsl(${DERIVED_HUES[i]} 58% 47%)`
+
+// The seed alone collides (8 names into 12 hues is a birthday problem — "IT"
+// and "Support" landed on the same hue), and two same-colored departments are
+// worse than a dull one. So hues are assigned across the departments actually
+// present: each starts at its seed and probes forward to the first free hue.
+// Departments are walked alphabetically, NOT by document count, so a color does
+// not jump when the legend re-ranks. Past DERIVED_HUES.length departments hues
+// necessarily repeat; the anchors and "Everyone" are never consumed.
+function buildDeptColors(departments: string[]): (d: string) => string {
+  const taken = new Set<number>()
+  const assigned = new Map<string, string>()
+  for (const d of [...departments].sort()) {
+    if (DEPT_ANCHORS[d]) continue
+    let i = hueSeed(d)
+    for (let n = 0; n < DERIVED_HUES.length && taken.has(i); n++) {
+      i = (i + 1) % DERIVED_HUES.length
+    }
+    taken.add(i)
+    assigned.set(d, derivedColor(i))
+  }
+  return (d) => DEPT_ANCHORS[d] ?? assigned.get(d) ?? derivedColor(hueSeed(d))
+}
 
 // Governance-lens colors (semantic, separate from department hues).
 const ANOMALY_HIT = '#d8315b'
@@ -216,6 +262,9 @@ export function Atlas({
     return [...counts.entries()].sort((a, b) => b[1] - a[1])
   }, [nodes])
 
+  // Hues are assigned over the departments actually present (see buildDeptColors).
+  const deptColor = useMemo(() => buildDeptColors(legend.map(([d]) => d)), [legend])
+
   // The set of node ids currently "in focus" (everything else is dimmed).
   // Precedence: a hovered/selected node lights itself + its neighbors; else a
   // search narrows to filename matches; else an active legend category isolates
@@ -246,7 +295,15 @@ export function Atlas({
 
   const graphData = useMemo(
     () => ({
-      nodes: nodes.map((n) => ({ ...n, name: n.filename })),
+      // Biggest-degree nodes first so the smallest ones paint LAST. force-graph
+      // resolves hover through a colour-indexed buffer where each node paints
+      // over the last, so in the dense core a small dot whose hub neighbours
+      // happened to come later in the array had its hit area buried under
+      // theirs. Painting small-on-top keeps every node reachable (and stops
+      // small dots hiding behind big ones visually, same ordering either way).
+      nodes: [...nodes]
+        .sort((a, b) => (b.degree ?? 0) - (a.degree ?? 0))
+        .map((n) => ({ ...n, name: n.filename })),
       links: edges.map((e) => ({ source: e.source, target: e.target, value: e.weight })),
     }),
     [nodes, edges],
@@ -302,7 +359,7 @@ export function Atlas({
       }
       return deptColor(n.department)
     },
-    [lens, findingsByDoc],
+    [lens, findingsByDoc, deptColor],
   )
 
   // Screen radius for a node, relative to this graph's own degree spread (see
@@ -414,6 +471,34 @@ export function Atlas({
             </select>
           </label>
         </div>
+
+        {/* Department legend — click a category to isolate it. Deliberately a
+            toolbar row rather than an overlay floating on the canvas: as an
+            absolutely-positioned box it covered ~12% of the graph, and because
+            each row is a clickable filter button (pointer-events-auto) it ate
+            the hover events of every node parked underneath it, making those
+            documents unreachable. Out here it can't occlude anything. */}
+        {legend.length > 0 && (
+          <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-line px-4 py-1.5">
+            {legend.map(([dept, count]) => (
+              <button
+                key={dept}
+                type="button"
+                onClick={() => setActiveDept((p) => (p === dept ? null : dept))}
+                data-on={activeDept === dept}
+                style={{ opacity: activeDept && activeDept !== dept ? 0.45 : 1 }}
+                className="flex items-center gap-1.5 rounded-full border border-transparent px-2 py-0.5 text-[0.7rem] text-ink-soft hover:bg-paper-sunk data-[on=true]:border-line data-[on=true]:bg-paper-sunk"
+              >
+                <span
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{ background: deptColor(dept), boxShadow: `0 0 5px ${deptColor(dept)}` }}
+                />
+                <span className="text-ink">{dept}</span>
+                <span className="tabular-nums">{count}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         <div ref={containerRef} className="relative min-h-0 flex-1 bg-paper">
           {nodes.length === 0 ? (
@@ -533,11 +618,28 @@ export function Atlas({
                 ) => {
                   // Hit-area with a screen-space floor (~10px) so even small,
                   // low-degree nodes are easy to hover regardless of zoom.
-                  const hit = Math.max(radius(node.degree ?? 0) + 3, 10 / (scale || 1))
+                  const r = radius(node.degree ?? 0)
+                  const hit = Math.max(r + 3, 10 / (scale || 1))
+                  ctx.fillStyle = color
                   ctx.beginPath()
                   ctx.arc(node.x, node.y, hit, 0, 2 * Math.PI)
-                  ctx.fillStyle = color
                   ctx.fill()
+
+                  // The label is a hit target too. At this document count a dot
+                  // is only a few px across while its filename caption is by far
+                  // the biggest thing on screen, so aiming at the text — the
+                  // obvious thing to do — used to hover nothing at all. Mirrors
+                  // the showLabel/geometry logic in nodeCanvasObject above; keep
+                  // the two in step.
+                  const dimmed = focus ? !focus.has(String(node.id)) : false
+                  const focused = focus ? focus.has(String(node.id)) : false
+                  const isHub = (node.degree ?? 0) >= degreeStats.hubThreshold
+                  if ((focused || scale > 2.4 || isHub) && !dimmed) {
+                    const fontSize = Math.max((isHub ? 13 : 10) / scale, 2.2)
+                    ctx.font = `${isHub ? 700 : 500} ${fontSize}px ui-sans-serif, system-ui, sans-serif`
+                    const w = ctx.measureText(shortName(String(node.name ?? ''))).width
+                    ctx.fillRect(node.x - w / 2, node.y + r + 2, w, fontSize)
+                  }
                 }}
                 backgroundColor="transparent"
               />
@@ -562,39 +664,6 @@ export function Atlas({
               </>
             )}
           </div>
-
-          {/* Interactive legend — click a category to isolate it. Chrome-less:
-              a soft radial wash (not a bordered card) keeps it legible over
-              the graph without boxing it in. The wrapper is pointer-events-none
-              so a node the force layout parks behind it (common after panning)
-              stays hoverable; only the buttons themselves opt back in. */}
-          {legend.length > 0 && (
-            <div
-              className="pointer-events-none absolute bottom-3 left-3 flex min-w-[10rem] flex-col gap-0.5 rounded-2xl p-2"
-              style={{
-                background:
-                  'radial-gradient(ellipse at bottom left, color-mix(in srgb, var(--paper) 88%, transparent) 0%, transparent 75%)',
-              }}
-            >
-              {legend.map(([dept, count]) => (
-                <button
-                  key={dept}
-                  type="button"
-                  onClick={() => setActiveDept((p) => (p === dept ? null : dept))}
-                  data-on={activeDept === dept}
-                  style={{ opacity: activeDept && activeDept !== dept ? 0.4 : 1 }}
-                  className="pointer-events-auto flex w-full items-center gap-2 rounded-md px-2 py-0.5 text-left text-[0.7rem] text-ink-soft hover:bg-paper-sunk data-[on=true]:bg-paper-sunk"
-                >
-                  <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ background: deptColor(dept), boxShadow: `0 0 6px ${deptColor(dept)}` }}
-                  />
-                  <span className="text-ink">{dept}</span>
-                  <span className="ml-auto tabular-nums">{count}</span>
-                </button>
-              ))}
-            </div>
-          )}
 
           {/* Map stats + interaction hint — bottom-right, chrome-less. */}
           <div className="pointer-events-none absolute bottom-3 right-3 text-right text-[0.7rem] text-ink-soft">
