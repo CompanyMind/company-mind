@@ -129,6 +129,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `store.group_names` helper for department resolution.
 
 ### Changed
+- Brain Map visual language, reshaped after the 42Wiki knowledge-map reference
+  (wiki.42.uz/map), kept on our existing warm-paper light theme rather than its dark one.
+  Unfocused nodes now recede to a single neutral tone (`MUTED`) instead of a faded version
+  of their own department color, so whatever IS focused is the only color on screen — the
+  clearest signal of "what's related" the map has had. High-degree hub documents render as
+  bold, department-colored floating titles (a wordmark over the cluster they anchor) instead
+  of plain node captions; regular labels get a paper-colored outline stroke instead of a
+  rectangle halo, so they float over the edge mesh without boxing themselves in. The
+  department legend lost its bordered card in favor of a soft radial wash, gained a glow on
+  each swatch dot, and a `36 documents · 96 connections · 6 departments` / "Hover to focus ·
+  click to open" stats-and-hint line now sits opposite it. Added floating +/−/fit zoom
+  controls (top-right) as a discoverable alternative to wheel/pinch, and the search input is
+  now a pill instead of a rectangle.
 - **Web is now a BFF** (Step 2). `web/lib/{documents,groups,source,telegram}.ts` and the knowledge API routes call engine endpoints instead of Drizzle; the engine owns all knowledge-table access (new `engine/app/library/*`, `access.py`, and /documents, /source, /groups, /telegram endpoints). One Postgres kept by decision (no physical DB split); web keeps the auth tables + chat transcript and still defines the schema.
 - **One ask path** for every surface. New engine `ask/service.py::answer_query` does retrieval → answer → audit-log; the web `/ask` endpoint and the Telegram handler both call it. The engine now owns the `query_log` write (web passes the principal `user_id` and no longer logs it itself); Telegram stops re-implementing the pipeline.
 - Brand accent switched from teal to **electric violet**. `--brain` → `#684bff`,

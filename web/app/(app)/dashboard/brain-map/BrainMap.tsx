@@ -283,6 +283,12 @@ export function BrainMap({
   // departments together.
   const radius = (degree: number) => 3.4 + Math.sqrt(degree) * 1.7
 
+  const zoomBy = useCallback((factor: number) => {
+    const fg = fgRef.current
+    if (!fg?.zoom) return
+    fg.zoom(fg.zoom() * factor, 250)
+  }, [])
+
   // The force-graph is lazy-loaded (dynamic import, ssr:false), so on first
   // render its d3 simulation isn't ready yet and `d3Force(...)` returns
   // undefined — a plain effect would silently no-op. Poll until the sim exists,
@@ -339,7 +345,7 @@ export function BrainMap({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search documents…"
-            className="w-48 rounded-md border border-line-control bg-paper-raised px-2.5 py-1.5 text-ink placeholder:text-ink-soft focus:border-brain focus:outline-none"
+            className="w-48 rounded-full border border-line-control bg-paper-raised px-3.5 py-1.5 text-ink shadow-artifact placeholder:text-ink-soft focus:border-brain focus:outline-none"
           />
           <div className="flex items-center gap-1">
             {LENS_OPTIONS.map((opt) => (
@@ -414,17 +420,25 @@ export function BrainMap({
                 nodeCanvasObject={(node: any, ctx: CanvasRenderingContext2D, scale: number) => {
                   const dimmed = focus ? !focus.has(String(node.id)) : false
                   const r = radius(node.degree ?? 0)
-                  const color = colorFor(node as DocNode)
-                  ctx.globalAlpha = dimmed ? 0.18 : 1
-                  // soft halo when focused
-                  if (focus && !dimmed) {
+                  // Unfocused nodes recede to a single neutral tone rather than a
+                  // faded version of their own hue — the whole graph reads as a
+                  // quiet field of dots, and whatever IS focused is the only
+                  // color on screen. Full alpha throughout: MUTED already sits
+                  // low-contrast against paper, so it doesn't need fading too.
+                  const color = dimmed ? MUTED : colorFor(node as DocNode)
+
+                  // Soft color bloom behind focused nodes — a glow, not a hard
+                  // ring, so a lit cluster feels like it's radiating rather than
+                  // just being drawn in a brighter color.
+                  if (!dimmed) {
                     ctx.beginPath()
                     ctx.arc(node.x, node.y, r + 3.5, 0, 2 * Math.PI)
                     ctx.fillStyle = color
-                    ctx.globalAlpha = dimmed ? 0.18 : 0.18
+                    ctx.globalAlpha = 0.16
                     ctx.fill()
                     ctx.globalAlpha = 1
                   }
+
                   // The hovered node pops: slightly larger with a violet ring, so
                   // it's unmistakable even for a hub whose neighbors stay lit.
                   const isHover = String(node.id) === hoverId
@@ -438,21 +452,27 @@ export function BrainMap({
                   ctx.stroke()
 
                   const focused = focus ? focus.has(String(node.id)) : false
-                  const showLabel = focused || scale > 2.4 || (node.degree ?? 0) >= 9
+                  const isHub = (node.degree ?? 0) >= 9
+                  const showLabel = focused || scale > 2.4 || isHub
                   if (showLabel && !dimmed) {
                     const label = shortName(String(node.name ?? ''))
-                    const fontSize = Math.max(11 / scale, 2.2)
-                    ctx.font = `500 ${fontSize}px ui-sans-serif, system-ui, sans-serif`
+                    // Hub documents read as cluster titles: bigger, bold, in
+                    // their department color — a floating wordmark over the
+                    // group they anchor, not just another node caption.
+                    const weight = isHub ? 700 : 500
+                    const baseSize = isHub ? 15 : 11
+                    const fontSize = Math.max(baseSize / scale, 2.2)
+                    ctx.font = `${weight} ${fontSize}px ui-sans-serif, system-ui, sans-serif`
                     ctx.textAlign = 'center'
                     ctx.textBaseline = 'top'
                     const y = node.y + r + 2
-                    // parchment halo so labels stay legible over edges
-                    const w = ctx.measureText(label).width
-                    ctx.globalAlpha = 0.72
-                    ctx.fillStyle = '#F3EEE3'
-                    ctx.fillRect(node.x - w / 2 - 2, y - 1, w + 4, fontSize + 2)
-                    ctx.globalAlpha = 1
-                    ctx.fillStyle = INK
+                    // Paper-colored outline stroke stands in for a halo box —
+                    // legible over the edge mesh without boxing the label in.
+                    ctx.lineJoin = 'round'
+                    ctx.lineWidth = fontSize * 0.34
+                    ctx.strokeStyle = '#F3EEE3'
+                    ctx.strokeText(label, node.x, y)
+                    ctx.fillStyle = isHub ? color : INK
                     ctx.fillText(label, node.x, y)
                   }
                   ctx.globalAlpha = 1
@@ -495,12 +515,19 @@ export function BrainMap({
             )}
           </div>
 
-          {/* Interactive legend — click a category to isolate it. The wrapper
-              is pointer-events-none so a node the force layout parks behind
-              this panel (common after panning) stays hoverable; only the
-              buttons themselves opt back in to catch clicks. */}
+          {/* Interactive legend — click a category to isolate it. Chrome-less:
+              a soft radial wash (not a bordered card) keeps it legible over
+              the graph without boxing it in. The wrapper is pointer-events-none
+              so a node the force layout parks behind it (common after panning)
+              stays hoverable; only the buttons themselves opt back in. */}
           {legend.length > 0 && (
-            <div className="pointer-events-none absolute bottom-3 left-3 flex min-w-[10.5rem] flex-col gap-0.5 rounded-lg border border-line bg-paper-raised/80 p-1.5 backdrop-blur-sm">
+            <div
+              className="pointer-events-none absolute bottom-3 left-3 flex min-w-[10rem] flex-col gap-0.5 rounded-2xl p-2"
+              style={{
+                background:
+                  'radial-gradient(ellipse at bottom left, color-mix(in srgb, var(--paper) 88%, transparent) 0%, transparent 75%)',
+              }}
+            >
               {legend.map(([dept, count]) => (
                 <button
                   key={dept}
@@ -512,7 +539,7 @@ export function BrainMap({
                 >
                   <span
                     className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ background: deptColor(dept) }}
+                    style={{ background: deptColor(dept), boxShadow: `0 0 6px ${deptColor(dept)}` }}
                   />
                   <span className="text-ink">{dept}</span>
                   <span className="ml-auto tabular-nums">{count}</span>
@@ -520,6 +547,15 @@ export function BrainMap({
               ))}
             </div>
           )}
+
+          {/* Map stats + interaction hint — bottom-right, chrome-less. */}
+          <div className="pointer-events-none absolute bottom-3 right-3 text-right text-[0.7rem] text-ink-soft">
+            <div className="tabular-nums">
+              {nodes.length} document{nodes.length === 1 ? '' : 's'} · {edges.length} connection
+              {edges.length === 1 ? '' : 's'} · {legend.length} department{legend.length === 1 ? '' : 's'}
+            </div>
+            <div className="opacity-70">Hover to focus · click to open</div>
+          </div>
 
           {/* Active lens / category hint */}
           {(lens || activeDept) && (
@@ -539,6 +575,28 @@ export function BrainMap({
                   Showing <span className="text-brain-text">{activeDept}</span>
                 </>
               )}
+            </div>
+          )}
+
+          {/* Floating zoom controls, top-right — a discoverable alternative to
+              the wheel/pinch gesture, matching the reference's control cluster. */}
+          {nodes.length > 0 && (
+            <div className="pointer-events-none absolute right-3 top-3 flex flex-col gap-1.5">
+              {[
+                { label: '+', title: 'Zoom in', onClick: () => zoomBy(1.4) },
+                { label: '–', title: 'Zoom out', onClick: () => zoomBy(1 / 1.4) },
+                { label: '⛶', title: 'Fit to screen', onClick: () => fgRef.current?.zoomToFit(400, 70) },
+              ].map((btn) => (
+                <button
+                  key={btn.title}
+                  type="button"
+                  title={btn.title}
+                  onClick={btn.onClick}
+                  className="pointer-events-auto flex h-7 w-7 items-center justify-center rounded-full border border-line bg-paper-raised/90 text-ink-soft shadow-artifact hover:text-ink"
+                >
+                  {btn.label}
+                </button>
+              ))}
             </div>
           )}
         </div>
