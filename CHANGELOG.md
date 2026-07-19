@@ -133,6 +133,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `store.group_names` helper for department resolution.
 
 ### Changed
+- Brain Map node sizing and hub-label threshold are now **relative to the current dataset**
+  instead of fixed constants that needed re-tuning by hand every time the document count
+  changed (went stale immediately after adding 72 demo documents — see below). A node's
+  radius now maps its degree onto `[MIN_RADIUS, MAX_RADIUS]` normalized against the graph's
+  own max degree (the single most-connected doc is always `MAX_RADIUS`, a disconnected one
+  always `MIN_RADIUS`), then the whole range scales down as the document count grows past
+  `REFERENCE_NODE_COUNT` (36 — the size it was last eyeballed at) so a bigger library doesn't
+  render as bigger overlapping dots. The "hub" label threshold works the same way: instead of
+  a fixed `degree >= 9`, it picks whatever degree keeps roughly the top 15% of nodes as hubs,
+  clamped to an absolute 3–12 so a much larger library never buries the map in bold labels.
 - Brain Map node sizing/glow, tuned closer to the 42Wiki reference after a closer look at
   it: nodes are ~25% smaller across the board (`radius(degree) = 2.4 + sqrt(degree)*1.25`,
   was `3.4 + sqrt(degree)*1.7`), and the soft focus-glow now only renders while something is

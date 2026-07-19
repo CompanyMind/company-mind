@@ -59,6 +59,18 @@ const MUTED = '#b8b0a2'
 const DEADSTALE_FADED = '#c9c0ab'
 const INK = '#1c1b18'
 
+// Node sizing/labeling is relative to the CURRENT dataset, not a fixed pixel
+// size or connection count tuned once and left to rot. Whatever the actual
+// degree numbers turn out to be, the single most-connected document always
+// renders at MAX_RADIUS and a disconnected one at MIN_RADIUS; the whole range
+// then shrinks as the document count grows past REFERENCE_NODE_COUNT (the
+// size this range was eyeballed at) so a bigger library doesn't just render
+// as bigger overlapping dots. Hub labels follow the same idea — see
+// `degreeStats` below — so neither needs re-tuning as documents are added.
+const MIN_RADIUS = 2.6
+const MAX_RADIUS = 11
+const REFERENCE_NODE_COUNT = 36
+
 function heatColor(t: number): string {
   const c = Math.max(0, Math.min(1, Number.isFinite(t) ? t : 0))
   const cool = [90, 128, 160]
@@ -182,6 +194,21 @@ export function BrainMap({
     return m
   }, [edges])
 
+  // Degree distribution of the CURRENT graph, so sizing/labeling can be
+  // relative instead of hand-tuned constants that go stale as documents are
+  // added or removed. hubThreshold picks a degree cutoff that always keeps
+  // roughly the top 15% of nodes as "hubs" — but clamps the absolute count to
+  // [3, 12] so a much bigger library never buries the map in bold labels, and
+  // a tiny one always highlights at least a few.
+  const degreeStats = useMemo(() => {
+    const degrees = nodes.map((n) => n.degree ?? 0)
+    const maxDegree = degrees.length ? Math.max(...degrees) : 0
+    const hubCount = Math.max(3, Math.min(12, Math.round(nodes.length * 0.15)))
+    const sorted = [...degrees].sort((a, b) => b - a)
+    const hubThreshold = sorted.length ? Math.max(sorted[Math.min(hubCount, sorted.length) - 1], 3) : 3
+    return { maxDegree, hubThreshold }
+  }, [nodes])
+
   // Departments present, for the legend.
   const legend = useMemo(() => {
     const counts = new Map<string, number>()
@@ -278,10 +305,21 @@ export function BrainMap({
     [lens, findingsByDoc],
   )
 
+  // Screen radius for a node, relative to this graph's own degree spread (see
+  // MIN_RADIUS/MAX_RADIUS/REFERENCE_NODE_COUNT above) rather than a fixed
+  // formula tuned for one dataset size.
+  const radius = useCallback(
+    (degree: number) => {
+      const norm = degreeStats.maxDegree > 0 ? Math.sqrt(degree / degreeStats.maxDegree) : 0
+      const countScale = Math.min(1, Math.sqrt(REFERENCE_NODE_COUNT / Math.max(nodes.length, 1)))
+      return (MIN_RADIUS + (MAX_RADIUS - MIN_RADIUS) * norm) * countScale
+    },
+    [degreeStats.maxDegree, nodes.length],
+  )
+
   // Tune the force simulation once nodes are present: strong-ish repulsion so
   // clusters breathe, moderate link distance so similarity edges pull
   // departments together.
-  const radius = (degree: number) => 2.4 + Math.sqrt(degree) * 1.25
 
   const zoomBy = useCallback((factor: number) => {
     const fg = fgRef.current
@@ -325,7 +363,7 @@ export function BrainMap({
       }
     }, 50)
     return () => clearInterval(iv)
-  }, [nodes.length, edges.length])
+  }, [nodes.length, edges.length, radius])
 
   return (
     <div className="flex min-h-0 flex-1">
@@ -462,7 +500,7 @@ export function BrainMap({
                   ctx.stroke()
 
                   const focused = focus ? focus.has(String(node.id)) : false
-                  const isHub = (node.degree ?? 0) >= 9
+                  const isHub = (node.degree ?? 0) >= degreeStats.hubThreshold
                   const showLabel = focused || scale > 2.4 || isHub
                   if (showLabel && !dimmed) {
                     const label = shortName(String(node.name ?? ''))
