@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Brain Map **interactive focus + category filter**: the legend is now a filter — click a
+  department to isolate its nodes (the rest dim, the chip gets a pill, a "Showing X" hint
+  appears). Hovering or selecting a node lights it and its connected neighbors while dimming
+  everything else, and shows a tooltip ("‹document› · N connections · ‹department›") glued to
+  the node. Node clicks follow a two-step model like the reference map: first click selects
+  (persistent ring + tooltip), a second click on the selected node opens it in Sources.
 - Chat history backend: per-user, multi-conversation Ask threads. `chats` gained
   `updatedAt`; `web/lib/chat.ts` now exposes `listChats` (with optional title/message
   search), `createChat`, `chatOwned`, `getChatMessages`, `renameChat`, `deleteChat`, all

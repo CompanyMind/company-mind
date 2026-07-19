@@ -86,8 +86,14 @@ export function BrainMap({
   const [lens, setLens] = useState<Lens | null>(null)
   const [query, setQuery] = useState('')
   const [hoverId, setHoverId] = useState<string | null>(null)
+  // First click selects a node (persistent focus + tooltip); clicking the
+  // selected node again opens it. `activeDept` isolates one legend category.
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [activeDept, setActiveDept] = useState<string | null>(null)
 
   const fgRef = useRef<any>(null)
+  const tipRef = useRef<HTMLDivElement>(null)
+  const nodesRef = useRef<any[]>([])
   const containerRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
   const mounted = useRef(true)
@@ -184,13 +190,16 @@ export function BrainMap({
     return [...counts.entries()].sort((a, b) => b[1] - a[1])
   }, [nodes])
 
-  // The set of node ids currently "in focus": hover→node+neighbors, else
-  // search→filename matches. null = no focus (everything full-strength).
+  // The set of node ids currently "in focus" (everything else is dimmed).
+  // Precedence: a hovered/selected node lights itself + its neighbors; else a
+  // search narrows to filename matches; else an active legend category isolates
+  // that department. null = no focus (everything full-strength).
   const q = query.trim().toLowerCase()
   const focus = useMemo(() => {
-    if (hoverId) {
-      const s = new Set<string>([hoverId])
-      for (const n of adjacency.get(hoverId) ?? []) s.add(n)
+    const focusNode = hoverId ?? selectedId
+    if (focusNode) {
+      const s = new Set<string>([focusNode])
+      for (const n of adjacency.get(focusNode) ?? []) s.add(n)
       return s
     }
     if (q) {
@@ -198,8 +207,17 @@ export function BrainMap({
       for (const n of nodes) if (n.filename.toLowerCase().includes(q)) s.add(n.id)
       return s
     }
+    if (activeDept) {
+      const s = new Set<string>()
+      for (const n of nodes) if (n.department === activeDept) s.add(n.id)
+      return s
+    }
     return null
-  }, [hoverId, q, adjacency, nodes])
+  }, [hoverId, selectedId, q, activeDept, adjacency, nodes])
+
+  // The node whose tooltip is shown: hovered takes precedence, else selected.
+  const tipId = hoverId ?? selectedId
+  const tip = tipId ? (nodes.find((n) => n.id === tipId) ?? null) : null
 
   const graphData = useMemo(
     () => ({
@@ -208,6 +226,39 @@ export function BrainMap({
     }),
     [nodes, edges],
   )
+
+  // force-graph mutates these node objects in place with live x/y; keep a handle
+  // so the tooltip can track the node's screen position across pan/zoom.
+  useEffect(() => {
+    nodesRef.current = graphData.nodes
+  }, [graphData])
+
+  // Keep the tooltip glued to its node. Runs a rAF loop while a node is
+  // hovered/selected, projecting graph coords → screen coords every frame so it
+  // follows the node during pan/zoom (and after the sim settles it just holds).
+  useEffect(() => {
+    const el = tipRef.current
+    if (!tipId || !el) {
+      if (el) el.style.opacity = '0'
+      return
+    }
+    let raf = 0
+    const tick = () => {
+      const fg = fgRef.current
+      const node = nodesRef.current.find((n) => String(n.id) === tipId)
+      if (fg?.graph2ScreenCoords && node && typeof node.x === 'number') {
+        const { x, y } = fg.graph2ScreenCoords(node.x, node.y)
+        el.style.transform = `translate(${x + 12}px, ${y - 14}px)`
+        el.style.opacity = '1'
+      }
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => {
+      cancelAnimationFrame(raf)
+      if (el) el.style.opacity = '0'
+    }
+  }, [tipId])
 
   const colorFor = useCallback(
     (n: DocNode) => {
@@ -330,9 +381,16 @@ export function BrainMap({
                 cooldownTicks={220}
                 onEngineStop={() => fgRef.current?.zoomToFit(500, 70)}
                 onNodeHover={(n: any) => setHoverId(n ? String(n.id) : null)}
-                onNodeClick={(n: any) =>
-                  router.push(`/dashboard/sources?doc=${encodeURIComponent(String(n.id))}`)
-                }
+                onNodeClick={(n: any) => {
+                  const id = String(n.id)
+                  // First click selects; clicking the already-selected node opens it.
+                  if (selectedId === id) {
+                    router.push(`/dashboard/sources?doc=${encodeURIComponent(id)}`)
+                  } else {
+                    setSelectedId(id)
+                  }
+                }}
+                onBackgroundClick={() => setSelectedId(null)}
                 linkColor={(link: any) => {
                   const s = typeof link.source === 'object' ? link.source.id : link.source
                   const t = typeof link.target === 'object' ? link.target.id : link.target
@@ -367,6 +425,14 @@ export function BrainMap({
                   ctx.lineWidth = 1 / scale
                   ctx.strokeStyle = 'rgba(255,255,255,0.6)'
                   ctx.stroke()
+                  // selection ring
+                  if (String(node.id) === selectedId) {
+                    ctx.beginPath()
+                    ctx.arc(node.x, node.y, r + 3, 0, 2 * Math.PI)
+                    ctx.lineWidth = 1.6 / scale
+                    ctx.strokeStyle = '#684bff'
+                    ctx.stroke()
+                  }
 
                   const focused = focus ? focus.has(String(node.id)) : false
                   const showLabel = focused || scale > 2.4 || (node.degree ?? 0) >= 9
@@ -399,24 +465,66 @@ export function BrainMap({
             )
           )}
 
-          {/* Legend */}
-          {legend.length > 0 && !lens && (
-            <div className="pointer-events-none absolute bottom-3 left-3 flex flex-col gap-1 rounded-lg border border-line bg-paper-raised/80 px-3 py-2 backdrop-blur-sm">
+          {/* Node tooltip — glued to the hovered/selected node (positioned imperatively) */}
+          <div
+            ref={tipRef}
+            style={{ opacity: 0 }}
+            className="pointer-events-none absolute left-0 top-0 z-10 whitespace-nowrap rounded-lg bg-ink px-3 py-1.5 text-[0.72rem] text-paper shadow-artifact"
+          >
+            {tip && (
+              <>
+                <span className="font-medium">{shortName(tip.filename)}</span>
+                <span className="opacity-60">
+                  {' · '}
+                  {tip.degree} connection{tip.degree === 1 ? '' : 's'}
+                  {' · '}
+                  {tip.department}
+                </span>
+              </>
+            )}
+          </div>
+
+          {/* Interactive legend — click a category to isolate it */}
+          {legend.length > 0 && (
+            <div className="absolute bottom-3 left-3 flex min-w-[10.5rem] flex-col gap-0.5 rounded-lg border border-line bg-paper-raised/80 p-1.5 backdrop-blur-sm">
               {legend.map(([dept, count]) => (
-                <div key={dept} className="flex items-center gap-2 text-[0.7rem] text-ink-soft">
+                <button
+                  key={dept}
+                  type="button"
+                  onClick={() => setActiveDept((p) => (p === dept ? null : dept))}
+                  data-on={activeDept === dept}
+                  style={{ opacity: activeDept && activeDept !== dept ? 0.4 : 1 }}
+                  className="flex w-full items-center gap-2 rounded-md px-2 py-0.5 text-left text-[0.7rem] text-ink-soft hover:bg-paper-sunk data-[on=true]:bg-paper-sunk"
+                >
                   <span
                     className="h-2.5 w-2.5 shrink-0 rounded-full"
                     style={{ background: deptColor(dept) }}
                   />
                   <span className="text-ink">{dept}</span>
-                  <span className="tabular-nums">{count}</span>
-                </div>
+                  <span className="ml-auto tabular-nums">{count}</span>
+                </button>
               ))}
             </div>
           )}
-          {lens && (
-            <div className="pointer-events-none absolute bottom-3 left-3 rounded-lg border border-line bg-paper-raised/80 px-3 py-2 text-[0.7rem] text-ink-soft backdrop-blur-sm">
-              Coloring by <span className="text-brain-text">{lens === 'deadstale' ? 'dead / stale' : lens}</span> lens
+
+          {/* Active lens / category hint */}
+          {(lens || activeDept) && (
+            <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-line bg-paper-raised/80 px-3 py-1.5 text-[0.7rem] text-ink-soft backdrop-blur-sm">
+              {lens && (
+                <>
+                  Coloring by{' '}
+                  <span className="text-brain-text">
+                    {lens === 'deadstale' ? 'dead / stale' : lens}
+                  </span>{' '}
+                  lens
+                </>
+              )}
+              {lens && activeDept && ' · '}
+              {activeDept && (
+                <>
+                  Showing <span className="text-brain-text">{activeDept}</span>
+                </>
+              )}
             </div>
           )}
         </div>
