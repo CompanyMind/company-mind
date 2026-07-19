@@ -10,16 +10,22 @@ def _visible(conn, ws, user_id: str, role: str, as_group) -> set[str]:
     """Doc ids the principal may see. The Brain Map is an owner-only surface;
     `as_group` (not `role`) drives filtering here — None/""/"owner" previews the
     whole workspace, a group id previews exactly what a member of that group
-    would see (the docs tagged with that group, via `document_groups`)."""
+    would see. That must match the real access rule
+    (`access.py::resolve_access`): a non-owner member is scoped to their groups
+    PLUS the workspace's default "Everyone" group, not the named group alone —
+    otherwise this governance/audit preview understates what the member
+    actually sees."""
     if as_group in (None, "", "owner"):
         rows = conn.execute(
             "SELECT id FROM documents WHERE workspace_id=%s", (ws,)
         ).fetchall()
         return {str(r[0]) for r in rows}
+    everyone_id = store.everyone_id(conn, ws)
+    gids = list({as_group, everyone_id}) if everyone_id else [as_group]
     rows = conn.execute(
         "SELECT DISTINCT document_id FROM document_groups "
-        "WHERE workspace_id=%s AND group_id=%s",
-        (ws, as_group),
+        "WHERE workspace_id=%s AND group_id = ANY(%s::uuid[])",
+        (ws, gids),
     ).fetchall()
     return {str(r[0]) for r in rows}
 

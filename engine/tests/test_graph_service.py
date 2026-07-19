@@ -32,7 +32,7 @@ def _dir(axis: int, jitter_seed: int) -> list[float]:
     return v.tolist()
 
 
-def _seed(conn, ws, ev, fin, general_docs, finance_docs, odd_doc):
+def _seed(conn, ws, ev, fin, legal, general_docs, finance_docs, odd_doc, restricted_doc):
     conn.execute("INSERT INTO workspaces (id,name,slug) VALUES (%s,%s,%s)", (ws, "w", str(ws)))
     conn.execute(
         "INSERT INTO groups (id,workspace_id,name,slug,is_default) "
@@ -40,6 +40,9 @@ def _seed(conn, ws, ev, fin, general_docs, finance_docs, odd_doc):
     conn.execute(
         "INSERT INTO groups (id,workspace_id,name,slug,is_default) "
         "VALUES (%s,%s,'Finance','finance',false)", (fin, ws))
+    conn.execute(
+        "INSERT INTO groups (id,workspace_id,name,slug,is_default) "
+        "VALUES (%s,%s,'Legal','legal',false)", (legal, ws))
 
     def _insert(did, vec, text, group_ids):
         conn.execute(
@@ -60,21 +63,35 @@ def _seed(conn, ws, ev, fin, general_docs, finance_docs, odd_doc):
     odd_id, odd_vec = odd_doc
     # Mis-tagged: lives in the Finance embedding blob but only carries Everyone.
     _insert(odd_id, odd_vec, "finance budget quarterly revenue ledger report", [ev])
+    restricted_id, restricted_vec = restricted_doc
+    # Tagged ONLY to a third, non-default group (Legal) — never Everyone, never
+    # Finance — to prove a "view as Finance" preview doesn't leak it.
+    _insert(restricted_id, restricted_vec, "legal contract confidentiality clause", [legal])
 
 
 @pytest.fixture
 def seeded():
-    ws, ev, fin = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
+    ws, ev, fin, legal = uuid.uuid4(), uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
     general = [(uuid.uuid4(), _dir(0, i)) for i in range(N_PER_BLOB)]
     finance = [(uuid.uuid4(), _dir(1, 100 + i)) for i in range(N_PER_BLOB)]
     odd = (uuid.uuid4(), _dir(1, 999))
+    restricted = (uuid.uuid4(), _dir(0, 500))
     try:
         with psycopg.connect(DB) as conn:
             conn.autocommit = True
             register_vector(conn)
             with conn.transaction():
-                _seed(conn, ws, ev, fin, general, finance, odd)
-        yield str(ws), str(odd[0]), str(ev), str(fin)
+                _seed(conn, ws, ev, fin, legal, general, finance, odd, restricted)
+        yield {
+            "ws": str(ws),
+            "odd": str(odd[0]),
+            "ev": str(ev),
+            "fin": str(fin),
+            "legal": str(legal),
+            "restricted": str(restricted[0]),
+            "general_ids": {str(d) for d, _ in general},
+            "finance_ids": {str(d) for d, _ in finance},
+        }
     finally:
         with psycopg.connect(DB) as conn:
             with conn.transaction():
@@ -82,14 +99,17 @@ def seeded():
 
 
 def test_build_produces_topics_and_flags_anomaly(seeded):
-    ws, odd, ev, fin = seeded
+    ws, odd, fin = seeded["ws"], seeded["odd"], seeded["fin"]
+    restricted = seeded["restricted"]
+    general_ids, finance_ids = seeded["general_ids"], seeded["finance_ids"]
+
     job = service.build_graph(ws)
     assert job["status"] == "done"
 
     g = service.get_graph(ws, user_id="", role="owner", as_group=None)
     assert len(g["topics"]) >= 1
     total_docs = sum(t["doc_count"] for t in g["topics"])
-    assert total_docs == 2 * N_PER_BLOB + 1
+    assert total_docs == 2 * N_PER_BLOB + 2  # general + finance + odd + restricted
 
     findings = service.list_findings(ws, user_id="", role="owner", as_group=None, kind=None)
     assert any(
@@ -108,12 +128,25 @@ def test_build_produces_topics_and_flags_anomaly(seeded):
     assert containing is not None
     assert len(containing) >= N_PER_BLOB  # odd doc clustered with the Finance blob
 
-    # _visible: a restricted Finance-group view hides the general blob AND the
-    # mis-tagged odd doc (which is exactly the permission bug lenses caught).
+    # Owner / None sees everything, including all three doc classes.
+    with get_conn() as conn:
+        owner_vis = service._visible(conn, ws, user_id="", role="owner", as_group=None)
+    assert finance_ids <= owner_vis
+    assert general_ids <= owner_vis
+    assert restricted in owner_vis
+
+    # _visible: "view as Finance" must match what a real Finance member sees
+    # via resolve_access — their own group PLUS the default Everyone group.
+    # That means it INCLUDES the Everyone-tagged general blob and the
+    # mis-tagged odd doc (both carry only the Everyone group), and EXCLUDES
+    # the doc tagged to the unrelated Legal group.
     with get_conn() as conn:
         vis = service._visible(conn, ws, user_id="", role="member", as_group=fin)
-    assert odd not in vis
-    assert len(vis) == N_PER_BLOB  # only the correctly Finance-tagged docs
+    assert finance_ids <= vis
+    assert general_ids <= vis
+    assert odd in vis
+    assert restricted not in vis
+    assert len(vis) == 2 * N_PER_BLOB + 1  # finance + general + odd, not restricted
 
     # dismiss_finding: dismissing the flagged finding removes it from later reads.
     flagged = next(f for f in findings if f["document_id"] == odd and f["kind"] == "permission_anomaly")
