@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Brain Map **Obsidian-style document graph** — a document-level knowledge map where each
+  node is a document colored by its department (access group), connected by embedding
+  **similarity edges** (`GET /api/graph/documents`, backed by a kNN over doc vectors with
+  `graph_edge_threshold` / `graph_edge_topk` settings). Tuned d3-force layout (charge +
+  x/y gravity + collision) fills the canvas and keeps low-degree docs gathered; a
+  **search** box dims everything but filename matches; hovering a node focuses it and its
+  neighbors; labels fade in by zoom / hover / hub degree; a **department legend** keys the
+  colors. Governance lens toggles recolor nodes over the department palette (e.g. Exposure
+  turns the two over-shared docs hot-orange). Clicking a node deep-links to its Sources
+  group editor. (Requires `d3-force` as a direct web dependency.)
 - Brain Map — owner-only permission-aware governance graph (topic clusters → documents)
   with permission-anomaly / over-exposure / orphan / dead-stale lenses, view-as-group
   audit, and deep-link fixes.
