@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `web/scripts/seed-corpus.ts` (`npm run seed:corpus`) — bulk-loads a directory of
+  documents plus a `manifest.json` (filename -> access-group names) through the real
+  web API: mints a session for an existing seeded user directly in the auth DB
+  (self-contained, like `scripts/seed.ts`), creates any missing access groups,
+  uploads each file, sets its groups, and triggers an Atlas rebuild. Used to load a
+  150-document synthetic demo corpus spanning all departments for testing
+  permission-aware retrieval and the Atlas governance lenses end-to-end.
 - `web/app/(app)/_components/Wordmark.tsx` — the dashboard sidebar now shows the icon mark
   next to "CompanyMind" (previously text-only), matching the mark already used in the
   marketing nav and the favicon: nested squares, violet inner square on the app's `--brain`
