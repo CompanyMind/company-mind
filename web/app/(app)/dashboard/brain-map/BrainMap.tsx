@@ -86,6 +86,13 @@ export function BrainMap({
   const [docNodes, setDocNodes] = useState<DocNode[]>([])
   const [docsLoading, setDocsLoading] = useState(false)
 
+  // Imperative handle onto the force-graph instance, used only to frame the
+  // camera (zoomToFit) — never to touch data flow. Topic nodes are pinned
+  // (fx/fy) so the simulation may never "cool" on its own; doc nodes in the
+  // drill-down are force-simulated and do cool. onEngineStop covers the
+  // latter; the effect below's timeout covers the former.
+  const fgRef = useRef<any>(null)
+
   // Measures the canvas's own flex-sized wrapper. force-graph defaults width/
   // height to window.innerWidth/innerHeight when unset, which would blow the
   // canvas out past the sidebar and toolbar — so we always pass explicit
@@ -265,6 +272,17 @@ export function BrainMap({
 
   const isEmpty = topic ? !docsLoading && docNodes.length === 0 : topics.length === 0
 
+  // Frame the camera on whatever node set is currently rendered. Pinned
+  // topic nodes sit at PCA-scaled coordinates (up to ±400) that the default
+  // camera (centered at origin, zoom 1) doesn't frame, so without this the
+  // map renders visually empty until the user manually zooms out. Keyed on
+  // the node set + `topic` so it re-fires on initial load, after a rebuild,
+  // on drill-in, and on returning to the overview.
+  useEffect(() => {
+    const id = setTimeout(() => fgRef.current?.zoomToFit(400, 80), 250)
+    return () => clearTimeout(id)
+  }, [topic, topics, docNodes])
+
   return (
     <div className="flex min-h-0 flex-1">
       <div className="flex min-w-0 flex-1 flex-col">
@@ -327,16 +345,31 @@ export function BrainMap({
             size.width > 0 &&
             size.height > 0 && (
               <ForceGraph2D
+                ref={fgRef}
                 width={size.width}
                 height={size.height}
                 graphData={graphData}
                 nodeLabel="name"
                 nodeRelSize={6}
                 nodeColor={nodeColor}
+                nodeCanvasObjectMode={() => 'after'}
+                nodeCanvasObject={(node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+                  const label = String(node.name ?? '')
+                  if (!label) return
+                  const fontSize = 12 / globalScale
+                  ctx.font = `${fontSize}px sans-serif`
+                  ctx.textAlign = 'center'
+                  ctx.textBaseline = 'top'
+                  // Canvas 2D fillStyle can't resolve CSS custom properties —
+                  // use the resolved `--ink` value (styles/tokens.css) directly.
+                  ctx.fillStyle = '#1c1b18'
+                  ctx.fillText(label, node.x, node.y + 8)
+                }}
                 linkColor={() => 'var(--line)'}
                 backgroundColor="transparent"
                 cooldownTicks={topic ? undefined : 0}
                 onNodeClick={handleNodeClick}
+                onEngineStop={() => fgRef.current?.zoomToFit(400, 80)}
               />
             )
           )}

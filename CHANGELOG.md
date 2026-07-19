@@ -103,3 +103,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the *previous* job (or null on a first-ever build) and stop polling while the rebuild
   was still running. `graph_rebuild` now starts the job row synchronously and passes its
   id into `build_graph(ws, job_id)`, which reuses it instead of starting a second one.
+- Brain Map: the topic map rendered blank on load. Topic nodes are pinned at PCA-scaled
+  coordinates (`fx: t.x * 400, fy: t.y * 400`) that the default `react-force-graph-2d`
+  camera (centered at the origin, zoom 1) never framed, so the canvas looked empty until
+  the user manually scroll-zoomed out. `BrainMap.tsx` now holds a ref to the graph
+  instance and calls `zoomToFit(400, 80)` from both `onEngineStop` (covers the
+  drill-down's force-simulated doc nodes, which do cool) and a `setTimeout`-guarded
+  effect keyed on the current node set + `topic` (covers the pinned topic-overview nodes,
+  which never fire `onEngineStop` since they never simulate) — so the camera reframes on
+  initial load, after a rebuild, on drill-in, and on returning to the overview. Also added
+  always-on node labels (`nodeCanvasObjectMode`/`nodeCanvasObject` drawing `node.name`
+  under each node in `--ink`) so the map is readable without hovering.
