@@ -43,13 +43,21 @@ def _doc_texts(conn, ws, doc_ids: list[str]) -> list[str]:
     return [by_id.get(did, "") for did in doc_ids]
 
 
-def build_graph(ws: str) -> dict:
+def build_graph(ws: str, job_id: str | None = None) -> dict:
     """Orchestrates the whole Brain Map build: load docs -> cluster -> keywords
-    + labels -> layout -> permission/orphan/dead/stale lenses -> persist. Runs
-    inside one pooled connection; on any failure the job row is marked failed
-    and the exception re-raised."""
+    + labels -> layout -> permission/orphan/dead/stale/over-exposure lenses ->
+    persist. Runs inside one pooled connection; on any failure the job row is
+    marked failed and the exception re-raised.
+
+    `job_id`: when None, a fresh 'running' job row is started here (used by
+    direct/test callers). When provided, that job is REUSED rather than
+    starting a second one — the caller (POST /graph/rebuild) already created
+    it synchronously before backgrounding this call, so the client's first
+    poll is guaranteed to observe a 'running' job instead of racing this
+    background task's own start_job."""
     with get_conn() as conn:
-        job_id = store.start_job(conn, ws)
+        if job_id is None:
+            job_id = store.start_job(conn, ws)
         try:
             docs = store.load_docs(conn, ws)
             ev = store.everyone_id(conn, ws)
@@ -93,6 +101,9 @@ def build_graph(ws: str) -> dict:
                 lenses.permission_findings(docs, ev)
                 + lenses.orphan_docs(docs, settings.graph_orphan_threshold)
                 + lenses.dead_stale_findings(docs, settings.graph_stale_days)
+                + lenses.over_exposure_findings(
+                    docs, ev, gcount, settings.graph_overexposed_threshold
+                )
             )
             orphan_ids = {f.document_id for f in findings if f.kind == "orphan"}
             doc_meta = {

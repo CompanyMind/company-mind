@@ -78,3 +78,23 @@ def test_dead_and_stale_can_both_apply_to_one_doc():
     kinds = {f.kind for f in lenses.dead_stale_findings(docs, stale_days=365)
              if f.document_id == "worst"}
     assert kinds == {"dead", "stale"}
+
+
+def test_over_exposure_flags_everyone_tagged_doc():
+    docs = [_d("wide", ["ev"], [1, 0])]
+    out = lenses.over_exposure_findings(docs, everyone_id="ev", group_count=5, threshold=0.5)
+    flagged = {f.document_id: f for f in out}
+    assert "wide" in flagged
+    fin = flagged["wide"]
+    assert fin.kind == "over_exposure"
+    assert fin.severity == 1.0  # everyone_id in groups -> exposure_score == 1.0
+    assert fin.detail["everyone"] is True
+    assert fin.detail["exposure_score"] == 1.0
+
+
+def test_over_exposure_does_not_flag_narrowly_shared_doc():
+    # A workspace with several groups; doc tagged to exactly one, non-Everyone
+    # group -> exposure_score = 1/group_count, well below the threshold.
+    docs = [_d("narrow", ["finance"], [1, 0])]
+    out = lenses.over_exposure_findings(docs, everyone_id="ev", group_count=5, threshold=0.5)
+    assert all(f.document_id != "narrow" for f in out)

@@ -10,6 +10,30 @@ def exposure_score(groups: set[str], everyone_id: str, group_count: int) -> floa
     return min(1.0, len(groups) / group_count)
 
 
+def over_exposure_findings(
+    docs: list[DocInfo], everyone_id: str, group_count: int, threshold: float
+) -> list[Finding]:
+    """Flags docs whose exposure_score (see above) meets/exceeds `threshold` —
+    e.g. tagged to the Everyone group, or to most of the workspace's groups."""
+    out: list[Finding] = []
+    for d in docs:
+        exp = exposure_score(d.groups, everyone_id, group_count)
+        if exp >= threshold:
+            out.append(
+                Finding(
+                    "over_exposure",
+                    d.id,
+                    round(exp, 3),
+                    {
+                        "exposure_score": round(exp, 3),
+                        "everyone": everyone_id in d.groups,
+                        "group_count": len(d.groups),
+                    },
+                )
+            )
+    return out
+
+
 def _cos(a: np.ndarray, b: np.ndarray) -> float:
     na, nb = np.linalg.norm(a), np.linalg.norm(b)
     if na == 0 or nb == 0:

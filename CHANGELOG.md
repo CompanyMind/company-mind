@@ -38,8 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pipeline — mean-embed each document's chunks → KMeans cluster → TF-IDF keywords per
   cluster → LLM label (or a keyword fallback when `use_real_models()` is false) → PCA
   layout — then computes the four governance lenses (permission-anomaly via per-cluster
-  consensus Jaccard, orphan via low max-cosine-similarity, dead via never-retrieved,
-  stale via document age) and persists everything inside one connection; a
+  consensus Jaccard, over-exposure via an exposure-score threshold, orphan via low
+  max-cosine-similarity, dead/stale via never-retrieved or document age) and persists
+  everything inside one connection; a
   `graph_build_jobs` row tracks running/done/failed with `started_at`/`finished_at`/
   `error` so the UI can poll. `get_graph`/`get_topic`/`list_findings`/`dismiss_finding`
   are permission-filtered reads via a new `_visible` helper: the owner sees the whole
@@ -89,3 +90,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Marketing code (routes, components, `lib/swarm`, `content`, hooks, SEO shell) from `web/`.
 - Unused `web/` deps: `clsx`, `lenis`, `tailwind-merge`.
 - Marketing's dynamic `app/icon.tsx` (replaced by the static `icon.svg`).
+
+### Fixed
+- Brain Map: the over-exposure lens now actually produces findings. `build_graph`
+  previously computed `exposure_score` only for the map's heat coloring; a new
+  `engine/app/graph/lenses.py::over_exposure_findings()` flags docs at/above a new
+  `graph_overexposed_threshold` setting (default `0.5`) as `over_exposure` findings, so
+  the Findings sidebar's "Over-exposed" group and the map's Exposure lens filter are no
+  longer always empty.
+- Brain Map: closed a rebuild-poll race where `POST /graph/rebuild` returned before the
+  backgrounded `build_graph`'s own `start_job` ran, so the client's first poll could see
+  the *previous* job (or null on a first-ever build) and stop polling while the rebuild
+  was still running. `graph_rebuild` now starts the job row synchronously and passes its
+  id into `build_graph(ws, job_id)`, which reuses it instead of starting a second one.

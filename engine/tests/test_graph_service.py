@@ -153,3 +153,23 @@ def test_build_produces_topics_and_flags_anomaly(seeded):
     assert service.dismiss_finding(ws, flagged["id"]) is True
     findings_after = service.list_findings(ws, user_id="", role="owner", as_group=None, kind=None)
     assert all(f["id"] != flagged["id"] for f in findings_after)
+
+
+def test_build_graph_marks_job_failed_on_error(seeded, monkeypatch):
+    """A non-empty corpus that blows up mid-build must still leave the job row
+    'failed' (not stuck 'running') — this exercises the except/finish_job(error=...)
+    branch that the happy-path test above never touches."""
+    ws = seeded["ws"]
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("clustering exploded")
+
+    monkeypatch.setattr(service.cluster, "cluster_docs", boom)
+
+    with pytest.raises(RuntimeError, match="clustering exploded"):
+        service.build_graph(ws)
+
+    with get_conn() as conn:
+        job = service.store.latest_job(conn, ws)
+    assert job["status"] == "failed"
+    assert job["error"] and "clustering exploded" in job["error"]

@@ -2,15 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-
-type Finding = {
-  id: string
-  kind: string
-  documentId: string
-  severity: number
-  detail: Record<string, unknown>
-  filename: string
-}
+import type { Finding } from '@/lib/graph'
 
 // Maps each map lens toggle to the finding kind(s) it corresponds to in the
 // sidebar. 'deadstale' is the one lens that covers two kinds — the map's

@@ -134,8 +134,9 @@ export function BrainMap({
     await Promise.all([load(), loadFindings()])
   }, [load, loadFindings])
 
-  // Guards against setState after unmount while a rebuild poll or a topic
-  // fetch is in flight.
+  // Guards against setState after unmount while a rebuild poll is in flight.
+  // (The topic-doc fetch below guards itself with its own `cancelled` local,
+  // not this ref.)
   const mounted = useRef(true)
   useEffect(
     () => () => {

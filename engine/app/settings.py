@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     graph_seed: int = 42
     graph_orphan_threshold: float = 0.15
     graph_stale_days: float = 365
+    graph_overexposed_threshold: float = 0.5
 
     # Fernet key for encrypting Telegram bot tokens at rest.
     telegram_enc_key: str = ""

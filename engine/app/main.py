@@ -240,14 +240,16 @@ class GraphRebuildBody(BaseModel):
 
 @app.post("/graph/rebuild", dependencies=[Depends(require_secret)])
 def graph_rebuild(body: GraphRebuildBody, background: BackgroundTasks):
-    # build_graph opens and finishes its own job row, so we must not start a
-    # second one here (that would leave an orphaned 'running' row behind).
-    # We just kick off the build and hand back whatever job is on record now
-    # (null on a first-ever rebuild); the web UI polls GET /graph for the
-    # fresh job once the background task completes.
-    background.add_task(graph_service.build_graph, body.workspace_id)
+    # Start the job row synchronously (before backgrounding the actual build)
+    # so the response always carries a 'running' job — never null, never a
+    # stale previous job. build_graph is handed this same job_id and reuses
+    # it instead of starting a second one, so the client's first poll is
+    # guaranteed to observe 'running' and keep polling until 'done'/'failed'.
     with get_conn() as conn:
-        return {"job": graph_service.store.latest_job(conn, body.workspace_id)}
+        job_id = graph_service.store.start_job(conn, body.workspace_id)
+        job = graph_service.store.latest_job(conn, body.workspace_id)
+    background.add_task(graph_service.build_graph, body.workspace_id, job_id)
+    return {"job": job}
 
 
 @app.get("/graph", dependencies=[Depends(require_secret)])
