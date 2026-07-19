@@ -1,22 +1,25 @@
 'use client'
 
 import dynamic from 'next/dynamic'
+import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { forceX, forceY, forceCollide } from 'd3-force'
 import { Findings } from './Findings'
 
 // Canvas rendering only makes sense in the browser — force-graph touches
 // `window`/`document` at import time, so it must never run during SSR/build.
 const ForceGraph2D = dynamic(() => import('react-force-graph-2d'), { ssr: false })
 
-type Topic = { id: string; label: string; x: number; y: number; docCount: number }
 type Job = { id: string; status: string; error: string | null; computedAt: string | null }
 type DocNode = {
   id: string
   filename: string
+  department: string
   exposureScore: number
   isOrphan: boolean
-  lastRetrievedAt: string | null
+  degree: number
 }
+type DocEdge = { source: string; target: string; weight: number }
 export type Finding = {
   id: string
   kind: string
@@ -26,11 +29,7 @@ export type Finding = {
   filename: string
 }
 
-// Which lens is active. Maps 1:1 to the four toolbar toggles; 'deadstale'
-// covers both the `dead` and `stale` finding kinds (spec treats them as one
-// governance signal).
 type Lens = 'anomaly' | 'exposure' | 'orphan' | 'deadstale'
-
 const LENS_OPTIONS: { id: Lens; label: string }[] = [
   { id: 'anomaly', label: 'Anomaly' },
   { id: 'exposure', label: 'Exposure' },
@@ -38,32 +37,37 @@ const LENS_OPTIONS: { id: Lens; label: string }[] = [
   { id: 'deadstale', label: 'Dead/Stale' },
 ]
 
-// Lens colors are deliberately semantic and separate from the brand violet
-// (`--brain` / #684bff, kept for topic nodes and the no-lens default) — see
-// styles/tokens.css's contrast law for why these particular tokens:
-//   - ANOMALY_HIT reuses `--sovereign` (#d8315b), the same red Findings.tsx
-//     uses for the permission_anomaly badge.
-//   - ORPHAN_HIT reuses `--query` (#e07b39), the same amber Findings.tsx uses
-//     for the over_exposure badge, per the "amber highlight" spec for orphans.
-//   - MUTED (`--line-control`, #857960) is the neutral "this lens doesn't
-//     flag this doc" color — a UI-only tone, never brand and never a lens hit.
-//   - DEADSTALE_FADED is a desaturated parchment tone: dead/stale docs read as
-//     faded rather than alarmed, matching the dashed/faded badge treatment.
+// Department palette — six hues chosen to sit on the warm-paper ground
+// (#F3EEE3) with roughly even chroma so no one department shouts. Sales keeps
+// the brand violet; "Everyone" (shared-with-all) is a deliberately quiet warm
+// grey so over-shared docs read as un-owned rather than as their own category.
+const DEPT_COLORS: Record<string, string> = {
+  Engineering: '#3b6fe0',
+  Finance: '#12a074',
+  Legal: '#dd8a2b',
+  People: '#d6567f',
+  Sales: '#684bff',
+  Everyone: '#9c948a',
+}
+const DEPT_FALLBACK = '#9c948a'
+const deptColor = (d: string) => DEPT_COLORS[d] ?? DEPT_FALLBACK
+
+// Governance-lens colors (semantic, separate from department hues).
 const ANOMALY_HIT = '#d8315b'
 const ORPHAN_HIT = '#e07b39'
-const MUTED = '#857960'
+const MUTED = '#b8b0a2'
 const DEADSTALE_FADED = '#c9c0ab'
-const BRAND = '#684bff'
+const INK = '#1c1b18'
 
-// Exposure heat: 0 -> a cool slate-blue (deliberately outside the warm-paper
-// palette, so "cool" reads as cool) interpolated to 1 -> `--query` hot amber.
 function heatColor(t: number): string {
-  const clamped = Math.max(0, Math.min(1, Number.isFinite(t) ? t : 0))
-  const cool = [122, 146, 168]
-  const hot = [224, 123, 57] // --query
-  const [r, g, b] = cool.map((c, i) => Math.round(c + (hot[i] - c) * clamped))
+  const c = Math.max(0, Math.min(1, Number.isFinite(t) ? t : 0))
+  const cool = [90, 128, 160]
+  const hot = [224, 123, 57]
+  const [r, g, b] = cool.map((v, i) => Math.round(v + (hot[i] - v) * c))
   return `rgb(${r}, ${g}, ${b})`
 }
+
+const shortName = (f: string) => f.replace(/\.[a-z0-9]+$/i, '')
 
 export function BrainMap({
   csrf,
@@ -72,52 +76,41 @@ export function BrainMap({
   csrf: string
   groups: { id: string; name: string }[]
 }) {
+  const router = useRouter()
   const [asGroup, setAsGroup] = useState('') // '' = owner · everything
-  const [topics, setTopics] = useState<Topic[]>([])
+  const [nodes, setNodes] = useState<DocNode[]>([])
+  const [edges, setEdges] = useState<DocEdge[]>([])
   const [job, setJob] = useState<Job | null>(null)
   const [rebuilding, setRebuilding] = useState(false)
   const [findings, setFindings] = useState<Finding[]>([])
   const [lens, setLens] = useState<Lens | null>(null)
+  const [query, setQuery] = useState('')
+  const [hoverId, setHoverId] = useState<string | null>(null)
 
-  // Drill-down state: null = topic overview; set = viewing one topic's
-  // documents. Doc nodes have no stored layout (only topics are PCA-placed),
-  // so they're force-simulated instead of pinned.
-  const [topic, setTopic] = useState<{ id: string; label: string } | null>(null)
-  const [docNodes, setDocNodes] = useState<DocNode[]>([])
-  const [docsLoading, setDocsLoading] = useState(false)
-
-  // Imperative handle onto the force-graph instance, used only to frame the
-  // camera (zoomToFit) — never to touch data flow. Topic nodes are pinned
-  // (fx/fy) so the simulation may never "cool" on its own; doc nodes in the
-  // drill-down are force-simulated and do cool. onEngineStop covers the
-  // latter; the effect below's timeout covers the former.
   const fgRef = useRef<any>(null)
-
-  // Measures the canvas's own flex-sized wrapper. force-graph defaults width/
-  // height to window.innerWidth/innerHeight when unset, which would blow the
-  // canvas out past the sidebar and toolbar — so we always pass explicit
-  // pixel dimensions taken from a ResizeObserver on the wrapper.
   const containerRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
+  const mounted = useRef(true)
+  useEffect(() => () => void (mounted.current = false), [])
+
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
-    const ro = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect
-      setSize({ width, height })
-    })
+    const ro = new ResizeObserver(([e]) => setSize({ width: e.contentRect.width, height: e.contentRect.height }))
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
 
-  const load = useCallback(async (): Promise<{ topics: Topic[]; job: Job | null }> => {
+  const loadGraph = useCallback(async (): Promise<Job | null> => {
     const qs = asGroup ? `?as_group=${encodeURIComponent(asGroup)}` : ''
-    const r = await fetch(`/api/graph${qs}`, { cache: 'no-store' })
-    const d = await r.json()
-    const next = { topics: (d.topics ?? []) as Topic[], job: (d.job ?? null) as Job | null }
-    setTopics(next.topics)
-    setJob(next.job)
-    return next
+    const [g, jr] = await Promise.all([
+      fetch(`/api/graph/documents${qs}`, { cache: 'no-store' }).then((r) => r.json()),
+      fetch(`/api/graph${qs}`, { cache: 'no-store' }).then((r) => r.json()),
+    ])
+    setNodes((g.nodes ?? []) as DocNode[])
+    setEdges((g.edges ?? []) as DocEdge[])
+    setJob((jr.job ?? null) as Job | null)
+    return (jr.job ?? null) as Job | null
   }, [asGroup])
 
   const loadFindings = useCallback(async () => {
@@ -127,30 +120,15 @@ export function BrainMap({
   }, [asGroup])
 
   useEffect(() => {
-    void load()
-  }, [load])
-
+    void loadGraph()
+  }, [loadGraph])
   useEffect(() => {
     void loadFindings()
   }, [loadFindings])
 
-  // Refetches both the topic map and the findings list. Passed to <Findings>
-  // as `onChanged` (fired after a dismiss) and also called once a rebuild
-  // finishes, since a rebuild recomputes findings too.
   const refreshAll = useCallback(async () => {
-    await Promise.all([load(), loadFindings()])
-  }, [load, loadFindings])
-
-  // Guards against setState after unmount while a rebuild poll is in flight.
-  // (The topic-doc fetch below guards itself with its own `cancelled` local,
-  // not this ref.)
-  const mounted = useRef(true)
-  useEffect(
-    () => () => {
-      mounted.current = false
-    },
-    [],
-  )
+    await Promise.all([loadGraph(), loadFindings()])
+  }, [loadGraph, loadFindings])
 
   const rebuild = useCallback(async () => {
     setRebuilding(true)
@@ -159,138 +137,130 @@ export function BrainMap({
       headers: { 'content-type': 'application/json', 'x-csrf-token': csrf },
       body: JSON.stringify({}),
     })
-    // Poll for completion using the just-fetched result, not the `job` state
-    // variable — a setInterval closure over `job` would forever see the value
-    // from the render that started the poll and never notice it finished.
     const poll = async () => {
-      const d = await load()
+      const job = await loadGraph()
       if (!mounted.current) return
-      if (d.job?.status === 'running') {
-        setTimeout(poll, 1500)
-      } else {
+      if (job?.status === 'running') setTimeout(poll, 1500)
+      else {
         setRebuilding(false)
         void loadFindings()
       }
     }
     await poll()
-  }, [csrf, load, loadFindings])
+  }, [csrf, loadGraph, loadFindings])
 
-  // Fetch a topic's documents whenever the drill-down target (or the "view
-  // as" group) changes. Clearing `topic` clears the doc list back to empty
-  // so the overview's emptiness check doesn't see stale data.
-  useEffect(() => {
-    if (!topic) {
-      setDocNodes([])
-      return
-    }
-    let cancelled = false
-    setDocsLoading(true)
-    const qs = asGroup ? `?as_group=${encodeURIComponent(asGroup)}` : ''
-    fetch(`/api/graph/topic/${topic.id}${qs}`, { cache: 'no-store' })
-      .then((r) => r.json())
-      .then((d) => {
-        if (!cancelled) setDocNodes((d.nodes ?? []) as DocNode[])
-      })
-      .finally(() => {
-        if (!cancelled) setDocsLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [topic, asGroup])
-
-  const handleNodeClick = useCallback(
-    (node: { id?: string | number; name?: string }) => {
-      if (topic || node.id == null) return // already drilled in — use "All topics" to go back
-      setTopic({ id: String(node.id), label: String(node.name ?? node.id) })
-    },
-    [topic],
-  )
-
-  // documentId -> the set of finding kinds open against it. Built once here
-  // (not duplicated in Findings) so the map's Anomaly/Dead-Stale lenses and
-  // the sidebar list read from the same fetch.
   const findingsByDoc = useMemo(() => {
-    const map = new Map<string, Set<string>>()
+    const m = new Map<string, Set<string>>()
     for (const f of findings) {
-      const set = map.get(f.documentId) ?? new Set<string>()
-      set.add(f.kind)
-      map.set(f.documentId, set)
+      const s = m.get(f.documentId) ?? new Set<string>()
+      s.add(f.kind)
+      m.set(f.documentId, s)
     }
-    return map
+    return m
   }, [findings])
 
-  // id -> name for every access group in the workspace, so Findings can
-  // render finding explanations ("Shared with Finance") instead of raw group
-  // UUIDs from the engine's `detail` payload.
   const groupNames = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const g of groups) map.set(g.id, g.name)
-    return map
+    const m = new Map<string, string>()
+    for (const g of groups) m.set(g.id, g.name)
+    return m
   }, [groups])
 
-  const graphData = useMemo(() => {
-    if (topic) {
-      return {
-        nodes: docNodes.map((d) => ({
-          id: d.id,
-          name: d.filename,
-          val: 3,
-          exposureScore: d.exposureScore,
-          isOrphan: d.isOrphan,
-        })),
-        links: [] as never[],
-      }
+  // Adjacency for hover-focus highlighting.
+  const adjacency = useMemo(() => {
+    const m = new Map<string, Set<string>>()
+    for (const e of edges) {
+      if (!m.has(e.source)) m.set(e.source, new Set())
+      if (!m.has(e.target)) m.set(e.target, new Set())
+      m.get(e.source)!.add(e.target)
+      m.get(e.target)!.add(e.source)
     }
-    return {
-      nodes: topics.map((t) => ({
-        id: t.id,
-        name: t.label,
-        val: Math.max(1, t.docCount),
-        // Stored coordinates are PCA-normalized to ~[-1, 1]; scale to a
-        // comfortable canvas span and pin (fx/fy) so the layout is stable
-        // across rebuilds instead of re-simulating on every load.
-        fx: t.x * 400,
-        fy: t.y * 400,
-      })),
-      links: [] as never[],
-    }
-  }, [topic, docNodes, topics])
+    return m
+  }, [edges])
 
-  // Lens encodings are per-document (spec §4) — topic-overview nodes always
-  // stay brand violet regardless of the active lens.
-  const nodeColor = useCallback(
-    (node: { id?: string | number; exposureScore?: number; isOrphan?: boolean }) => {
-      if (!topic || !lens) return BRAND
-      const kinds = findingsByDoc.get(String(node.id)) ?? new Set<string>()
-      switch (lens) {
-        case 'anomaly':
-          return kinds.has('permission_anomaly') ? ANOMALY_HIT : MUTED
-        case 'exposure':
-          return heatColor(typeof node.exposureScore === 'number' ? node.exposureScore : 0)
-        case 'orphan':
-          return node.isOrphan ? ORPHAN_HIT : MUTED
-        case 'deadstale':
-          return kinds.has('dead') || kinds.has('stale') ? DEADSTALE_FADED : MUTED
-        default:
-          return BRAND
-      }
-    },
-    [topic, lens, findingsByDoc],
+  // Departments present, for the legend.
+  const legend = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const n of nodes) counts.set(n.department, (counts.get(n.department) ?? 0) + 1)
+    return [...counts.entries()].sort((a, b) => b[1] - a[1])
+  }, [nodes])
+
+  // The set of node ids currently "in focus": hover→node+neighbors, else
+  // search→filename matches. null = no focus (everything full-strength).
+  const q = query.trim().toLowerCase()
+  const focus = useMemo(() => {
+    if (hoverId) {
+      const s = new Set<string>([hoverId])
+      for (const n of adjacency.get(hoverId) ?? []) s.add(n)
+      return s
+    }
+    if (q) {
+      const s = new Set<string>()
+      for (const n of nodes) if (n.filename.toLowerCase().includes(q)) s.add(n.id)
+      return s
+    }
+    return null
+  }, [hoverId, q, adjacency, nodes])
+
+  const graphData = useMemo(
+    () => ({
+      nodes: nodes.map((n) => ({ ...n, name: n.filename })),
+      links: edges.map((e) => ({ source: e.source, target: e.target, value: e.weight })),
+    }),
+    [nodes, edges],
   )
 
-  const isEmpty = topic ? !docsLoading && docNodes.length === 0 : topics.length === 0
+  const colorFor = useCallback(
+    (n: DocNode) => {
+      if (lens) {
+        const kinds = findingsByDoc.get(n.id) ?? new Set<string>()
+        switch (lens) {
+          case 'anomaly':
+            return kinds.has('permission_anomaly') ? ANOMALY_HIT : MUTED
+          case 'exposure':
+            return heatColor(n.exposureScore)
+          case 'orphan':
+            return n.isOrphan ? ORPHAN_HIT : MUTED
+          case 'deadstale':
+            return kinds.has('dead') || kinds.has('stale') ? DEADSTALE_FADED : MUTED
+        }
+      }
+      return deptColor(n.department)
+    },
+    [lens, findingsByDoc],
+  )
 
-  // Frame the camera on whatever node set is currently rendered. Pinned
-  // topic nodes sit at PCA-scaled coordinates (up to ±400) that the default
-  // camera (centered at origin, zoom 1) doesn't frame, so without this the
-  // map renders visually empty until the user manually zooms out. Keyed on
-  // the node set + `topic` so it re-fires on initial load, after a rebuild,
-  // on drill-in, and on returning to the overview.
+  // Tune the force simulation once nodes are present: strong-ish repulsion so
+  // clusters breathe, moderate link distance so similarity edges pull
+  // departments together.
+  const radius = (degree: number) => 3.4 + Math.sqrt(degree) * 1.7
+
+  // The force-graph is lazy-loaded (dynamic import, ssr:false), so on first
+  // render its d3 simulation isn't ready yet and `d3Force(...)` returns
+  // undefined — a plain effect would silently no-op. Poll until the sim exists,
+  // then tune it: firm repulsion + collision spreads a cluster so labels are
+  // readable, while x/y gravity keeps low-degree/disconnected docs gathered so
+  // zoom-to-fit frames a filled graph rather than a tiny blob. Similarity edges
+  // do the department-gathering.
   useEffect(() => {
-    const id = setTimeout(() => fgRef.current?.zoomToFit(400, 80), 250)
-    return () => clearTimeout(id)
-  }, [topic, topics, docNodes])
+    if (nodes.length === 0) return
+    let tries = 0
+    const iv = setInterval(() => {
+      const fg = fgRef.current
+      const charge = fg?.d3Force?.('charge')
+      if (charge) {
+        charge.strength(-150)
+        fg.d3Force('link')?.distance(50).strength(0.3)
+        fg.d3Force('x', forceX(0).strength(0.22))
+        fg.d3Force('y', forceY(0).strength(0.22))
+        fg.d3Force('collide', forceCollide((n: any) => radius(n.degree ?? 0) + 6))
+        fg.d3ReheatSimulation?.()
+        clearInterval(iv)
+      } else if (++tries > 60) {
+        clearInterval(iv)
+      }
+    }, 50)
+    return () => clearInterval(iv)
+  }, [nodes.length, edges.length])
 
   return (
     <div className="flex min-h-0 flex-1">
@@ -306,21 +276,19 @@ export function BrainMap({
           <span className="text-ink-soft">
             {job?.computedAt ? `as of ${new Date(job.computedAt).toLocaleString()}` : 'never built'}
           </span>
-          {topic && (
-            <button
-              onClick={() => setTopic(null)}
-              className="rounded-md border border-line px-2.5 py-1 text-ink-soft hover:bg-paper-sunk"
-            >
-              ← All topics
-            </button>
-          )}
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search documents…"
+            className="w-48 rounded-md border border-line-control bg-paper-raised px-2.5 py-1.5 text-ink placeholder:text-ink-soft focus:border-brain focus:outline-none"
+          />
           <div className="flex items-center gap-1">
             {LENS_OPTIONS.map((opt) => (
               <button
                 key={opt.id}
                 type="button"
                 data-on={lens === opt.id}
-                onClick={() => setLens((prev) => (prev === opt.id ? null : opt.id))}
+                onClick={() => setLens((p) => (p === opt.id ? null : opt.id))}
                 className="rounded-md border border-line px-2.5 py-1 text-ink-soft data-[on=true]:border-brain data-[on=true]:bg-[color-mix(in_srgb,var(--brain)_12%,transparent)] data-[on=true]:text-brain-text"
               >
                 {opt.label}
@@ -343,12 +311,11 @@ export function BrainMap({
             </select>
           </label>
         </div>
-        <div ref={containerRef} className="min-h-0 flex-1 bg-paper">
-          {isEmpty ? (
+
+        <div ref={containerRef} className="relative min-h-0 flex-1 bg-paper">
+          {nodes.length === 0 ? (
             <p className="px-4 py-6 text-body-sm text-ink-soft">
-              {topic
-                ? 'No documents in this topic.'
-                : 'No topics yet. Upload documents in Sources, then rebuild the map.'}
+              No documents yet. Upload documents in Sources, then rebuild the map.
             </p>
           ) : (
             size.width > 0 &&
@@ -358,32 +325,103 @@ export function BrainMap({
                 width={size.width}
                 height={size.height}
                 graphData={graphData}
-                nodeLabel="name"
                 nodeRelSize={6}
-                nodeColor={nodeColor}
-                nodeCanvasObjectMode={() => 'after'}
-                nodeCanvasObject={(node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
-                  const label = String(node.name ?? '')
-                  if (!label) return
-                  const fontSize = 12 / globalScale
-                  ctx.font = `${fontSize}px sans-serif`
-                  ctx.textAlign = 'center'
-                  ctx.textBaseline = 'top'
-                  // Canvas 2D fillStyle can't resolve CSS custom properties —
-                  // use the resolved `--ink` value (styles/tokens.css) directly.
-                  ctx.fillStyle = '#1c1b18'
-                  ctx.fillText(label, node.x, node.y + 8)
+                warmupTicks={80}
+                cooldownTicks={220}
+                onEngineStop={() => fgRef.current?.zoomToFit(500, 70)}
+                onNodeHover={(n: any) => setHoverId(n ? String(n.id) : null)}
+                onNodeClick={(n: any) =>
+                  router.push(`/dashboard/sources?doc=${encodeURIComponent(String(n.id))}`)
+                }
+                linkColor={(link: any) => {
+                  const s = typeof link.source === 'object' ? link.source.id : link.source
+                  const t = typeof link.target === 'object' ? link.target.id : link.target
+                  const lit = focus ? focus.has(s) && focus.has(t) : false
+                  if (focus && !lit) return 'rgba(120,110,95,0.05)'
+                  return lit ? 'rgba(104,75,255,0.35)' : 'rgba(120,110,95,0.16)'
                 }}
-                linkColor={() => 'var(--line)'}
+                linkWidth={(link: any) => {
+                  const s = typeof link.source === 'object' ? link.source.id : link.source
+                  const t = typeof link.target === 'object' ? link.target.id : link.target
+                  return focus && focus.has(s) && focus.has(t) ? 1.5 : 0.6
+                }}
+                nodeCanvasObjectMode={() => 'replace'}
+                nodeCanvasObject={(node: any, ctx: CanvasRenderingContext2D, scale: number) => {
+                  const dimmed = focus ? !focus.has(String(node.id)) : false
+                  const r = radius(node.degree ?? 0)
+                  const color = colorFor(node as DocNode)
+                  ctx.globalAlpha = dimmed ? 0.18 : 1
+                  // soft halo when focused
+                  if (focus && !dimmed) {
+                    ctx.beginPath()
+                    ctx.arc(node.x, node.y, r + 3.5, 0, 2 * Math.PI)
+                    ctx.fillStyle = color
+                    ctx.globalAlpha = dimmed ? 0.18 : 0.18
+                    ctx.fill()
+                    ctx.globalAlpha = 1
+                  }
+                  ctx.beginPath()
+                  ctx.arc(node.x, node.y, r, 0, 2 * Math.PI)
+                  ctx.fillStyle = color
+                  ctx.fill()
+                  ctx.lineWidth = 1 / scale
+                  ctx.strokeStyle = 'rgba(255,255,255,0.6)'
+                  ctx.stroke()
+
+                  const focused = focus ? focus.has(String(node.id)) : false
+                  const showLabel = focused || scale > 2.4 || (node.degree ?? 0) >= 9
+                  if (showLabel && !dimmed) {
+                    const label = shortName(String(node.name ?? ''))
+                    const fontSize = Math.max(11 / scale, 2.2)
+                    ctx.font = `500 ${fontSize}px ui-sans-serif, system-ui, sans-serif`
+                    ctx.textAlign = 'center'
+                    ctx.textBaseline = 'top'
+                    const y = node.y + r + 2
+                    // parchment halo so labels stay legible over edges
+                    const w = ctx.measureText(label).width
+                    ctx.globalAlpha = 0.72
+                    ctx.fillStyle = '#F3EEE3'
+                    ctx.fillRect(node.x - w / 2 - 2, y - 1, w + 4, fontSize + 2)
+                    ctx.globalAlpha = 1
+                    ctx.fillStyle = INK
+                    ctx.fillText(label, node.x, y)
+                  }
+                  ctx.globalAlpha = 1
+                }}
+                nodePointerAreaPaint={(node: any, color: string, ctx: CanvasRenderingContext2D) => {
+                  ctx.beginPath()
+                  ctx.arc(node.x, node.y, radius(node.degree ?? 0) + 2, 0, 2 * Math.PI)
+                  ctx.fillStyle = color
+                  ctx.fill()
+                }}
                 backgroundColor="transparent"
-                cooldownTicks={topic ? undefined : 0}
-                onNodeClick={handleNodeClick}
-                onEngineStop={() => fgRef.current?.zoomToFit(400, 80)}
               />
             )
           )}
+
+          {/* Legend */}
+          {legend.length > 0 && !lens && (
+            <div className="pointer-events-none absolute bottom-3 left-3 flex flex-col gap-1 rounded-lg border border-line bg-paper-raised/80 px-3 py-2 backdrop-blur-sm">
+              {legend.map(([dept, count]) => (
+                <div key={dept} className="flex items-center gap-2 text-[0.7rem] text-ink-soft">
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ background: deptColor(dept) }}
+                  />
+                  <span className="text-ink">{dept}</span>
+                  <span className="tabular-nums">{count}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {lens && (
+            <div className="pointer-events-none absolute bottom-3 left-3 rounded-lg border border-line bg-paper-raised/80 px-3 py-2 text-[0.7rem] text-ink-soft backdrop-blur-sm">
+              Coloring by <span className="text-brain-text">{lens === 'deadstale' ? 'dead / stale' : lens}</span> lens
+            </div>
+          )}
         </div>
       </div>
+
       <Findings
         csrf={csrf}
         findings={findings}
