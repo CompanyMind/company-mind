@@ -254,7 +254,7 @@ export function BrainMap({
         case 'orphan':
           return node.isOrphan ? ORPHAN_HIT : MUTED
         case 'deadstale':
-          return kinds.has('dead') || kinds.has('stale') ? DEADSTALE_FADED : BRAND
+          return kinds.has('dead') || kinds.has('stale') ? DEADSTALE_FADED : MUTED
         default:
           return BRAND
       }
