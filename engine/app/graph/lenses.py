@@ -40,6 +40,8 @@ def permission_findings(members: list[DocInfo], everyone_id: str) -> list[Findin
             continue
         for d in docs:
             union = d.groups | consensus
+            # Defensive/unreachable: consensus is already checked non-empty
+            # above, so `union` (which contains consensus) is always non-empty.
             if not union:
                 continue
             jac = len(d.groups & consensus) / len(union)
