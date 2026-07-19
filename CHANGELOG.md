@@ -8,29 +8,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Brain Map — owner-only permission-aware governance graph (topic clusters → documents)
+  with permission-anomaly / over-exposure / orphan / dead-stale lenses, view-as-group
+  audit, and deep-link fixes.
 - Brain Map owner page (`web/app/(app)/dashboard/brain-map/`): a 2D topic map rendered
   with `react-force-graph-2d` (dynamically imported with `ssr: false` — the renderer
   touches `window`/`document` at import time), nodes pinned at their stored PCA layout
   and sized by document count, a **Rebuild map** action that polls `/api/graph` off the
   freshly-fetched job status (not a stale closure) until the job leaves `running`, an "as
   of &lt;time&gt;" freshness label, and a **View as** group selector reusing the owner-only
-  `getOwner()`/`as_group` plumbing. A `Findings` sidebar groups permission-anomaly /
-  over-exposure / orphan / dead / stale findings by kind with a **Fix** link to
-  `/dashboard/sources?doc=<id>` and a **Dismiss** action, both CSRF-guarded.
+  `getOwner()`/`as_group` plumbing. Clicking a topic drills into that topic's documents
+  via `GET /api/graph/topic/[id]` (force-simulated, since only topics carry a stored PCA
+  layout); a toolbar of **lens toggles** (Anomaly / Exposure / Orphan / Dead-Stale) colors
+  the drilled-in document nodes by the selected governance lens — anomaly and dead/stale
+  from findings matched by document id, exposure from the document's exposure score,
+  orphan from its orphan flag — and filters the Findings sidebar to the same lens. A
+  `Findings` sidebar groups permission-anomaly / over-exposure / orphan / dead / stale
+  findings by kind with a **Fix** link to `/dashboard/sources?doc=<id>` and a **Dismiss**
+  action, both CSRF-guarded.
 - Brain Map web API routes: `GET /api/graph`, `GET /api/graph/topic/[id]`,
   `GET /api/graph/findings`, `POST /api/graph/rebuild`, `POST /api/graph/findings/[id]/dismiss`.
   All owner-gated via new `web/lib/auth/require-owner.ts::getOwner()` (reads role from the
   `memberships` table — the graph is an owner-only governance surface; the owner always
   queries the engine as role `'owner'`, `as_group` drives the "view as" filter). Mutating
   routes also require a valid CSRF token.
-- Brain Map `engine/app/graph/service.py`: `build_graph` orchestrates load → cluster →
-  keyword/label → layout → permission/orphan/dead/stale lenses → persist inside one
-  connection; `get_graph`/`get_topic`/`list_findings`/`dismiss_finding` are
-  permission-filtered reads via a new `_visible` helper (owner sees everything, a
-  simulated `as_group` sees only that group's tagged docs). Topic labeling reuses a new
-  `engine/app/ask/answer.py::get_chat_call()` seam (extracted from `_llm_answer`'s
-  Bearer/httpx call, `None` when `use_real_models()` is false) so the fake-provider path
-  stays GPU-free.
+- Brain Map engine build/read logic (`engine/app/graph/*`), persisted to five new
+  Drizzle-defined tables — `graph_build_jobs`, `graph_topics`, `graph_topic_members`,
+  `graph_doc_meta`, `graph_findings`. `build_graph` runs a CPU-only, deterministic
+  pipeline — mean-embed each document's chunks → KMeans cluster → TF-IDF keywords per
+  cluster → LLM label (or a keyword fallback when `use_real_models()` is false) → PCA
+  layout — then computes the four governance lenses (permission-anomaly via per-cluster
+  consensus Jaccard, orphan via low max-cosine-similarity, dead via never-retrieved,
+  stale via document age) and persists everything inside one connection; a
+  `graph_build_jobs` row tracks running/done/failed with `started_at`/`finished_at`/
+  `error` so the UI can poll. `get_graph`/`get_topic`/`list_findings`/`dismiss_finding`
+  are permission-filtered reads via a new `_visible` helper: the owner sees the whole
+  workspace, and a simulated `as_group` sees documents tagged with that group **or** the
+  workspace's default Everyone group — matching `engine/app/access.py::resolve_access`
+  (a real member sees their groups plus Everyone), not the named group alone. Topic
+  labeling reuses a new `engine/app/ask/answer.py::get_chat_call()` seam (extracted from
+  `_llm_answer`'s Bearer/httpx call, `None` when `use_real_models()` is false) so the
+  fake-provider path stays GPU-free.
 - Engine connection **pool** (`psycopg-pool`) replaces connect-per-call across ask, ingest, and the bot worker. `/health` now reports `embed_dim` and an `embed_dim_ok` drift check (the DB's `vector(N)` column is the source of truth for embedding width).
 - Brand logo — the "layered vault" mark (nested walls + violet `#684BFF` core).
   `public/logo.svg` (exact mark) in both apps, plus a theme-adaptive `app/icon.svg`

@@ -39,6 +39,11 @@ The domain-vs-delivery re-architecture is essentially complete:
 Only intentionally deferred: the physical two-database split (contradicts the single-Postgres
 lesson), IDF/age-decay retrieval scorers, and the agentic planner/MCP surfaces.
 
+**Brain Map** — the owner-only governance surface over the knowledge tables (topic
+clusters → documents, with permission-anomaly / over-exposure / orphan / dead-stale
+lenses): engine-owned build/read logic in `engine/app/graph/*`, Drizzle-defined `graph_*`
+tables, rendered at `web/app/(app)/dashboard/brain-map/`.
+
 ## Conventions & invariants
 
 - **Auth is sovereign, hand-rolled on purpose:** argon2id (`@node-rs/argon2`); session
