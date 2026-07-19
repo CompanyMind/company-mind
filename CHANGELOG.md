@@ -133,6 +133,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `store.group_names` helper for department resolution.
 
 ### Changed
+- Brain Map node sizing/glow, tuned closer to the 42Wiki reference after a closer look at
+  it: nodes are ~25% smaller across the board (`radius(degree) = 2.4 + sqrt(degree)*1.25`,
+  was `3.4 + sqrt(degree)*1.7`), and the soft focus-glow now only renders while something is
+  actually hovered/searched/filtered — at rest the reference is flat, unglowed dots, and
+  drawing a permanent glow on all ~36 nodes (the previous behavior) is what made nearby hubs
+  blob into each other. Hub label size trimmed to match (13px/10px, was 15px/11px).
 - Brain Map visual language, reshaped after the 42Wiki knowledge-map reference
   (wiki.42.uz/map), kept on our existing warm-paper light theme rather than its dark one.
   Unfocused nodes now recede to a single neutral tone (`MUTED`) instead of a faded version

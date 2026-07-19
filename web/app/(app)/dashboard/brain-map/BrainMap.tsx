@@ -281,7 +281,7 @@ export function BrainMap({
   // Tune the force simulation once nodes are present: strong-ish repulsion so
   // clusters breathe, moderate link distance so similarity edges pull
   // departments together.
-  const radius = (degree: number) => 3.4 + Math.sqrt(degree) * 1.7
+  const radius = (degree: number) => 2.4 + Math.sqrt(degree) * 1.25
 
   const zoomBy = useCallback((factor: number) => {
     const fg = fgRef.current
@@ -435,8 +435,12 @@ export function BrainMap({
 
                   // Soft color bloom behind focused nodes — a glow, not a hard
                   // ring, so a lit cluster feels like it's radiating rather than
-                  // just being drawn in a brighter color.
-                  if (!dimmed) {
+                  // just being drawn in a brighter color. Only while something is
+                  // actually focused: at rest every node would qualify as "not
+                  // dimmed", and a permanent glow on all ~36 nodes is what made
+                  // nearby hubs blob into each other instead of reading as
+                  // distinct dots (the reference only glows on hover too).
+                  if (focus && !dimmed) {
                     ctx.beginPath()
                     ctx.arc(node.x, node.y, r + 3.5, 0, 2 * Math.PI)
                     ctx.fillStyle = color
@@ -466,7 +470,7 @@ export function BrainMap({
                     // their department color — a floating wordmark over the
                     // group they anchor, not just another node caption.
                     const weight = isHub ? 700 : 500
-                    const baseSize = isHub ? 15 : 11
+                    const baseSize = isHub ? 13 : 10
                     const fontSize = Math.max(baseSize / scale, 2.2)
                     ctx.font = `${weight} ${fontSize}px ui-sans-serif, system-ui, sans-serif`
                     ctx.textAlign = 'center'
