@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Brain Map hover: still intermittently missed nodes after the redraw-loop fix below,
+  especially right after the graph loads/rebuilds (while the force simulation is settling)
+  or right after a pan/zoom. Root cause was in the vendored `force-graph` library, not our
+  code: the invisible hit-test ("shadow") canvas that backs hover detection is repainted via
+  a hardcoded 800ms throttle, decoupled from the visible canvas's own render loop — so while
+  node screen positions are actively changing, the hit-test canvas can lag up to 0.8s behind
+  what's on screen, and a cursor sitting exactly on a node samples a stale pixel. Patched the
+  throttle down to 50ms via `patch-package` (`web/patches/force-graph+1.51.4.patch`); the
+  Dockerfile's `deps` stage now also copies `patches/` before `npm ci` so the patch actually
+  lands in the built image. Also gave the department legend `pointer-events-none` on its
+  wrapper (buttons opt back in individually) — nodes the layout parks underneath it after
+  panning were previously unhoverable for good, since the legend div ate the pointer events.
 - Brain Map hover: most nodes wouldn't respond to hover ("only 1–2 nodes work"). The
   force-graph render loop paused once the graph settled, so hover only re-evaluated on the
   occasional redraw and a moving cursor skipped nodes. Keep the loop live

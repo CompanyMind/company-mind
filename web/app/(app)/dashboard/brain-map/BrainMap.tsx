@@ -485,9 +485,12 @@ export function BrainMap({
             )}
           </div>
 
-          {/* Interactive legend — click a category to isolate it */}
+          {/* Interactive legend — click a category to isolate it. The wrapper
+              is pointer-events-none so a node the force layout parks behind
+              this panel (common after panning) stays hoverable; only the
+              buttons themselves opt back in to catch clicks. */}
           {legend.length > 0 && (
-            <div className="absolute bottom-3 left-3 flex min-w-[10.5rem] flex-col gap-0.5 rounded-lg border border-line bg-paper-raised/80 p-1.5 backdrop-blur-sm">
+            <div className="pointer-events-none absolute bottom-3 left-3 flex min-w-[10.5rem] flex-col gap-0.5 rounded-lg border border-line bg-paper-raised/80 p-1.5 backdrop-blur-sm">
               {legend.map(([dept, count]) => (
                 <button
                   key={dept}
@@ -495,7 +498,7 @@ export function BrainMap({
                   onClick={() => setActiveDept((p) => (p === dept ? null : dept))}
                   data-on={activeDept === dept}
                   style={{ opacity: activeDept && activeDept !== dept ? 0.4 : 1 }}
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-0.5 text-left text-[0.7rem] text-ink-soft hover:bg-paper-sunk data-[on=true]:bg-paper-sunk"
+                  className="pointer-events-auto flex w-full items-center gap-2 rounded-md px-2 py-0.5 text-left text-[0.7rem] text-ink-soft hover:bg-paper-sunk data-[on=true]:bg-paper-sunk"
                 >
                   <span
                     className="h-2.5 w-2.5 shrink-0 rounded-full"

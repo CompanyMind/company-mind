@@ -1,0 +1,26 @@
+diff --git a/node_modules/force-graph/dist/force-graph.js b/node_modules/force-graph/dist/force-graph.js
+index fe99943..42aadf6 100644
+--- a/node_modules/force-graph/dist/force-graph.js
++++ b/node_modules/force-graph/dist/force-graph.js
+@@ -11962,7 +11962,7 @@
+     };
+   }
+ 
+-  var HOVER_CANVAS_THROTTLE_DELAY = 800; // ms to throttle shadow canvas updates for perf improvement
++  var HOVER_CANVAS_THROTTLE_DELAY = 50; // ms to throttle shadow canvas updates for perf improvement (patched: was 800, see patches/force-graph+*.patch)
+   var ZOOM2NODES_FACTOR = 4;
+   var DRAG_CLICK_TOLERANCE_PX = 5; // How many px can a node be accidentally dragged before disabling the click
+ 
+diff --git a/node_modules/force-graph/dist/force-graph.mjs b/node_modules/force-graph/dist/force-graph.mjs
+index c6be1b1..b30743c 100644
+--- a/node_modules/force-graph/dist/force-graph.mjs
++++ b/node_modules/force-graph/dist/force-graph.mjs
+@@ -953,7 +953,7 @@ function linkKapsule (kapsulePropNames, kapsuleType) {
+   };
+ }
+ 
+-var HOVER_CANVAS_THROTTLE_DELAY = 800; // ms to throttle shadow canvas updates for perf improvement
++var HOVER_CANVAS_THROTTLE_DELAY = 50; // ms to throttle shadow canvas updates for perf improvement (patched: was 800, see patches/force-graph+*.patch)
+ var ZOOM2NODES_FACTOR = 4;
+ var DRAG_CLICK_TOLERANCE_PX = 5; // How many px can a node be accidentally dragged before disabling the click
+ 
