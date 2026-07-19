@@ -220,6 +220,15 @@ export function BrainMap({
     return map
   }, [findings])
 
+  // id -> name for every access group in the workspace, so Findings can
+  // render finding explanations ("Shared with Finance") instead of raw group
+  // UUIDs from the engine's `detail` payload.
+  const groupNames = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const g of groups) map.set(g.id, g.name)
+    return map
+  }, [groups])
+
   const graphData = useMemo(() => {
     if (topic) {
       return {
@@ -375,7 +384,13 @@ export function BrainMap({
           )}
         </div>
       </div>
-      <Findings csrf={csrf} findings={findings} lens={lens} onChanged={refreshAll} />
+      <Findings
+        csrf={csrf}
+        findings={findings}
+        lens={lens}
+        onChanged={refreshAll}
+        groupNames={groupNames}
+      />
     </div>
   )
 }

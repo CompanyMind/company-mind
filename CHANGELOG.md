@@ -114,3 +114,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   initial load, after a rebuild, on drill-in, and on returning to the overview. Also added
   always-on node labels (`nodeCanvasObjectMode`/`nodeCanvasObject` drawing `node.name`
   under each node in `--ink`) so the map is readable without hovering.
+- Brain Map: the findings sidebar's permission-anomaly explanation printed raw group
+  UUIDs (from the engine's `detail.consensus`/`detail.doc_groups`) instead of names.
+  `BrainMap.tsx` now builds an id→name `Map` from the `groups` it already loads for the
+  "View as" selector and passes it to `Findings.tsx`, which resolves both id arrays to
+  comma-joined group names (falling back to "a group" for an unknown id, never a raw
+  UUID) in a clearer sentence, e.g. "Shared with Everyone — broader than Finance, which
+  the rest of this topic shares."

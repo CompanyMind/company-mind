@@ -20,20 +20,29 @@ const LENS_KINDS: Record<string, string[]> = {
 // dead or stale. `badge` follows the app's existing color-mix idiom (see
 // AccessManager/Sources) rather than Tailwind opacity modifiers, which don't
 // work on these tokens (they resolve through CSS vars — see tailwind.config.ts).
+// Renders a list of group ids as a human sentence fragment, e.g. "Finance"
+// or "Finance, Legal". An id with no match in `groupNames` (deleted group,
+// or a lookup miss) falls back to "a group" rather than printing the raw
+// UUID — the whole point of this map is that no UUID ever reaches the UI.
+function namesFor(ids: string[] | undefined, groupNames: Map<string, string>): string {
+  const list = (ids ?? []).map((id) => groupNames.get(id) ?? 'a group')
+  return list.length > 0 ? list.join(', ') : 'no one'
+}
+
 const KIND_META: Record<
   string,
-  { label: string; badge: string; explain: (f: Finding) => string }
+  { label: string; badge: string; explain: (f: Finding, groupNames: Map<string, string>) => string }
 > = {
   permission_anomaly: {
     label: 'Permission anomalies',
     badge: 'border-sovereign bg-[color-mix(in_srgb,var(--sovereign)_8%,transparent)] text-sovereign-text',
-    explain: (f) => {
+    explain: (f, groupNames) => {
       const d = f.detail as { consensus?: string[]; doc_groups?: string[]; direction?: string }
-      const mine = (d.doc_groups ?? []).join(', ') || 'no one'
-      const consensus = (d.consensus ?? []).join(', ') || 'no one'
+      const mine = namesFor(d.doc_groups, groupNames)
+      const consensus = namesFor(d.consensus, groupNames)
       return d.direction === 'over_shared'
-        ? `Shared with ${mine} — wider than the ${consensus} the rest of this topic uses.`
-        : `Shared with ${mine} — narrower than the ${consensus} the rest of this topic uses.`
+        ? `Shared with ${mine} — broader than ${consensus}, which the rest of this topic shares.`
+        : `Restricted to ${mine} — narrower than the rest of this topic (shared with ${consensus}).`
     },
   },
   over_exposure: {
@@ -90,11 +99,13 @@ export function Findings({
   findings,
   lens,
   onChanged,
+  groupNames,
 }: {
   csrf: string
   findings: Finding[]
   lens: string | null
   onChanged: () => void
+  groupNames: Map<string, string>
 }) {
   const [busyId, setBusyId] = useState<string | null>(null)
   // Optimistic hides for in-flight dismisses. `findings` is now owned by the
@@ -158,7 +169,7 @@ export function Findings({
                 {items.map((f) => (
                   <li key={f.id} className={`rounded-md border px-3 py-2 text-body-sm ${meta.badge}`}>
                     <div className="truncate font-medium text-ink">{f.filename}</div>
-                    <p className="mt-1 text-ink-soft">{meta.explain(f)}</p>
+                    <p className="mt-1 text-ink-soft">{meta.explain(f, groupNames)}</p>
                     <div className="mt-2 flex items-center gap-3">
                       <Link
                         href={fixHref(f)}
