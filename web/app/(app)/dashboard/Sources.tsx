@@ -19,13 +19,14 @@ const STATUS_LABEL: Record<Doc['status'], string> = {
   failed: 'Failed',
 }
 
-export function Sources({ csrf }: { csrf: string }) {
+export function Sources({ csrf, initialDoc }: { csrf: string; initialDoc?: string }) {
   const [docs, setDocs] = useState<Doc[]>([])
   const [groups, setGroups] = useState<Group[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const appliedInitialDoc = useRef(false)
 
   const refresh = useCallback(async () => {
     const [dr, gr] = await Promise.all([fetch('/api/documents'), fetch('/api/groups')])
@@ -41,6 +42,21 @@ export function Sources({ csrf }: { csrf: string }) {
     }, 2500)
     return () => clearInterval(t)
   }, [refresh])
+
+  // Deep-link support: `?doc=<id>` (from the Brain Map's Fix buttons) opens that
+  // document's group editor once the doc list has loaded, then scrolls it into
+  // view. Applied at most once so the status-polling refresh above never
+  // reopens or re-scrolls to it after the owner closes the editor.
+  useEffect(() => {
+    if (appliedInitialDoc.current || !initialDoc || docs.length === 0) return
+    appliedInitialDoc.current = true
+    if (docs.some((d) => d.id === initialDoc)) {
+      setEditing(initialDoc)
+      requestAnimationFrame(() => {
+        document.getElementById(`doc-${initialDoc}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      })
+    }
+  }, [docs, initialDoc])
 
   async function onFiles(files: FileList | null) {
     if (!files?.length) return
@@ -105,7 +121,7 @@ export function Sources({ csrf }: { csrf: string }) {
           </li>
         )}
         {docs.map((d) => (
-          <li key={d.id} className="px-4 py-3">
+          <li key={d.id} id={`doc-${d.id}`} className="px-4 py-3">
             <div className="flex items-center justify-between">
               <span className="truncate text-body text-ink">{d.filename}</span>
               <span

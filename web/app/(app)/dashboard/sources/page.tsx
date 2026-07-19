@@ -4,9 +4,14 @@ import { Sources } from '../Sources'
 
 export const runtime = 'nodejs'
 
-export default async function SourcesPage() {
+export default async function SourcesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ doc?: string }>
+}) {
   const auth = await getCurrentUser()
   const csrf = await issueCsrf()
+  const { doc } = await searchParams
   return (
     <div className="mx-auto max-w-3xl px-6 py-6">
       <header className="mb-2">
@@ -16,7 +21,7 @@ export default async function SourcesPage() {
           never leave your infrastructure.
         </p>
       </header>
-      <Sources csrf={csrf} />
+      <Sources csrf={csrf} initialDoc={doc} />
     </div>
   )
 }
