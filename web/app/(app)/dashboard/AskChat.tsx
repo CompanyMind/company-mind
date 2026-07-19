@@ -37,18 +37,43 @@ function AnswerBody({ msg, onCite }: { msg: Msg; onCite: (m: number) => void }) 
   )
 }
 
-export function AskChat({ csrf }: { csrf: string }) {
+export function AskChat({
+  csrf,
+  chatId,
+  onFirstMessage,
+}: {
+  csrf: string
+  chatId: string | null
+  onFirstMessage: (chatId: string, title: string | null) => void
+}) {
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [q, setQ] = useState('')
   const [busy, setBusy] = useState(false)
   const [open, setOpen] = useState<Record<string, number | null>>({})
   const endRef = useRef<HTMLDivElement>(null)
+  // Mirrors `chatId` but updates synchronously the moment a new thread is
+  // created, so a rapid second send (before the parent's re-render lands)
+  // still targets the right chat instead of creating a duplicate thread.
+  const activeChatId = useRef<string | null>(chatId)
 
   useEffect(() => {
-    fetch('/api/ask')
+    activeChatId.current = chatId
+    setOpen({})
+    if (!chatId) {
+      setMsgs([])
+      return
+    }
+    let cancelled = false
+    fetch(`/api/chats/${chatId}`)
       .then((r) => (r.ok ? r.json() : { messages: [] }))
-      .then((d) => setMsgs(d.messages ?? []))
-  }, [])
+      .then((d) => {
+        if (!cancelled) setMsgs(d.messages ?? [])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [chatId])
+
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [msgs, busy])
@@ -64,11 +89,16 @@ export function AskChat({ csrf }: { csrf: string }) {
       const r = await fetch('/api/ask', {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-csrf-token': csrf },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({ question, chatId: activeChatId.current }),
       })
       const d = await r.json()
-      if (r.ok) setMsgs((m) => [...m, d.message])
-      else
+      if (r.ok) {
+        setMsgs((m) => [...m, d.message])
+        if (d.chatId && d.chatId !== activeChatId.current) {
+          activeChatId.current = d.chatId
+          onFirstMessage(d.chatId, d.title ?? null)
+        }
+      } else {
         setMsgs((m) => [
           ...m,
           {
@@ -78,13 +108,14 @@ export function AskChat({ csrf }: { csrf: string }) {
             citations: [],
           },
         ])
+      }
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <div className="mx-auto flex h-dvh max-w-3xl flex-col px-6 max-md:h-[calc(100dvh-3.5rem)]">
+    <div className="mx-auto flex h-full max-w-3xl flex-col px-6">
       <header className="py-6">
         <h1 className="font-display text-2xl text-ink">Ask</h1>
         <p className="mt-1 text-body-sm text-ink-soft">

@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `POST /title` (`engine/app/ask/title.py::generate_title`) for a smart 3-6 word LLM
   chat title on the first turn, with a deterministic truncation fallback (fake
   providers, or on any engine error) so title generation never blocks a turn.
+- Chat history frontend: the Ask page is now a Claude.ai-style two-pane workspace.
+  `web/app/(app)/dashboard/AskWorkspace.tsx` owns `selectedChatId` and renders a new
+  `Conversations.tsx` sidebar (new-chat button, debounced search, newest-first list,
+  inline rename, delete with reselect-newest-or-empty) beside the rewritten `AskChat.tsx`
+  (now driven by `{csrf, chatId, onFirstMessage}` props instead of a single fixed
+  thread). The sidebar collapses under a slide-over toggle on mobile.
 - Brain Map **Obsidian-style document graph** — a document-level knowledge map where each
   node is a document colored by its department (access group), connected by embedding
   **similarity edges** (`GET /api/graph/documents`, backed by a kNN over doc vectors with
