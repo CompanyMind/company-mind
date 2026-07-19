@@ -297,10 +297,20 @@ export function BrainMap({
       const fg = fgRef.current
       const charge = fg?.d3Force?.('charge')
       if (charge) {
-        charge.strength(-150)
+        // distanceMax bounds how far repulsion reaches: d3's default charge has
+        // no cutoff, so a 0-degree node (no link force pulling it anywhere) only
+        // has this vs. the weak x/y gravity below to balance against — with an
+        // unbounded charge that equilibrium can land arbitrarily far from the
+        // cluster (a lone orphan node drifting off-screen). Capping it means
+        // gravity always wins past this range and reels it back in.
+        charge.strength(-150).distanceMax(260)
         fg.d3Force('link')?.distance(50).strength(0.3)
-        fg.d3Force('x', forceX(0).strength(0.22))
-        fg.d3Force('y', forceY(0).strength(0.22))
+        // Disconnected/low-degree docs get pulled to center harder than
+        // well-linked ones, which are already held in place by link forces —
+        // keeps orphans near the cluster instead of drifting on their own.
+        const gravity = (n: any) => (n.degree ? 0.22 : 0.55)
+        fg.d3Force('x', forceX(0).strength(gravity))
+        fg.d3Force('y', forceY(0).strength(gravity))
         fg.d3Force('collide', forceCollide((n: any) => radius(n.degree ?? 0) + 6))
         fg.d3ReheatSimulation?.()
         clearInterval(iv)

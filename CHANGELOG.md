@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Brain Map layout: a 0-connection document could drift arbitrarily far from the rest of
+  the graph — d3's charge (repulsion) force has no distance cutoff by default, so with no
+  link force to hold it and only weak x/y gravity to pull it back, an orphan's equilibrium
+  distance from the cluster was unbounded. Capped `charge.distanceMax(260)` so gravity always
+  wins past that range, and gave zero-degree nodes stronger gravity (0.55 vs 0.22) so they
+  settle near the cluster edge instead of drifting off on their own.
 - Brain Map hover: still intermittently missed nodes after the redraw-loop fix below,
   especially right after the graph loads/rebuilds (while the force simulation is settling)
   or right after a pan/zoom. Root cause was in the vendored `force-graph` library, not our
