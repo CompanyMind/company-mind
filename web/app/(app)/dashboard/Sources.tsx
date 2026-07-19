@@ -43,7 +43,7 @@ export function Sources({ csrf, initialDoc }: { csrf: string; initialDoc?: strin
     return () => clearInterval(t)
   }, [refresh])
 
-  // Deep-link support: `?doc=<id>` (from the Brain Map's Fix buttons) opens that
+  // Deep-link support: `?doc=<id>` (from Atlas's Fix buttons) opens that
   // document's group editor once the doc list has loaded, then scrolls it into
   // view. Applied at most once so the status-polling refresh above never
   // reopens or re-scrolls to it after the owner closes the editor.

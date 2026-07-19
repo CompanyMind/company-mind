@@ -18,7 +18,7 @@ export function Rail({
     { href: '/dashboard/sources', label: 'Sources' },
     { href: '/dashboard/access', label: 'Access' },
     { href: '/dashboard/integrations', label: 'Integrations' },
-    ...(isOwner ? [{ href: '/dashboard/brain-map', label: 'Brain Map' }] : []),
+    ...(isOwner ? [{ href: '/dashboard/atlas', label: 'Atlas' }] : []),
   ]
   return (
     <aside className="flex h-dvh w-60 shrink-0 flex-col border-r border-line bg-paper-sunk px-4 py-5 max-md:h-auto max-md:w-full max-md:flex-row max-md:items-center max-md:justify-between max-md:py-3">

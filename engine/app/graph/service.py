@@ -7,7 +7,7 @@ from . import cluster, label, layout, lenses, store
 
 
 def _visible(conn, ws, user_id: str, role: str, as_group) -> set[str]:
-    """Doc ids the principal may see. The Brain Map is an owner-only surface;
+    """Doc ids the principal may see. Atlas is an owner-only surface;
     `as_group` (not `role`) drives filtering here — None/""/"owner" previews the
     whole workspace, a group id previews exactly what a member of that group
     would see. That must match the real access rule
@@ -44,7 +44,7 @@ def _doc_texts(conn, ws, doc_ids: list[str]) -> list[str]:
 
 
 def build_graph(ws: str, job_id: str | None = None) -> dict:
-    """Orchestrates the whole Brain Map build: load docs -> cluster -> keywords
+    """Orchestrates the whole Atlas build: load docs -> cluster -> keywords
     + labels -> layout -> permission/orphan/dead/stale/over-exposure lenses ->
     persist. Runs inside one pooled connection; on any failure the job row is
     marked failed and the exception re-raised.

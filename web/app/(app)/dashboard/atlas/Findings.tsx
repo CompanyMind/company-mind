@@ -109,7 +109,7 @@ export function Findings({
 }) {
   const [busyId, setBusyId] = useState<string | null>(null)
   // Optimistic hides for in-flight dismisses. `findings` is now owned by the
-  // parent (BrainMap), which refetches after `onChanged()` fires — so once a
+  // parent (Atlas), which refetches after `onChanged()` fires — so once a
   // fresh list lands here, drop any stale hides instead of tracking removal
   // locally.
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set())

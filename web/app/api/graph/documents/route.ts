@@ -5,7 +5,7 @@ import { getDocumentGraph } from '@/lib/graph'
 
 export const runtime = 'nodejs'
 
-// Document-level Brain Map view (Obsidian-style graph): owner-only, same
+// Document-level Atlas view: owner-only, same
 // gating as the topic graph. The owner always queries the engine as role
 // 'owner'; `as_group` drives the "view as" filter on top of that.
 export async function GET(req: NextRequest) {

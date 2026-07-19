@@ -5,7 +5,7 @@ import { getGraph } from '@/lib/graph'
 
 export const runtime = 'nodejs'
 
-// The Brain Map is owner-only. The owner always queries the engine as role
+// Atlas is owner-only. The owner always queries the engine as role
 // 'owner'; `as_group` drives the "view as" filter on top of that.
 export async function GET(req: NextRequest) {
   const auth = await getCurrentUser()

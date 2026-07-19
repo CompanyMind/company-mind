@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     rerank_model: str = ""
     contextual_mode: str = "header"  # off | header | llm
 
-    # --- Brain Map (governance graph) ---
+    # --- Atlas (governance graph) ---
     graph_seed: int = 42
     graph_orphan_threshold: float = 0.15
     graph_stale_days: float = 365

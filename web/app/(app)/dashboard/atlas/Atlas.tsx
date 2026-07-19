@@ -81,7 +81,7 @@ function heatColor(t: number): string {
 
 const shortName = (f: string) => f.replace(/\.[a-z0-9]+$/i, '')
 
-export function BrainMap({
+export function Atlas({
   csrf,
   groups,
 }: {

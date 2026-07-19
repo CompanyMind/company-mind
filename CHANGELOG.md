@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **"Brain Map" renamed to "Atlas"** — the old label put the retired "CompBrain" brand name
+  right back in the nav ("never CompBrain — old name", per this file's own rule). Route moved
+  `web/app/(app)/dashboard/brain-map/` → `.../atlas/`, component `BrainMap` → `Atlas`
+  (`Atlas.tsx`, was `BrainMap.tsx`), nav label and page `<h1>` updated, and every internal
+  comment referencing "Brain Map" across `web/` and `engine/` updated to match. No database
+  or API-route changes — the engine's `graph_*` tables and `/api/graph*` endpoints were
+  already named neutrally and needed no changes.
+
 ### Fixed
 - Brain Map hover: every hover showed two overlapping tooltips — our own (filename ·
   connections · department) and force-graph's built-in one (which defaults to `node.name`,

@@ -1,7 +1,7 @@
 import 'server-only'
 import { env } from '@/lib/env'
 
-// The engine owns the Brain Map graph (topics, findings, jobs). This is a thin
+// The engine owns the Atlas graph (topics, findings, jobs). This is a thin
 // client over its internal API — the single boundary that maps snake_case
 // engine JSON to the camelCase shapes the web/React layer consumes.
 
