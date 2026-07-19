@@ -393,6 +393,12 @@ export function BrainMap({
                 nodeRelSize={6}
                 warmupTicks={80}
                 cooldownTicks={220}
+                // force-graph's own built-in hover tooltip defaults to showing
+                // node.name (the raw filename) in a plain browser-style label —
+                // it was rendering right under our custom tooltip (which already
+                // shows the filename + connections + department), so every
+                // hover doubled up. Suppress the built-in one entirely.
+                nodeLabel={() => ''}
                 // Keep the render loop live after the graph settles. With the
                 // default (paused) loop, hover detection only re-evaluates on the
                 // occasional redraw, so a moving cursor skips most nodes — the

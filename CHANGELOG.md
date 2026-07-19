@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- Brain Map hover: every hover showed two overlapping tooltips — our own (filename ·
+  connections · department) and force-graph's built-in one (which defaults to `node.name`,
+  the raw filename) rendering right underneath it. Suppressed the built-in one
+  (`nodeLabel={() => ''}`); ours was already the complete version of the same information.
 - Brain Map layout: a 0-connection document could drift arbitrarily far from the rest of
   the graph — d3's charge (repulsion) force has no distance cutoff by default, so with no
   link force to hold it and only weak x/y gravity to pull it back, an orphan's equilibrium
