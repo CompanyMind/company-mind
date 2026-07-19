@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     graph_orphan_threshold: float = 0.15
     graph_stale_days: float = 365
     graph_overexposed_threshold: float = 0.5
+    graph_edge_threshold: float = 0.35  # min cosine similarity to draw a doc↔doc edge
+    graph_edge_topk: int = 5            # max neighbors per document
 
     # Fernet key for encrypting Telegram bot tokens at rest.
     telegram_enc_key: str = ""

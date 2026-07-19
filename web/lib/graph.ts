@@ -41,6 +41,15 @@ export type Finding = {
   filename: string
 }
 export type DocNode = { id: string; filename: string; exposureScore: number; isOrphan: boolean; lastRetrievedAt: string | null }
+export type DocGraphNode = {
+  id: string
+  filename: string
+  department: string
+  exposureScore: number
+  isOrphan: boolean
+  degree: number
+}
+export type DocGraphEdge = { source: string; target: string; weight: number }
 
 type EngineJob = { id: string; status: string; error: string | null; computed_at: string | null }
 type EngineTopic = { id: string; label: string; keywords: string[]; x: number; y: number; doc_count: number }
@@ -50,6 +59,14 @@ type EngineDocNode = {
   exposure_score: number
   is_orphan: boolean
   last_retrieved_at: string | null
+}
+type EngineDocGraphNode = {
+  id: string
+  filename: string
+  department: string
+  exposure_score: number
+  is_orphan: boolean
+  degree: number
 }
 type EngineFinding = {
   id: string
@@ -103,6 +120,30 @@ export async function getTopic(
       isOrphan: n.is_orphan,
       lastRetrievedAt: n.last_retrieved_at,
     })),
+  }
+}
+
+export async function getDocumentGraph(
+  ws: string,
+  userId: string,
+  role: string,
+  asGroup?: string,
+): Promise<{ nodes: DocGraphNode[]; edges: DocGraphEdge[] }> {
+  const qs = graphQuery(ws, userId, role, asGroup)
+  const data = (await engineJson(`/graph/documents?${qs}`)) as {
+    nodes: EngineDocGraphNode[]
+    edges: DocGraphEdge[]
+  }
+  return {
+    nodes: data.nodes.map((n) => ({
+      id: n.id,
+      filename: n.filename,
+      department: n.department,
+      exposureScore: n.exposure_score,
+      isOrphan: n.is_orphan,
+      degree: n.degree,
+    })),
+    edges: data.edges,
   }
 }
 

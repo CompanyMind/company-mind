@@ -141,6 +141,89 @@ def get_topic(ws, topic_id, user_id, role, as_group) -> dict:
     return {"nodes": nodes, "edges": []}  # doc<->doc edges (on-demand kNN): fast-follow
 
 
+def _department(groups: set[str], gnames: dict[str, tuple[str, bool]]) -> str:
+    """First non-default group name, deterministically (min by name). A doc
+    with only the default "Everyone" group (or no groups at all) is bucketed
+    into "Everyone"."""
+    names = sorted(gnames[gid][0] for gid in groups if gid in gnames and not gnames[gid][1])
+    return names[0] if names else "Everyone"
+
+
+def document_graph(ws, user_id, role, as_group) -> dict:
+    """Obsidian-style document graph: every visible document as a node
+    (colored by department client-side), connected by cosine-similarity kNN
+    edges over the same mean chunk vectors the topic clustering uses."""
+    with get_conn() as conn:
+        vis = _visible(conn, ws, user_id, role, as_group)
+        docs = [d for d in store.load_docs(conn, ws) if d.id in vis]
+        if not docs:
+            return {"nodes": [], "edges": []}
+        gnames = store.group_names(conn, ws)
+        doc_ids = [d.id for d in docs]
+        filenames = {
+            str(r[0]): r[1]
+            for r in conn.execute(
+                "SELECT id, filename FROM documents WHERE workspace_id=%s AND id = ANY(%s::uuid[])",
+                (ws, doc_ids),
+            ).fetchall()
+        }
+        meta = {
+            str(r[0]): (r[1] or 0.0, bool(r[2]))
+            for r in conn.execute(
+                "SELECT document_id, exposure_score, is_orphan FROM graph_doc_meta "
+                "WHERE workspace_id=%s AND document_id = ANY(%s::uuid[])",
+                (ws, doc_ids),
+            ).fetchall()
+        }
+
+    # Cosine similarity matrix over the kept docs' mean vectors.
+    vectors = np.vstack([d.vector for d in docs])
+    norms = np.linalg.norm(vectors, axis=1, keepdims=True)
+    norms[norms == 0] = 1.0
+    unit = vectors / norms
+    sim = unit @ unit.T
+
+    topk = settings.graph_edge_topk
+    threshold = settings.graph_edge_threshold
+    edge_weight: dict[tuple[str, str], float] = {}
+    for i, d in enumerate(docs):
+        row = sim[i].copy()
+        row[i] = -1.0  # exclude self
+        neighbors = np.argsort(-row)[:topk]
+        for j in neighbors:
+            c = float(row[j])
+            if c < threshold:
+                continue
+            a, b = d.id, docs[j].id
+            key = (a, b) if a < b else (b, a)
+            if key not in edge_weight or c > edge_weight[key]:
+                edge_weight[key] = c
+
+    degree: dict[str, int] = {d.id: 0 for d in docs}
+    edges = []
+    for (a, b), c in edge_weight.items():
+        degree[a] += 1
+        degree[b] += 1
+        edges.append({"source": a, "target": b, "weight": round(c, 3)})
+    edges.sort(key=lambda e: (e["source"], e["target"]))
+
+    nodes = []
+    for d in docs:
+        exposure, orphan = meta.get(d.id, (0.0, False))
+        nodes.append(
+            {
+                "id": d.id,
+                "filename": filenames.get(d.id, ""),
+                "department": _department(d.groups, gnames),
+                "exposure_score": exposure,
+                "is_orphan": orphan,
+                "degree": degree.get(d.id, 0),
+            }
+        )
+    nodes.sort(key=lambda n: n["id"])
+    return {"nodes": nodes, "edges": edges}
+
+
 def list_findings(ws, user_id, role, as_group, kind) -> list[dict]:
     with get_conn() as conn:
         vis = _visible(conn, ws, user_id, role, as_group)

@@ -21,6 +21,14 @@ def group_count(conn, ws: str) -> int:
     return conn.execute("SELECT count(*) FROM groups WHERE workspace_id=%s", (ws,)).fetchone()[0]
 
 
+def group_names(conn, ws: str) -> dict[str, tuple[str, bool]]:
+    """group id -> (name, is_default) for every group in the workspace."""
+    rows = conn.execute(
+        "SELECT id, name, is_default FROM groups WHERE workspace_id=%s", (ws,)
+    ).fetchall()
+    return {str(r[0]): (r[1], bool(r[2])) for r in rows}
+
+
 def load_docs(conn, ws: str) -> list[DocInfo]:
     """One DocInfo per document with >=1 embedded chunk. Mean chunk vector,
     its document_groups, age in days, and whether any chunk was ever retrieved."""

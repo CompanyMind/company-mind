@@ -60,6 +60,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Project `CLAUDE.md` and this `CHANGELOG.md`.
 - Re-architecture spec: draw the service boundary on domain (knowledge vs auth), not
   language — `docs/superpowers/specs/2026-07-18-rearchitecture-domain-vs-delivery-design.md`.
+- Brain Map **document-level graph** (`GET /graph/documents` in the engine, `GET
+  /api/graph/documents` in web, `web/lib/graph.ts::getDocumentGraph`): an Obsidian-style
+  view with every visible document as a node — `department` (its first non-default
+  group, alphabetically, else "Everyone"), `exposure_score`/`is_orphan` from
+  `graph_doc_meta`, `degree` — connected by undirected cosine-similarity kNN edges over
+  the same mean chunk vectors the topic clustering uses (`graph_edge_topk=5` neighbors,
+  `graph_edge_threshold=0.35` minimum cosine, both new `Settings` fields). Reuses
+  `store.load_docs`/`service._visible` for permission filtering and a new
+  `store.group_names` helper for department resolution.
 
 ### Changed
 - **Web is now a BFF** (Step 2). `web/lib/{documents,groups,source,telegram}.ts` and the knowledge API routes call engine endpoints instead of Drizzle; the engine owns all knowledge-table access (new `engine/app/library/*`, `access.py`, and /documents, /source, /groups, /telegram endpoints). One Postgres kept by decision (no physical DB split); web keeps the auth tables + chat transcript and still defines the schema.

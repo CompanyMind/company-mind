@@ -263,6 +263,11 @@ def graph_topic(topic_id: str, workspace_id: str, user_id: str = "", role: str =
     return graph_service.get_topic(workspace_id, topic_id, user_id, role, as_group or None)
 
 
+@app.get("/graph/documents", dependencies=[Depends(require_secret)])
+def graph_documents(workspace_id: str, user_id: str = "", role: str = "member", as_group: str = ""):
+    return graph_service.document_graph(workspace_id, user_id, role, as_group or None)
+
+
 @app.get("/graph/findings", dependencies=[Depends(require_secret)])
 def graph_findings(workspace_id: str, user_id: str = "", role: str = "member",
                     as_group: str = "", kind: str = ""):

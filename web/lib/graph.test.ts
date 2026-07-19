@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getGraph, getTopic, listFindings, rebuildGraph, dismissFinding } from './graph'
+import { getGraph, getTopic, getDocumentGraph, listFindings, rebuildGraph, dismissFinding } from './graph'
 
 const ORIGINAL_ENV = { ...process.env }
 
@@ -82,6 +82,43 @@ describe('getTopic', () => {
     ])
     const [url] = fetchMock.mock.calls[0]
     expect(url).toBe('http://engine.test/graph/topic/t1?workspace_id=ws1&user_id=u1&role=member&as_group=grp-5')
+  })
+})
+
+describe('getDocumentGraph', () => {
+  it('maps exposure_score/is_orphan to camelCase and passes edges through', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        nodes: [
+          { id: 'd1', filename: 'a.pdf', department: 'Finance', exposure_score: 0.42, is_orphan: false, degree: 2 },
+          { id: 'd2', filename: 'b.pdf', department: 'Everyone', exposure_score: 0, is_orphan: true, degree: 0 },
+        ],
+        edges: [{ source: 'd1', target: 'd3', weight: 0.91 }],
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await getDocumentGraph('ws1', 'u1', 'owner', undefined)
+
+    expect(result.nodes).toEqual([
+      { id: 'd1', filename: 'a.pdf', department: 'Finance', exposureScore: 0.42, isOrphan: false, degree: 2 },
+      { id: 'd2', filename: 'b.pdf', department: 'Everyone', exposureScore: 0, isOrphan: true, degree: 0 },
+    ])
+    expect(result.edges).toEqual([{ source: 'd1', target: 'd3', weight: 0.91 }])
+
+    const [url] = fetchMock.mock.calls[0]
+    expect(url).toBe('http://engine.test/graph/documents?workspace_id=ws1&user_id=u1&role=owner')
+    expect(url).not.toContain('as_group')
+  })
+
+  it('forwards as_group when set', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ nodes: [], edges: [] }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await getDocumentGraph('ws1', 'u1', 'owner', 'grp-9')
+
+    const [url] = fetchMock.mock.calls[0]
+    expect(url).toBe('http://engine.test/graph/documents?workspace_id=ws1&user_id=u1&role=owner&as_group=grp-9')
   })
 })
 
