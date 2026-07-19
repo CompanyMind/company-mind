@@ -12,7 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   force-graph render loop paused once the graph settled, so hover only re-evaluated on the
   occasional redraw and a moving cursor skipped nodes. Keep the loop live
   (`autoPauseRedraw={false}`) and give the pointer hit-area a ~10px screen-space floor so
-  every node — including small, low-degree ones — is reliably hoverable at any zoom.
+  every node — including small, low-degree ones — is reliably hoverable at any zoom. The
+  hovered node now also shows a violet ring and enlarges slightly, so it's obvious which node
+  you're on — especially for hubs, whose many neighbors otherwise stay lit.
 
 ### Added
 - Brain Map **interactive focus + category filter**: the legend is now a filter — click a

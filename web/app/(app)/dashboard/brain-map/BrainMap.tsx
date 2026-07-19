@@ -415,12 +415,16 @@ export function BrainMap({
                     ctx.fill()
                     ctx.globalAlpha = 1
                   }
+                  // The hovered node pops: slightly larger with a violet ring, so
+                  // it's unmistakable even for a hub whose neighbors stay lit.
+                  const isHover = String(node.id) === hoverId
+                  const rr = isHover ? r + 2.5 : r
                   ctx.beginPath()
-                  ctx.arc(node.x, node.y, r, 0, 2 * Math.PI)
+                  ctx.arc(node.x, node.y, rr, 0, 2 * Math.PI)
                   ctx.fillStyle = color
                   ctx.fill()
-                  ctx.lineWidth = 1 / scale
-                  ctx.strokeStyle = 'rgba(255,255,255,0.6)'
+                  ctx.lineWidth = (isHover ? 2 : 1) / scale
+                  ctx.strokeStyle = isHover ? '#684bff' : 'rgba(255,255,255,0.6)'
                   ctx.stroke()
 
                   const focused = focus ? focus.has(String(node.id)) : false
