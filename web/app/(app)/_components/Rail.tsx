@@ -3,15 +3,23 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-const NAV = [
-  { href: '/dashboard', label: 'Ask' },
-  { href: '/dashboard/sources', label: 'Sources' },
-  { href: '/dashboard/access', label: 'Access' },
-  { href: '/dashboard/integrations', label: 'Integrations' },
-]
-
-export function Rail({ workspace, userName }: { workspace: string; userName: string | null }) {
+export function Rail({
+  workspace,
+  userName,
+  isOwner,
+}: {
+  workspace: string
+  userName: string | null
+  isOwner: boolean
+}) {
   const path = usePathname()
+  const NAV = [
+    { href: '/dashboard', label: 'Ask' },
+    { href: '/dashboard/sources', label: 'Sources' },
+    { href: '/dashboard/access', label: 'Access' },
+    { href: '/dashboard/integrations', label: 'Integrations' },
+    ...(isOwner ? [{ href: '/dashboard/brain-map', label: 'Brain Map' }] : []),
+  ]
   return (
     <aside className="flex h-dvh w-60 shrink-0 flex-col border-r border-line bg-paper-sunk px-4 py-5 max-md:h-auto max-md:w-full max-md:flex-row max-md:items-center max-md:justify-between max-md:py-3">
       <div className="max-md:flex max-md:items-center max-md:gap-6">
