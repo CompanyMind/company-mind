@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     rerank_model: str = ""
     contextual_mode: str = "header"  # off | header | llm
 
+    # --- Brain Map (governance graph) ---
+    graph_seed: int = 42
+    graph_orphan_threshold: float = 0.15
+    graph_stale_days: float = 365
+
     # Fernet key for encrypting Telegram bot tokens at rest.
     telegram_enc_key: str = ""
     # Public URL of the web app, used to build tappable source links in bot replies.
