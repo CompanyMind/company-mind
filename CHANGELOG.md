@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Brain Map web API routes: `GET /api/graph`, `GET /api/graph/topic/[id]`,
+  `GET /api/graph/findings`, `POST /api/graph/rebuild`, `POST /api/graph/findings/[id]/dismiss`.
+  All owner-gated via new `web/lib/auth/require-owner.ts::getOwner()` (reads role from the
+  `memberships` table — the graph is an owner-only governance surface; the owner always
+  queries the engine as role `'owner'`, `as_group` drives the "view as" filter). Mutating
+  routes also require a valid CSRF token.
 - Brain Map `engine/app/graph/service.py`: `build_graph` orchestrates load → cluster →
   keyword/label → layout → permission/orphan/dead/stale lenses → persist inside one
   connection; `get_graph`/`get_topic`/`list_findings`/`dismiss_finding` are
