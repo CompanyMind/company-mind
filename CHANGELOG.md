@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Brain Map hover: most nodes wouldn't respond to hover ("only 1–2 nodes work"). The
+  force-graph render loop paused once the graph settled, so hover only re-evaluated on the
+  occasional redraw and a moving cursor skipped nodes. Keep the loop live
+  (`autoPauseRedraw={false}`) and give the pointer hit-area a ~10px screen-space floor so
+  every node — including small, low-degree ones — is reliably hoverable at any zoom.
+
 ### Added
 - Brain Map **interactive focus + category filter**: the legend is now a filter — click a
   department to isolate its nodes (the rest dim, the chip gets a pill, a "Showing X" hint

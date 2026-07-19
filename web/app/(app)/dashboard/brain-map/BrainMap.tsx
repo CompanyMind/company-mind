@@ -377,6 +377,12 @@ export function BrainMap({
                 nodeRelSize={6}
                 warmupTicks={80}
                 cooldownTicks={220}
+                // Keep the render loop live after the graph settles. With the
+                // default (paused) loop, hover detection only re-evaluates on the
+                // occasional redraw, so a moving cursor skips most nodes — the
+                // "only 1-2 nodes hover" bug. Live redraw makes hover track the
+                // cursor every frame. (Cheap for this graph size.)
+                autoPauseRedraw={false}
                 onEngineStop={() => fgRef.current?.zoomToFit(500, 70)}
                 onNodeHover={(n: any) => setHoverId(n ? String(n.id) : null)}
                 onNodeClick={(n: any) =>
@@ -437,9 +443,17 @@ export function BrainMap({
                   }
                   ctx.globalAlpha = 1
                 }}
-                nodePointerAreaPaint={(node: any, color: string, ctx: CanvasRenderingContext2D) => {
+                nodePointerAreaPaint={(
+                  node: any,
+                  color: string,
+                  ctx: CanvasRenderingContext2D,
+                  scale: number,
+                ) => {
+                  // Hit-area with a screen-space floor (~10px) so even small,
+                  // low-degree nodes are easy to hover regardless of zoom.
+                  const hit = Math.max(radius(node.degree ?? 0) + 3, 10 / (scale || 1))
                   ctx.beginPath()
-                  ctx.arc(node.x, node.y, radius(node.degree ?? 0) + 2, 0, 2 * Math.PI)
+                  ctx.arc(node.x, node.y, hit, 0, 2 * Math.PI)
                   ctx.fillStyle = color
                   ctx.fill()
                 }}
