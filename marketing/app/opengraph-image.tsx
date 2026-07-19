@@ -99,28 +99,20 @@ export default function Image() {
           padding: '84px',
         }}
       >
-        {/* The wordmark — the perimeter-and-lattice mark from Wordmark.tsx. */}
+        {/* The wordmark — the nested-squares mark from Wordmark.tsx / icon.svg. */}
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <svg width="34" height="34" viewBox="0 0 20 20" fill="none">
+          <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
             <rect
-              x="1"
-              y="1"
-              width="18"
-              height="18"
-              rx="3.5"
+              x="4.5"
+              y="4.5"
+              width="23"
+              height="23"
+              rx="6.6"
               stroke="rgba(28, 27, 24, 0.35)"
-              strokeWidth="1.25"
+              strokeWidth="2.2"
             />
-            <path
-              d="M6.5 13.5 L10 6.5 L13.5 13.5 M6.5 13.5 L13.5 13.5"
-              stroke={BRAIN}
-              strokeWidth="1.25"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-            <circle cx="10" cy="6.5" r="1.6" fill={BRAIN} />
-            <circle cx="6.5" cy="13.5" r="1.6" fill={BRAIN} />
-            <circle cx="13.5" cy="13.5" r="1.6" fill={BRAIN} />
+            <rect x="10.2" y="10.2" width="11.6" height="11.6" rx="3.4" stroke={BRAIN} strokeWidth="1.6" />
+            <rect x="13.6" y="13.6" width="4.8" height="4.8" rx="1.5" fill={BRAIN} />
           </svg>
           <div
             style={{
