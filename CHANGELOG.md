@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Brain Map `engine/app/graph/service.py`: `build_graph` orchestrates load → cluster →
+  keyword/label → layout → permission/orphan/dead/stale lenses → persist inside one
+  connection; `get_graph`/`get_topic`/`list_findings`/`dismiss_finding` are
+  permission-filtered reads via a new `_visible` helper (owner sees everything, a
+  simulated `as_group` sees only that group's tagged docs). Topic labeling reuses a new
+  `engine/app/ask/answer.py::get_chat_call()` seam (extracted from `_llm_answer`'s
+  Bearer/httpx call, `None` when `use_real_models()` is false) so the fake-provider path
+  stays GPU-free.
 - Engine connection **pool** (`psycopg-pool`) replaces connect-per-call across ask, ingest, and the bot worker. `/health` now reports `embed_dim` and an `embed_dim_ok` drift check (the DB's `vector(N)` column is the source of truth for embedding width).
 - Brand logo — the "layered vault" mark (nested walls + violet `#684BFF` core).
   `public/logo.svg` (exact mark) in both apps, plus a theme-adaptive `app/icon.svg`
