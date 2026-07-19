@@ -12,6 +12,7 @@ from .library.source import get_source
 from .library import groups as lib_groups
 from .library import documents as lib_documents
 from .telegram import api as tg_api, store as tg_store
+from .graph import service as graph_service
 
 app = FastAPI(title="CompanyMind Engine")
 
@@ -230,4 +231,49 @@ class TgLinkGroupsBody(BaseModel):
 def telegram_link_groups(link_id: str, body: TgLinkGroupsBody):
     with get_conn() as conn:
         tg_store.set_link_groups(conn, body.workspace_id, link_id, body.group_ids)
+    return {"ok": True}
+
+
+class GraphRebuildBody(BaseModel):
+    workspace_id: str
+
+
+@app.post("/graph/rebuild", dependencies=[Depends(require_secret)])
+def graph_rebuild(body: GraphRebuildBody, background: BackgroundTasks):
+    # build_graph opens and finishes its own job row, so we must not start a
+    # second one here (that would leave an orphaned 'running' row behind).
+    # We just kick off the build and hand back whatever job is on record now
+    # (null on a first-ever rebuild); the web UI polls GET /graph for the
+    # fresh job once the background task completes.
+    background.add_task(graph_service.build_graph, body.workspace_id)
+    with get_conn() as conn:
+        return {"job": graph_service.store.latest_job(conn, body.workspace_id)}
+
+
+@app.get("/graph", dependencies=[Depends(require_secret)])
+def graph_get(workspace_id: str, user_id: str = "", role: str = "member", as_group: str = ""):
+    return graph_service.get_graph(workspace_id, user_id, role, as_group or None)
+
+
+@app.get("/graph/topic/{topic_id}", dependencies=[Depends(require_secret)])
+def graph_topic(topic_id: str, workspace_id: str, user_id: str = "", role: str = "member",
+                as_group: str = ""):
+    return graph_service.get_topic(workspace_id, topic_id, user_id, role, as_group or None)
+
+
+@app.get("/graph/findings", dependencies=[Depends(require_secret)])
+def graph_findings(workspace_id: str, user_id: str = "", role: str = "member",
+                    as_group: str = "", kind: str = ""):
+    return {"findings": graph_service.list_findings(
+        workspace_id, user_id, role, as_group or None, kind or None)}
+
+
+class GraphWsBody(BaseModel):
+    workspace_id: str
+
+
+@app.post("/graph/findings/{finding_id}/dismiss", dependencies=[Depends(require_secret)])
+def graph_dismiss(finding_id: str, body: GraphWsBody):
+    if not graph_service.dismiss_finding(body.workspace_id, finding_id):
+        raise HTTPException(status_code=404, detail="not found")
     return {"ok": True}
