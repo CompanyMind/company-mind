@@ -1,8 +1,13 @@
 /**
  * The CompanyMind mark: nested squares — the walls, and the indexed core
- * within them. Same shape as the favicon (app/icon.svg, viewBox 0 0 32 32)
- * at inline nav size, so the icon reads identically in the browser tab and
- * in the product itself.
+ * within them. Same shape as the favicon (web/app/icon.svg, viewBox 0 0 32
+ * 32) at inline nav size, so the icon reads identically in the browser tab
+ * and in the product itself.
+ *
+ * Kept as a duplicate of marketing/components/Wordmark.tsx rather than a
+ * shared import: web/ and marketing/ are separate deployables on purpose
+ * (see CLAUDE.md), so this file intentionally does not cross that boundary.
+ * Keep the two in sync by hand if the mark ever changes.
  *
  * Pure inline SVG: no asset request, no layout shift, inherits currentColor.
  */

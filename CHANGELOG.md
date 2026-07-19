@@ -7,7 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `web/app/(app)/_components/Wordmark.tsx` — the dashboard sidebar now shows the icon mark
+  next to "CompanyMind" (previously text-only), matching the mark already used in the
+  marketing nav and the favicon: nested squares, violet inner square on the app's `--brain`
+  token / hardcoded `#684BFF` in the standalone SVGs. Duplicated rather than shared-imported
+  from `marketing/`, per the web/marketing deployable boundary.
+
 ### Changed
+- `marketing/components/Wordmark.tsx` switched from its previous "walls + 3-node lattice"
+  icon to the same nested-squares mark as the favicon and dashboard, so the logo is now
+  identical everywhere (landing page nav, both apps' favicons, dashboard sidebar) instead of
+  two different marks under one name. Also removed the unused, wrong-branded (teal, pre-dates
+  the violet accent switch) `web/public/logo-teal.svg`.
 - **"Brain Map" renamed to "Atlas"** — the old label put the retired "CompBrain" brand name
   right back in the nav ("never CompBrain — old name", per this file's own rule). Route moved
   `web/app/(app)/dashboard/brain-map/` → `.../atlas/`, component `BrainMap` → `Atlas`
