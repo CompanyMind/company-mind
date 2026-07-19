@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 type Finding = {
   id: string
@@ -10,6 +10,16 @@ type Finding = {
   severity: number
   detail: Record<string, unknown>
   filename: string
+}
+
+// Maps each map lens toggle to the finding kind(s) it corresponds to in the
+// sidebar. 'deadstale' is the one lens that covers two kinds — the map's
+// Dead/Stale toggle treats them as a single governance signal.
+const LENS_KINDS: Record<string, string[]> = {
+  anomaly: ['permission_anomaly'],
+  exposure: ['over_exposure'],
+  orphan: ['orphan'],
+  deadstale: ['dead', 'stale'],
 }
 
 // Lens signals get their own semantic colors, deliberately separate from the
@@ -85,45 +95,52 @@ function fixHref(f: Finding): string {
 
 export function Findings({
   csrf,
-  asGroup,
+  findings,
+  lens,
   onChanged,
 }: {
   csrf: string
-  asGroup: string
+  findings: Finding[]
+  lens: string | null
   onChanged: () => void
 }) {
-  const [findings, setFindings] = useState<Finding[]>([])
   const [busyId, setBusyId] = useState<string | null>(null)
-
-  const load = useCallback(async () => {
-    const qs = asGroup ? `?as_group=${encodeURIComponent(asGroup)}` : ''
-    const r = await fetch(`/api/graph/findings${qs}`, { cache: 'no-store' })
-    if (r.ok) setFindings(((await r.json()).findings ?? []) as Finding[])
-  }, [asGroup])
-
+  // Optimistic hides for in-flight dismisses. `findings` is now owned by the
+  // parent (BrainMap), which refetches after `onChanged()` fires — so once a
+  // fresh list lands here, drop any stale hides instead of tracking removal
+  // locally.
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set())
   useEffect(() => {
-    void load()
-  }, [load])
+    setHiddenIds(new Set())
+  }, [findings])
 
   async function dismiss(id: string) {
     setBusyId(id)
-    const prev = findings
-    setFindings((fs) => fs.filter((f) => f.id !== id))
+    setHiddenIds((prev) => new Set(prev).add(id))
     try {
       await fetch(`/api/graph/findings/${id}/dismiss`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-csrf-token': csrf },
       })
     } catch {
-      setFindings(prev) // roll back the optimistic removal on network failure
+      setHiddenIds((prev) => {
+        const next = new Set(prev)
+        next.delete(id) // roll back the optimistic hide on network failure
+        return next
+      })
     } finally {
       setBusyId(null)
       onChanged()
     }
   }
 
+  const kindFilter = lens ? LENS_KINDS[lens] : null
+  const visible = findings.filter(
+    (f) => !hiddenIds.has(f.id) && (!kindFilter || kindFilter.includes(f.kind)),
+  )
+
   const groups = new Map<string, Finding[]>()
-  for (const f of findings) {
+  for (const f of visible) {
     const list = groups.get(f.kind) ?? []
     list.push(f)
     groups.set(f.kind, list)
@@ -134,7 +151,7 @@ export function Findings({
       <div className="border-b border-line px-4 py-3">
         <h2 className="font-display text-lg text-ink">Findings</h2>
         <p className="mt-1 text-body-sm text-ink-soft">
-          {findings.length === 0 ? 'Nothing needs attention.' : `${findings.length} to review`}
+          {visible.length === 0 ? 'Nothing needs attention.' : `${visible.length} to review`}
         </p>
       </div>
       <div className="divide-y divide-line">
@@ -171,7 +188,7 @@ export function Findings({
             </section>
           )
         })}
-        {findings.length === 0 && (
+        {visible.length === 0 && (
           <p className="px-4 py-6 text-body-sm text-ink-soft">
             No open findings for this view. Rebuild the map after uploading or re-tagging
             documents to refresh them.
