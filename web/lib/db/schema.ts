@@ -137,6 +137,7 @@ export const chats = pgTable(
       .references(() => users.id, { onDelete: 'cascade' }),
     title: text('title'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [index('chats_workspace_idx').on(t.workspaceId)],
 )

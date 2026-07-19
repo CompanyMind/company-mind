@@ -1,5 +1,5 @@
 import 'server-only'
-import { and, asc, eq } from 'drizzle-orm'
+import { and, asc, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { chats, messages, citations } from '@/lib/db/schema'
 import type { EngineCitation } from '@/lib/engine'
@@ -17,20 +17,77 @@ export type ChatMessage = {
   }[]
 }
 
-export async function getOrCreateChat(workspaceId: string, userId: string): Promise<string> {
-  const existing = await db.query.chats.findFirst({ where: eq(chats.workspaceId, workspaceId) })
-  if (existing) return existing.id
-  const [c] = await db.insert(chats).values({ workspaceId, userId, title: 'Ask' }).returning()
-  return c.id
+export type ChatSummary = {
+  id: string
+  title: string | null
+  updatedAt: Date
 }
 
-export async function listMessages(chatId: string, workspaceId: string): Promise<ChatMessage[]> {
+// Every chat is owned by exactly one (workspaceId, userId) pair. All reads and
+// writes below scope to both — a user can only ever see/touch their own chats.
+
+export async function listChats(
+  workspaceId: string,
+  userId: string,
+  q?: string,
+): Promise<ChatSummary[]> {
+  const scope = and(eq(chats.workspaceId, workspaceId), eq(chats.userId, userId))
+  const query = q?.trim()
+  const where = query
+    ? and(
+        scope,
+        or(
+          ilike(chats.title, `%${query}%`),
+          inArray(
+            chats.id,
+            db
+              .select({ chatId: messages.chatId })
+              .from(messages)
+              .where(ilike(messages.content, `%${query}%`)),
+          ),
+        ),
+      )
+    : scope
+  return db
+    .select({ id: chats.id, title: chats.title, updatedAt: chats.updatedAt })
+    .from(chats)
+    .where(where)
+    .orderBy(desc(chats.updatedAt))
+}
+
+export async function createChat(workspaceId: string, userId: string): Promise<{ id: string }> {
+  const [c] = await db.insert(chats).values({ workspaceId, userId, title: null }).returning()
+  return { id: c.id }
+}
+
+export async function chatOwned(
+  chatId: string,
+  workspaceId: string,
+  userId: string,
+): Promise<boolean> {
+  const row = await db.query.chats.findFirst({
+    where: and(eq(chats.id, chatId), eq(chats.workspaceId, workspaceId), eq(chats.userId, userId)),
+    columns: { id: true },
+  })
+  return !!row
+}
+
+export async function getChatMessages(
+  chatId: string,
+  workspaceId: string,
+  userId: string,
+): Promise<ChatMessage[] | null> {
+  if (!(await chatOwned(chatId, workspaceId, userId))) return null
+
   const rows = await db
     .select()
     .from(messages)
-    .where(and(eq(messages.chatId, chatId), eq(messages.workspaceId, workspaceId)))
+    .where(eq(messages.chatId, chatId))
     .orderBy(asc(messages.createdAt))
-  const cites = await db.select().from(citations).where(eq(citations.workspaceId, workspaceId))
+  const messageIds = rows.map((m) => m.id)
+  const cites = messageIds.length
+    ? await db.select().from(citations).where(inArray(citations.messageId, messageIds))
+    : []
   return rows.map((m) => ({
     id: m.id,
     role: m.role as 'user' | 'assistant',
@@ -48,12 +105,34 @@ export async function listMessages(chatId: string, workspaceId: string): Promise
   }))
 }
 
+export async function renameChat(
+  chatId: string,
+  workspaceId: string,
+  userId: string,
+  title: string,
+): Promise<boolean> {
+  if (!(await chatOwned(chatId, workspaceId, userId))) return false
+  await db.update(chats).set({ title }).where(eq(chats.id, chatId))
+  return true
+}
+
+export async function deleteChat(
+  chatId: string,
+  workspaceId: string,
+  userId: string,
+): Promise<boolean> {
+  if (!(await chatOwned(chatId, workspaceId, userId))) return false
+  await db.delete(chats).where(eq(chats.id, chatId)) // cascades to messages/citations
+  return true
+}
+
 export async function saveTurn(opts: {
   chatId: string
   workspaceId: string
   question: string
   answer: string
   engineCitations: EngineCitation[]
+  title?: string
 }): Promise<ChatMessage> {
   await db.insert(messages).values({
     chatId: opts.chatId,
@@ -84,6 +163,19 @@ export async function saveTurn(opts: {
       })),
     )
   }
+  // Bump updatedAt on every turn (drives listChats ordering). Only set the
+  // title if the caller supplied one AND the chat doesn't already have one —
+  // the route decides *when* to compute a smart title (first turn only); this
+  // just persists it without a race against a title set in the meantime.
+  await db
+    .update(chats)
+    .set(
+      opts.title
+        ? { updatedAt: new Date(), title: sql`coalesce(${chats.title}, ${opts.title})` }
+        : { updatedAt: new Date() },
+    )
+    .where(eq(chats.id, opts.chatId))
+
   return {
     id: assistant.id,
     role: 'assistant',
@@ -100,4 +192,3 @@ export async function saveTurn(opts: {
       })),
   }
 }
-

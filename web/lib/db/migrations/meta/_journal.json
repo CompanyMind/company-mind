@@ -57,6 +57,13 @@
       "when": 1784403554455,
       "tag": "0007_fresh_odin",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784445346398,
+      "tag": "0008_dear_blonde_phantom",
+      "breakpoints": true
     }
   ]
 }

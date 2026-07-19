@@ -28,3 +28,10 @@ def test_graph_routes_registered_and_secret_guarded():
     assert client.get("/graph/topic/t1", params={"workspace_id": "w"}).status_code == 401
     assert client.get("/graph/findings", params={"workspace_id": "w"}).status_code == 401
     assert client.post("/graph/findings/f1/dismiss", json={"workspace_id": "w"}).status_code == 401
+
+
+def test_title_route_registered_and_secret_guarded():
+    client = TestClient(app)
+    paths = {r.path for r in app.routes}
+    assert "/title" in paths
+    assert client.post("/title", json={"text": "hello"}).status_code == 401

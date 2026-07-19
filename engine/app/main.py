@@ -8,6 +8,8 @@ from .db import get_conn
 from .access import resolve_access
 from .ingest.store import process_document
 from .ask.service import answer_query
+from .ask.answer import get_chat_call
+from .ask.title import generate_title
 from .library.source import get_source
 from .library import groups as lib_groups
 from .library import documents as lib_documents
@@ -82,6 +84,15 @@ def ask(body: AskBody):
             for c in result.citations
         ],
     }
+
+
+class TitleBody(BaseModel):
+    text: str
+
+
+@app.post("/title", dependencies=[Depends(require_secret)])
+def title(body: TitleBody):
+    return {"title": generate_title(body.text, get_chat_call())}
 
 
 @app.get("/source/{chunk_id}", dependencies=[Depends(require_secret)])

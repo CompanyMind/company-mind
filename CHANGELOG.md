@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Chat history backend: per-user, multi-conversation Ask threads. `chats` gained
+  `updatedAt`; `web/lib/chat.ts` now exposes `listChats` (with optional title/message
+  search), `createChat`, `chatOwned`, `getChatMessages`, `renameChat`, `deleteChat`, all
+  scoped to `(workspaceId, userId)` so a user can only ever see/touch their own chats.
+  New routes `GET/POST /api/chats` and `GET/PATCH/DELETE /api/chats/[id]`.
+  `POST /api/ask` now takes `{question, chatId?}`, verifies ownership of an existing
+  chat or starts a new one, and returns `{message, chatId, title}`. Engine gained
+  `POST /title` (`engine/app/ask/title.py::generate_title`) for a smart 3-6 word LLM
+  chat title on the first turn, with a deterministic truncation fallback (fake
+  providers, or on any engine error) so title generation never blocks a turn.
 - Brain Map **Obsidian-style document graph** — a document-level knowledge map where each
   node is a document colored by its department (access group), connected by embedding
   **similarity edges** (`GET /api/graph/documents`, backed by a kNN over doc vectors with

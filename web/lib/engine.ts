@@ -100,3 +100,32 @@ export async function askEngine(
   if (!res.ok) throw new Error(`engine /ask responded ${res.status}`)
   return res.json()
 }
+
+// Best-effort chat title from the first message. A title failure must never
+// break a turn, so any engine error (network, non-2xx, bad body) falls back
+// to a truncated version of the text instead of throwing.
+function fallbackTitle(text: string): string {
+  const trimmed = text.trim()
+  if (trimmed.length <= 48) return trimmed
+  const cut = trimmed.slice(0, 48)
+  const lastSpace = cut.lastIndexOf(' ')
+  return (lastSpace > 20 ? cut.slice(0, lastSpace) : cut).trim()
+}
+
+export async function generateTitle(text: string): Promise<string> {
+  try {
+    const res = await fetch(`${env.ENGINE_BASE_URL}/title`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-engine-secret': env.ENGINE_INTERNAL_SECRET,
+      },
+      body: JSON.stringify({ text }),
+    })
+    if (!res.ok) return fallbackTitle(text)
+    const data = (await res.json()) as { title?: string }
+    return data.title?.trim() || fallbackTitle(text)
+  } catch {
+    return fallbackTitle(text)
+  }
+}
