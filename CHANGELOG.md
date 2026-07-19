@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Brain Map owner page (`web/app/(app)/dashboard/brain-map/`): a 2D topic map rendered
+  with `react-force-graph-2d` (dynamically imported with `ssr: false` — the renderer
+  touches `window`/`document` at import time), nodes pinned at their stored PCA layout
+  and sized by document count, a **Rebuild map** action that polls `/api/graph` off the
+  freshly-fetched job status (not a stale closure) until the job leaves `running`, an "as
+  of &lt;time&gt;" freshness label, and a **View as** group selector reusing the owner-only
+  `getOwner()`/`as_group` plumbing. A `Findings` sidebar groups permission-anomaly /
+  over-exposure / orphan / dead / stale findings by kind with a **Fix** link to
+  `/dashboard/sources?doc=<id>` and a **Dismiss** action, both CSRF-guarded.
 - Brain Map web API routes: `GET /api/graph`, `GET /api/graph/topic/[id]`,
   `GET /api/graph/findings`, `POST /api/graph/rebuild`, `POST /api/graph/findings/[id]/dismiss`.
   All owner-gated via new `web/lib/auth/require-owner.ts::getOwner()` (reads role from the
