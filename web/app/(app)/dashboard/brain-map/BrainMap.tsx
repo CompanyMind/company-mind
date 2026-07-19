@@ -85,10 +85,9 @@ export function BrainMap({
   const [findings, setFindings] = useState<Finding[]>([])
   const [lens, setLens] = useState<Lens | null>(null)
   const [query, setQuery] = useState('')
+  // Hovering a node focuses it (highlight + tooltip); clicking opens its source.
   const [hoverId, setHoverId] = useState<string | null>(null)
-  // First click selects a node (persistent focus + tooltip); clicking the
-  // selected node again opens it. `activeDept` isolates one legend category.
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  // `activeDept` isolates one legend category.
   const [activeDept, setActiveDept] = useState<string | null>(null)
 
   const fgRef = useRef<any>(null)
@@ -196,10 +195,9 @@ export function BrainMap({
   // that department. null = no focus (everything full-strength).
   const q = query.trim().toLowerCase()
   const focus = useMemo(() => {
-    const focusNode = hoverId ?? selectedId
-    if (focusNode) {
-      const s = new Set<string>([focusNode])
-      for (const n of adjacency.get(focusNode) ?? []) s.add(n)
+    if (hoverId) {
+      const s = new Set<string>([hoverId])
+      for (const n of adjacency.get(hoverId) ?? []) s.add(n)
       return s
     }
     if (q) {
@@ -213,10 +211,10 @@ export function BrainMap({
       return s
     }
     return null
-  }, [hoverId, selectedId, q, activeDept, adjacency, nodes])
+  }, [hoverId, q, activeDept, adjacency, nodes])
 
-  // The node whose tooltip is shown: hovered takes precedence, else selected.
-  const tipId = hoverId ?? selectedId
+  // The node whose tooltip is shown while hovering.
+  const tipId = hoverId
   const tip = tipId ? (nodes.find((n) => n.id === tipId) ?? null) : null
 
   const graphData = useMemo(
@@ -381,16 +379,9 @@ export function BrainMap({
                 cooldownTicks={220}
                 onEngineStop={() => fgRef.current?.zoomToFit(500, 70)}
                 onNodeHover={(n: any) => setHoverId(n ? String(n.id) : null)}
-                onNodeClick={(n: any) => {
-                  const id = String(n.id)
-                  // First click selects; clicking the already-selected node opens it.
-                  if (selectedId === id) {
-                    router.push(`/dashboard/sources?doc=${encodeURIComponent(id)}`)
-                  } else {
-                    setSelectedId(id)
-                  }
-                }}
-                onBackgroundClick={() => setSelectedId(null)}
+                onNodeClick={(n: any) =>
+                  router.push(`/dashboard/sources?doc=${encodeURIComponent(String(n.id))}`)
+                }
                 linkColor={(link: any) => {
                   const s = typeof link.source === 'object' ? link.source.id : link.source
                   const t = typeof link.target === 'object' ? link.target.id : link.target
@@ -425,14 +416,6 @@ export function BrainMap({
                   ctx.lineWidth = 1 / scale
                   ctx.strokeStyle = 'rgba(255,255,255,0.6)'
                   ctx.stroke()
-                  // selection ring
-                  if (String(node.id) === selectedId) {
-                    ctx.beginPath()
-                    ctx.arc(node.x, node.y, r + 3, 0, 2 * Math.PI)
-                    ctx.lineWidth = 1.6 / scale
-                    ctx.strokeStyle = '#684bff'
-                    ctx.stroke()
-                  }
 
                   const focused = focus ? focus.has(String(node.id)) : false
                   const showLabel = focused || scale > 2.4 || (node.degree ?? 0) >= 9
