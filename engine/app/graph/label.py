@@ -20,7 +20,7 @@ def label_cluster(
     )
     try:
         raw = call(prompt)
+        label = raw.strip().strip('"').strip().splitlines()[0].strip() if raw else ""
     except Exception:  # noqa: BLE001 — labeling never blocks a build
         return _fallback(keywords)
-    label = raw.strip().strip('"').strip().splitlines()[0].strip() if raw else ""
     return label[:60] or _fallback(keywords)
