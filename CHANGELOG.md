@@ -37,6 +37,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   already named neutrally and needed no changes.
 
 ### Fixed
+- Atlas hover/click, root cause: force-graph resolves both through a shadow canvas — every
+  node is painted in a unique flat color onto an invisible canvas, and each mouse move reads
+  back the single pixel under the cursor (`ctx.getImageData`) to look up which node owns that
+  color. Browsers that add noise to canvas pixel reads for anti-fingerprinting purposes —
+  Brave's "Block fingerprinting" shield does this by default — corrupt that lookup, so the
+  returned color occasionally lands close enough to a neighboring node's to misresolve, and hover
+  fails for an unpredictable subset of nodes each reload. This is a browser privacy feature
+  colliding with the library's interaction model, not an app bug, and it fully explains the
+  earlier "some nodes hover, some don't" reports that survived the previous three-cause fix.
+  Replaced force-graph's built-in hit-testing (`enablePointerInteraction={false}`, and removed
+  the now-dead `nodePointerAreaPaint`) with our own geometric hit-testing: on every mouse move,
+  compare cursor position against each node's actual on-screen position
+  (`graph2ScreenCoords`) and pick the nearest one within its hit radius, matching the same
+  hit-area/label-footprint geometry the old pixel-based version used. Pan/drag is tracked
+  separately so panning the canvas doesn't fight the cursor with hover changes, and a
+  pan-release doesn't get mistaken for a click-to-open. Never touches canvas pixel data, so
+  it's immune to farbling in Brave/Tor/any similarly-hardened browser, and also closes the
+  "buried under a hub neighbour" risk the previous fix's cause #3 could only flag as
+  precautionary — there's no shared paint-order buffer to bury a hit in anymore.
 - Atlas department colors: only 4 of 13 departments rendered in color, the other 9 fell back
   to the same warm grey as "Everyone" — the palette was a hardcoded 5-name `DEPT_COLORS` map,
   but a department is just the first non-default access group name, so the set of names is

@@ -384,6 +384,125 @@ export function Atlas({
     fg.zoom(fg.zoom() * factor, 250)
   }, [])
 
+  // Reused only for ctx.measureText — never read back as pixels, so it isn't
+  // subject to canvas-fingerprinting protections (see nodeAtPointer below).
+  const measureCtxRef = useRef<CanvasRenderingContext2D | null>(null)
+
+  // Our own hit-testing, done in graph-space math rather than force-graph's
+  // built-in shadow-canvas pixel lookup (getObjUnderPointer -> ctx.getImageData
+  // -> color->node table). That lookup silently breaks under any browser that
+  // perturbs canvas pixel reads for anti-fingerprinting — Brave's "Block
+  // fingerprinting" shield does exactly this, and it's on by default. The
+  // symptom matches what was reported: hover resolves for some nodes and not
+  // others, because the returned color occasionally lands close enough to a
+  // neighboring node's hit-color to misresolve, and the noise differs every
+  // reload. Chrome doesn't farble canvas reads, so the same code "just worked"
+  // there. Geometry only needs graph2ScreenCoords + each node's own on-screen
+  // radius, so it can't be fooled by pixel noise — and it's immune to
+  // Atlas.tsx's precondition, "each node paints over the last, so a small dot
+  // can be buried in the hit buffer" (previous fix's cause #3), because there
+  // is no buffer: every node is tested independently every frame.
+  const nodeAtPointer = useCallback(
+    (clientX: number, clientY: number): DocNode | null => {
+      const fg = fgRef.current
+      const el = containerRef.current
+      if (!fg?.graph2ScreenCoords || !el) return null
+      const rect = el.getBoundingClientRect()
+      const x = clientX - rect.left
+      const y = clientY - rect.top
+      const scale = fg.zoom ? fg.zoom() : 1
+      if (!measureCtxRef.current) {
+        measureCtxRef.current = document.createElement('canvas').getContext('2d')
+      }
+      const mCtx = measureCtxRef.current
+
+      let best: DocNode | null = null
+      let bestDist = Infinity
+      for (const n of nodesRef.current as (DocNode & { x?: number; y?: number })[]) {
+        if (typeof n.x !== 'number' || typeof n.y !== 'number') continue
+        const { x: sx, y: sy } = fg.graph2ScreenCoords(n.x, n.y)
+        const r = radius(n.degree ?? 0)
+        // Same screen-space floor as the old hit-area paint, so small nodes
+        // stay easy to hit at any zoom.
+        const hit = Math.max(r + 3, 10 / (scale || 1))
+        const dist = Math.hypot(x - sx, y - sy)
+        if (dist <= hit && dist < bestDist) {
+          bestDist = dist
+          best = n
+        }
+
+        // The label is a hit target too — mirrors the showLabel/geometry logic
+        // in nodeCanvasObject so aiming at the filename text (often the widest
+        // thing on screen at this document count) hits the node it labels.
+        const dimmed = focus ? !focus.has(n.id) : false
+        const focused = focus ? focus.has(n.id) : false
+        const isHub = (n.degree ?? 0) >= degreeStats.hubThreshold
+        if (mCtx && (focused || scale > 2.4 || isHub) && !dimmed) {
+          const fontSize = Math.max((isHub ? 13 : 10) / scale, 2.2)
+          mCtx.font = `${isHub ? 700 : 500} ${fontSize}px ui-sans-serif, system-ui, sans-serif`
+          const w = mCtx.measureText(shortName(String(n.filename ?? ''))).width
+          const top = sy + r + 2
+          if (x >= sx - w / 2 && x <= sx + w / 2 && y >= top && y <= top + fontSize && bestDist > 0) {
+            bestDist = 0
+            best = n
+          }
+        }
+      }
+      return best
+    },
+    [radius, degreeStats.hubThreshold, focus],
+  )
+
+  // Drives hover/click from our own geometric hit-testing instead of
+  // force-graph's built-in pointer handling (disabled via
+  // enablePointerInteraction={false} below). A drag/pan is tracked separately
+  // so panning the canvas doesn't fight the cursor with hover changes, and a
+  // pan release doesn't get mistaken for a click-to-open.
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el || nodes.length === 0 || size.width === 0 || size.height === 0) return
+    const drag = { down: false, moved: false, x: 0, y: 0 }
+    const onDown = (e: MouseEvent) => {
+      drag.down = true
+      drag.moved = false
+      drag.x = e.clientX
+      drag.y = e.clientY
+    }
+    const onMove = (e: MouseEvent) => {
+      if (drag.down && !drag.moved && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 4) {
+        drag.moved = true
+      }
+      if (drag.down && drag.moved) return
+      const n = nodeAtPointer(e.clientX, e.clientY)
+      setHoverId(n ? n.id : null)
+      el.style.cursor = n ? 'pointer' : ''
+    }
+    const onUp = () => {
+      drag.down = false
+    }
+    const onLeave = () => {
+      setHoverId(null)
+      el.style.cursor = ''
+    }
+    const onClick = (e: MouseEvent) => {
+      if (drag.moved) return
+      const n = nodeAtPointer(e.clientX, e.clientY)
+      if (n) router.push(`/dashboard/sources?doc=${encodeURIComponent(n.id)}`)
+    }
+    el.addEventListener('mousedown', onDown)
+    el.addEventListener('mousemove', onMove)
+    el.addEventListener('mouseup', onUp)
+    el.addEventListener('mouseleave', onLeave)
+    el.addEventListener('click', onClick)
+    return () => {
+      el.removeEventListener('mousedown', onDown)
+      el.removeEventListener('mousemove', onMove)
+      el.removeEventListener('mouseup', onUp)
+      el.removeEventListener('mouseleave', onLeave)
+      el.removeEventListener('click', onClick)
+    }
+  }, [nodes.length, size.width, size.height, nodeAtPointer, router])
+
   // The force-graph is lazy-loaded (dynamic import, ssr:false), so on first
   // render its d3 simulation isn't ready yet and `d3Force(...)` returns
   // undefined — a plain effect would silently no-op. Poll until the sim exists,
@@ -528,11 +647,16 @@ export function Atlas({
                 // "only 1-2 nodes hover" bug. Live redraw makes hover track the
                 // cursor every frame. (Cheap for this graph size.)
                 autoPauseRedraw={false}
+                // force-graph's own hover/click detection reads pixels back off an
+                // invisible shadow canvas (getImageData) to figure out which node
+                // is under the cursor. Browsers that add noise to canvas reads for
+                // anti-fingerprinting — Brave's "Block fingerprinting" shield does
+                // this by default — corrupt that lookup, so hover/click resolve
+                // for some nodes and silently miss others. Disabled here in favor
+                // of our own geometric hit-testing (nodeAtPointer + the mouse
+                // listeners above), which never reads canvas pixels.
+                enablePointerInteraction={false}
                 onEngineStop={() => fgRef.current?.zoomToFit(500, 70)}
-                onNodeHover={(n: any) => setHoverId(n ? String(n.id) : null)}
-                onNodeClick={(n: any) =>
-                  router.push(`/dashboard/sources?doc=${encodeURIComponent(String(n.id))}`)
-                }
                 linkColor={(link: any) => {
                   const s = typeof link.source === 'object' ? link.source.id : link.source
                   const t = typeof link.target === 'object' ? link.target.id : link.target
@@ -609,37 +733,6 @@ export function Atlas({
                     ctx.fillText(label, node.x, y)
                   }
                   ctx.globalAlpha = 1
-                }}
-                nodePointerAreaPaint={(
-                  node: any,
-                  color: string,
-                  ctx: CanvasRenderingContext2D,
-                  scale: number,
-                ) => {
-                  // Hit-area with a screen-space floor (~10px) so even small,
-                  // low-degree nodes are easy to hover regardless of zoom.
-                  const r = radius(node.degree ?? 0)
-                  const hit = Math.max(r + 3, 10 / (scale || 1))
-                  ctx.fillStyle = color
-                  ctx.beginPath()
-                  ctx.arc(node.x, node.y, hit, 0, 2 * Math.PI)
-                  ctx.fill()
-
-                  // The label is a hit target too. At this document count a dot
-                  // is only a few px across while its filename caption is by far
-                  // the biggest thing on screen, so aiming at the text — the
-                  // obvious thing to do — used to hover nothing at all. Mirrors
-                  // the showLabel/geometry logic in nodeCanvasObject above; keep
-                  // the two in step.
-                  const dimmed = focus ? !focus.has(String(node.id)) : false
-                  const focused = focus ? focus.has(String(node.id)) : false
-                  const isHub = (node.degree ?? 0) >= degreeStats.hubThreshold
-                  if ((focused || scale > 2.4 || isHub) && !dimmed) {
-                    const fontSize = Math.max((isHub ? 13 : 10) / scale, 2.2)
-                    ctx.font = `${isHub ? 700 : 500} ${fontSize}px ui-sans-serif, system-ui, sans-serif`
-                    const w = ctx.measureText(shortName(String(node.name ?? ''))).width
-                    ctx.fillRect(node.x - w / 2, node.y + r + 2, w, fontSize)
-                  }
                 }}
                 backgroundColor="transparent"
               />
