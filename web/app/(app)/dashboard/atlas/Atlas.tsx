@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { forceX, forceY, forceCollide } from 'd3-force'
+import { quadtree, type Quadtree } from 'd3-quadtree'
 import { Findings } from './Findings'
 
 // Canvas rendering only makes sense in the browser — force-graph touches
@@ -388,6 +389,34 @@ export function Atlas({
   // subject to canvas-fingerprinting protections (see nodeAtPointer below).
   const measureCtxRef = useRef<CanvasRenderingContext2D | null>(null)
 
+  // Spatial index over node positions, in GRAPH space (node.x/node.y), not
+  // screen space — so pan/zoom alone never invalidates it, only the force
+  // simulation actually moving a node does. Rebuilt every animation frame
+  // below; O(n) to build (microseconds at this node count, far under the cost
+  // of the canvas redraw already happening every frame), but turns the
+  // per-mousemove dot lookup from O(n) into O(log n), which is what actually
+  // matters once the corpus is large enough that "moving the mouse around an
+  // already-settled graph" dominates over "the layout is still animating".
+  const quadtreeRef = useRef<Quadtree<DocNode & { x: number; y: number }> | null>(null)
+
+  useEffect(() => {
+    if (nodes.length === 0) return
+    let raf = 0
+    const tick = () => {
+      const pts = (nodesRef.current as (DocNode & { x?: number; y?: number })[]).filter(
+        (n): n is DocNode & { x: number; y: number } =>
+          typeof n.x === 'number' && typeof n.y === 'number',
+      )
+      quadtreeRef.current = quadtree<DocNode & { x: number; y: number }>()
+        .x((n) => n.x)
+        .y((n) => n.y)
+        .addAll(pts)
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [nodes.length])
+
   // Our own hit-testing, done in graph-space math rather than force-graph's
   // built-in shadow-canvas pixel lookup (getObjUnderPointer -> ctx.getImageData
   // -> color->node table). That lookup silently breaks under any browser that
@@ -406,38 +435,60 @@ export function Atlas({
     (clientX: number, clientY: number): DocNode | null => {
       const fg = fgRef.current
       const el = containerRef.current
-      if (!fg?.graph2ScreenCoords || !el) return null
+      if (!fg?.graph2ScreenCoords || !fg?.screen2GraphCoords || !el) return null
       const rect = el.getBoundingClientRect()
       const x = clientX - rect.left
       const y = clientY - rect.top
       const scale = fg.zoom ? fg.zoom() : 1
+
+      let best: DocNode | null = null
+      let bestDist = Infinity
+
+      // The dot: nearest node by actual position, found via the quadtree
+      // (O(log n)) instead of scanning every node. quadtree.find() returns the
+      // single closest point with no notion of per-node radius, so the result
+      // still needs a check against THAT node's own hit circle — a hub twice
+      // the size of its neighbor should still win from further away.
+      const qt = quadtreeRef.current
+      if (qt) {
+        const { x: gx, y: gy } = fg.screen2GraphCoords(x, y)
+        const nearest = qt.find(gx, gy)
+        if (nearest) {
+          const { x: sx, y: sy } = fg.graph2ScreenCoords(nearest.x, nearest.y)
+          const r = radius(nearest.degree ?? 0)
+          // Same screen-space floor as the old hit-area paint, so small nodes
+          // stay easy to hit at any zoom.
+          const hit = Math.max(r + 3, 10 / (scale || 1))
+          const dist = Math.hypot(x - sx, y - sy)
+          if (dist <= hit) {
+            bestDist = dist
+            best = nearest
+          }
+        }
+      }
+
+      // The label is a hit target too — mirrors the showLabel/geometry logic
+      // in nodeCanvasObject so aiming at the filename text (often the widest
+      // thing on screen at this document count) hits the node it labels. A
+      // label sits offset below its dot rather than centered on it, so this
+      // can't be answered by the position-only quadtree; it stays a scan, but
+      // one bounded by degreeStats.hubThreshold (capped at 12 nodes) rather
+      // than the full node count, except while zoomed in enough that every
+      // node draws a label — at which point this is already exactly as much
+      // work as the visible canvas is doing that frame.
       if (!measureCtxRef.current) {
         measureCtxRef.current = document.createElement('canvas').getContext('2d')
       }
       const mCtx = measureCtxRef.current
-
-      let best: DocNode | null = null
-      let bestDist = Infinity
-      for (const n of nodesRef.current as (DocNode & { x?: number; y?: number })[]) {
-        if (typeof n.x !== 'number' || typeof n.y !== 'number') continue
-        const { x: sx, y: sy } = fg.graph2ScreenCoords(n.x, n.y)
-        const r = radius(n.degree ?? 0)
-        // Same screen-space floor as the old hit-area paint, so small nodes
-        // stay easy to hit at any zoom.
-        const hit = Math.max(r + 3, 10 / (scale || 1))
-        const dist = Math.hypot(x - sx, y - sy)
-        if (dist <= hit && dist < bestDist) {
-          bestDist = dist
-          best = n
-        }
-
-        // The label is a hit target too — mirrors the showLabel/geometry logic
-        // in nodeCanvasObject so aiming at the filename text (often the widest
-        // thing on screen at this document count) hits the node it labels.
-        const dimmed = focus ? !focus.has(n.id) : false
-        const focused = focus ? focus.has(n.id) : false
-        const isHub = (n.degree ?? 0) >= degreeStats.hubThreshold
-        if (mCtx && (focused || scale > 2.4 || isHub) && !dimmed) {
+      if (mCtx) {
+        for (const n of nodesRef.current as (DocNode & { x?: number; y?: number })[]) {
+          if (typeof n.x !== 'number' || typeof n.y !== 'number') continue
+          const dimmed = focus ? !focus.has(n.id) : false
+          const focused = focus ? focus.has(n.id) : false
+          const isHub = (n.degree ?? 0) >= degreeStats.hubThreshold
+          if (dimmed || !(focused || scale > 2.4 || isHub)) continue
+          const { x: sx, y: sy } = fg.graph2ScreenCoords(n.x, n.y)
+          const r = radius(n.degree ?? 0)
           const fontSize = Math.max((isHub ? 13 : 10) / scale, 2.2)
           mCtx.font = `${isHub ? 700 : 500} ${fontSize}px ui-sans-serif, system-ui, sans-serif`
           const w = mCtx.measureText(shortName(String(n.filename ?? ''))).width

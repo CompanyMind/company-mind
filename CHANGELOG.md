@@ -50,7 +50,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the now-dead `nodePointerAreaPaint`) with our own geometric hit-testing: on every mouse move,
   compare cursor position against each node's actual on-screen position
   (`graph2ScreenCoords`) and pick the nearest one within its hit radius, matching the same
-  hit-area/label-footprint geometry the old pixel-based version used. Pan/drag is tracked
+  hit-area/label-footprint geometry the old pixel-based version used. The dot lookup itself
+  runs against a `d3-quadtree` spatial index (rebuilt every animation frame from live node
+  positions, in graph space so pan/zoom alone never invalidates it) rather than scanning every
+  node per mouse move, so it stays O(log n) as the corpus grows well past today's ~150
+  documents; only the much smaller label-hit check (bounded by `degreeStats.hubThreshold`,
+  capped at 12) remains a linear scan. Pan/drag is tracked
   separately so panning the canvas doesn't fight the cursor with hover changes, and a
   pan-release doesn't get mistaken for a click-to-open. Never touches canvas pixel data, so
   it's immune to farbling in Brave/Tor/any similarly-hardened browser, and also closes the
