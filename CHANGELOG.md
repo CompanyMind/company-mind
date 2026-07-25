@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Retrieval & ingestion re-architecture spec —
+  `docs/superpowers/specs/2026-07-25-retrieval-rearchitecture-design.md`. Backed by a 24-agent
+  research run (12 web-research sweeps, 2 code audits, 3 competing architectures, 6 adversarial
+  critiques). Core finding: the blocker is the **type of a citation** — `ParsedDoc(text: str)` plus
+  `(page, char_start, char_end)` cannot express a cell range, an audio timespan, or a bbox, which is
+  why "any format" and "cite the exact source" are currently mutually exclusive. Replaces the flat
+  string with typed `blocks` carrying a modality-polymorphic `locator jsonb`, makes `chunks` a pure
+  retrieval unit joined via `chunk_blocks`, and keeps everything in the one Postgres. Documents
+  eleven verified accuracy defects (chief among them: `plainto_tsquery` ANDs every term and is used
+  as a hard WHERE filter, so the lexical arm usually returns zero rows and "hybrid" silently
+  degrades to dense-only; `to_tsvector('english', …)` over Cyrillic is a no-op stemmer), two
+  data-destroying bugs (`citations` cascade-delete on re-ingest destroys the evidence for every past
+  answer; `embed.py` assumes response ordering), and the absence of any CI or eval harness. Phases
+  the work 1–5 (~17.5 engineer-weeks) with OCR, audio and the aggregation lane deferred, and records
+  the architectures rejected on evidence (visual/ColPali late interaction, agent loops, a second
+  datastore, GraphRAG, RAPTOR, semantic chunking, late chunking, HyDE).
 - `web/scripts/seed-corpus.ts` (`npm run seed:corpus`) — bulk-loads a directory of
   documents plus a `manifest.json` (filename -> access-group names) through the real
   web API: mints a session for an existing seeded user directly in the auth DB
