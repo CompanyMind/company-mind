@@ -4,6 +4,7 @@ import { verifyCsrf } from '@/lib/csrf'
 import { saveFile } from '@/lib/storage'
 import { uploadDocument } from '@/lib/engine'
 import { listDocuments } from '@/lib/documents'
+import { MAX_UPLOAD_BYTES, exceedsUploadLimit } from '@/lib/upload-limits'
 
 export const runtime = 'nodejs'
 
@@ -13,7 +14,6 @@ const ALLOWED = new Map<string, string>([
   ['md', 'text/markdown'],
   ['docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
 ])
-const MAX_BYTES = 25 * 1024 * 1024
 
 export async function GET() {
   const auth = await getCurrentUser()
@@ -26,6 +26,10 @@ export async function POST(req: Request) {
   if (!auth) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   if (!(await verifyCsrf(req))) return NextResponse.json({ error: 'bad csrf' }, { status: 403 })
 
+  if (exceedsUploadLimit(req.headers.get('content-length'))) {
+    return NextResponse.json({ error: 'too large' }, { status: 413 })
+  }
+
   const form = await req.formData()
   const file = form.get('file')
   if (!(file instanceof File)) return NextResponse.json({ error: 'no file' }, { status: 400 })
@@ -33,7 +37,7 @@ export async function POST(req: Request) {
   const ext = (file.name.split('.').pop() ?? '').toLowerCase()
   const mime = ALLOWED.get(ext)
   if (!mime) return NextResponse.json({ error: 'unsupported type' }, { status: 400 })
-  if (file.size > MAX_BYTES) return NextResponse.json({ error: 'too large' }, { status: 400 })
+  if (file.size > MAX_UPLOAD_BYTES) return NextResponse.json({ error: 'too large' }, { status: 413 })
 
   // Web owns file storage; the engine owns the document record + ingestion.
   const data = Buffer.from(await file.arrayBuffer())

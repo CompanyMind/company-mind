@@ -334,6 +334,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Marketing's dynamic `app/icon.tsx` (replaced by the static `icon.svg`).
 
 ### Fixed
+- Oversized uploads are rejected from the declared `Content-Length` before `req.formData()` buffers
+  the whole body into memory, and now answer `413` rather than `400`. The authoritative post-parse
+  `file.size` check remains, since `Content-Length` can lie.
 - Brain Map: the over-exposure lens now actually produces findings. `build_graph`
   previously computed `exposure_score` only for the map's heat coloring; a new
   `engine/app/graph/lenses.py::over_exposure_findings()` flags docs at/above a new
