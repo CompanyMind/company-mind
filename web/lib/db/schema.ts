@@ -5,6 +5,7 @@ import {
   timestamp,
   primaryKey,
   index,
+  uniqueIndex,
   integer,
   bigint,
   vector,
@@ -23,6 +24,9 @@ export const users = pgTable('users', {
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
   name: text('name'),
+  // Set when the user dismisses the first-run strip. Onboarding PROGRESS is
+  // derived from real data every render; only the dismissal is stored.
+  onboardingDismissedAt: timestamp('onboarding_dismissed_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 })
 
@@ -63,6 +67,27 @@ export const sessions = pgTable(
   (t) => [index('sessions_user_idx').on(t.userId)],
 )
 
+export const folders = pgTable(
+  'folders',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    // 'manual' | 'ai' — an AI folder that hasn't been touched renders a "suggested" chip.
+    origin: text('origin').notNull().default('manual'),
+    reviewed: boolean('reviewed').notNull().default(false),
+    // TF-IDF terms from AI organise; NULL for manual folders. Read by starter questions.
+    keywords: text('keywords').array(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('folders_workspace_idx').on(t.workspaceId),
+    uniqueIndex('folders_ws_name_unique').on(t.workspaceId, sql`lower(${t.name})`),
+  ],
+)
+
 export const documents = pgTable(
   'documents',
   {
@@ -79,6 +104,11 @@ export const documents = pgTable(
     // Full extracted text, stored at ingest so the source viewer can render the
     // document and highlight the exact cited span.
     extractedText: text('extracted_text'),
+    // NAVIGATION ONLY — never access control. Who may see a document is decided
+    // solely by document_groups x group_members (engine/app/access.py). Moving a
+    // document between folders must not change what anyone can retrieve.
+    // ON DELETE SET NULL: deleting a folder must never delete documents.
+    folderId: uuid('folder_id').references(() => folders.id, { onDelete: 'set null' }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [index('documents_workspace_idx').on(t.workspaceId)],

@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `folders` table plus `documents.folder_id` (one folder per document, `NULL` = Unfiled, `ON DELETE
+  SET NULL` so deleting a folder never deletes documents) and `users.onboarding_dismissed_at`.
+  Folders are navigation only — access control remains entirely in `document_groups` ×
+  `group_members`, and no code path reads `folder_id` when computing visibility.
 - Onboarding + folders implementation plan —
   `docs/superpowers/plans/2026-07-25-onboarding-and-folders.md`. 10 TDD tasks in three stages:
   folders (schema, engine CRUD, BFF, folder grid, folder detail with Move to…), AI organise, and the
