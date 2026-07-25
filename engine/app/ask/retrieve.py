@@ -108,7 +108,14 @@ def retrieve(
     """Hybrid retrieval: dense (pgvector) + lexical (Postgres full-text), fused
     with RRF, per-document capped, reranked, then neighbor-expanded. One
     permission predicate serves both retrievers. Returns the results and a
-    RetrievalDebug describing how the pipeline actually behaved."""
+    RetrievalDebug describing how the pipeline actually behaved.
+
+    Three connection phases, mirroring ingest's process_document: candidate
+    retrieval (phase A) and neighbor expansion (phase C) each hold a pooled
+    connection only as long as they need one. Reranking (phase B) is a network
+    call (LLMReranker/CrossEncoderReranker, timeout=60s) and MUST NOT hold a
+    connection — the pool has ten, shared with ingest, the Telegram worker, and
+    Atlas; holding one across the HTTP call would starve them under load."""
     final_k = k or settings.final_k
     gids = group_ids or []
     dbg = RetrievalDebug()
@@ -117,6 +124,7 @@ def retrieve(
         qvec = get_provider().embed([contextualize_query(query)])[0]
     qlit = "[" + ",".join(str(x) for x in qvec) + "]"
 
+    # Phase A: candidate retrieval + fusion + capping. Connection released on exit.
     with get_conn() as conn:
         with stage(dbg, "dense"):
             dense = _dense_ids(conn, workspace_id, qlit, all_access, gids, settings.retrieval_n_vec)
@@ -138,16 +146,20 @@ def retrieve(
         capped = cap_by_document(ordered, chunk_to_doc, settings.doc_cap)[: settings.rerank_in]
         dbg.rerank_in_n = len(capped)
 
-        reranker = get_reranker()
-        dbg.reranker = type(reranker).__name__
-        with stage(dbg, "rerank"):
-            before = len(dbg.degraded)
-            ranked_ids = reranker.rerank(
-                query, [RerankItem(c, meta[c]["text"]) for c in capped], final_k, dbg.degraded
-            )
-            dbg.rerank_applied = len(dbg.degraded) == before
+    # Phase B: rerank — a network call. No connection held.
+    reranker = get_reranker()
+    dbg.reranker = type(reranker).__name__
+    with stage(dbg, "rerank"):
+        before = len(dbg.degraded)
+        ranked_ids = reranker.rerank(
+            query, [RerankItem(c, meta[c]["text"]) for c in capped], final_k, dbg.degraded
+        )
+        dbg.rerank_applied = len(dbg.degraded) == before
 
-        results = [_to_retrieved(c, meta[c]) for c in ranked_ids if c in meta]
+    results = [_to_retrieved(c, meta[c]) for c in ranked_ids if c in meta]
+
+    # Phase C: neighbor expansion, on a fresh connection.
+    with get_conn() as conn:
         with stage(dbg, "expand"):
             _expand_neighbors(conn, workspace_id, results, meta)
 

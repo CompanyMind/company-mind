@@ -3,9 +3,13 @@ import uuid
 
 import psycopg
 import pytest
+from psycopg_pool import ConnectionPool, PoolTimeout
 
+import app.ask.retrieve as retrieve_mod
+import app.db as db_mod
 from app.ask.retrieve import retrieve
 from app.ingest.embed import FakeEmbeddings
+from app.settings import settings
 
 DB = os.environ.get("DATABASE_URL")
 
@@ -104,6 +108,63 @@ def test_retrieval_respects_group_filter():
         none, _ = retrieve(str(ws), "secret", k=10, group_ids=[], all_access=False)
         assert none == []
     finally:
+        with psycopg.connect(DB) as conn:
+            with conn.transaction():
+                conn.execute("DELETE FROM workspaces WHERE id=%s", (ws,))
+
+
+def test_retrieve_does_not_hold_a_connection_during_rerank(monkeypatch):
+    """Regression test for the connection-lifetime bug in retrieve(): reranking is
+    a network call (LLMReranker/CrossEncoderReranker, timeout=60s) and must not
+    hold one of the shared pool's connections while it runs — the identical defect
+    class Task 4 fixed on ingest (engine/app/ingest/store.py). The pool has ten
+    connections shared by ask, ingest, the Telegram worker, and Atlas; a slow or
+    degraded rerank backend under concurrent asks would otherwise burn through it
+    and produce PoolTimeout on unrelated lightweight requests.
+
+    Shrinks the pool to a single connection and proves it's free to acquire
+    *while reranker.rerank(...) is executing* — if retrieve() still held a
+    connection at that point, the acquire below blocks until PoolTimeout and the
+    test fails."""
+    ws = uuid.uuid4()
+    with psycopg.connect(DB) as conn:
+        with conn.transaction():
+            _seed_ws(conn, ws)
+            _seed_doc(conn, ws, "alpha content about pgvector")
+
+    original_pool = db_mod._pool
+    test_pool = ConnectionPool(
+        settings.database_url,
+        min_size=1,
+        max_size=1,
+        configure=db_mod._configure,
+        open=True,
+    )
+    test_pool.wait(timeout=5)
+    acquired: dict[str, bool | None] = {"ok": None}
+
+    class SpyReranker:
+        def rerank(self, query, items, top_k, degraded=None):
+            try:
+                with test_pool.connection(timeout=0.5):
+                    acquired["ok"] = True
+            except PoolTimeout:
+                acquired["ok"] = False
+            return [it.chunk_id for it in items[:top_k]]
+
+    monkeypatch.setattr(retrieve_mod, "get_reranker", lambda: SpyReranker())
+    db_mod._pool = test_pool
+    try:
+        hits, dbg = retrieve(str(ws), "pgvector", k=5, all_access=True)
+        assert acquired["ok"] is True, (
+            "reranker.rerank could not acquire the pool's only connection — "
+            "retrieve() is holding one across the rerank HTTP call"
+        )
+        assert len(hits) == 1
+        assert hits[0].text == "alpha content about pgvector"
+    finally:
+        db_mod._pool = original_pool
+        test_pool.close()
         with psycopg.connect(DB) as conn:
             with conn.transaction():
                 conn.execute("DELETE FROM workspaces WHERE id=%s", (ws,))

@@ -90,6 +90,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   already named neutrally and needed no changes.
 
 ### Fixed
+- `retrieve()` no longer holds a pooled database connection across the rerank HTTP call — the same
+  defect class already fixed on ingest, below. Reranking (`LLMReranker`/`CrossEncoderReranker`,
+  `timeout=60s`) now runs with no connection held: candidate retrieval/fusion/capping (phase A) and
+  neighbor expansion (phase C) each acquire a pooled connection only for as long as they need one,
+  and reranking (phase B) runs in between with none held. The shared pool has ten connections, used
+  by ask, ingest, the Telegram worker, and Atlas; a slow or degraded rerank backend under concurrent
+  asks could otherwise burn through it and produce `PoolTimeout` on unrelated lightweight requests.
+  `engine/tests/test_retrieve.py::test_retrieve_does_not_hold_a_connection_during_rerank` shrinks the
+  pool to one connection and proves it's free to acquire while `reranker.rerank(...)` is running.
 - Ingestion no longer holds a pooled database connection across the embedding HTTP call. Parse →
   chunk → contextualize → embed moved into a DB-free `engine/app/ingest/prepare.py::prepare_document`,
   bracketed by two short transactions; with a ten-connection pool, ten concurrent uploads previously
