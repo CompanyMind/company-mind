@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Folder detail pages (`/dashboard/sources/[folderId]`, plus the literal `unfiled`) listing that
+  folder's documents with the existing access-group editor, a **Move to…** select per document, and
+  folder rename/delete. Deleting a folder moves its documents to Unfiled and says so in the
+  confirmation. Deliberately not drag-and-drop: it breaks on touch and by keyboard. The access
+  editor now states in one line that folders never change who can see a document.
 - Web BFF and API routes for folders (`web/lib/folders.ts`, `/api/folders`, `/api/folders/[id]`,
   `/api/documents/[id]/folder`), all CSRF-guarded on mutation. `GET /api/documents` accepts a
   `folder` filter and every document row now carries `folderId`.
