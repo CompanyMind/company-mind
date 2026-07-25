@@ -14,6 +14,7 @@ from .library.source import get_source
 from .library import groups as lib_groups
 from .library import documents as lib_documents
 from .library import folders as lib_folders
+from .library import usage as lib_usage
 from .library.organize import NothingToOrganize, organize_unfiled
 from .library.suggest import suggest_questions
 from .telegram import api as tg_api, store as tg_store
@@ -121,6 +122,14 @@ def document_folder_set(document_id: str, body: DocFolderBody):
     if not ok:
         raise HTTPException(status_code=404, detail="not found")
     return {"ok": True}
+
+
+@app.get("/usage/summary", dependencies=[Depends(require_secret)])
+def usage_summary_endpoint(days: int = 30):
+    """Super-admin panel data only. Aggregate-only by design — see
+    app/library/usage.py. Never returns question text or a per-user row."""
+    with get_conn() as conn:
+        return lib_usage.usage_summary(conn, days)
 
 
 class AskBody(BaseModel):

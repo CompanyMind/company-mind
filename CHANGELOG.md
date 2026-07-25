@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Aggregate usage from data already recorded — questions and active users per day, question-type
+  mix, documents and folders per workspace, and the `lexical_arm_empty` / `answer_uncited`
+  degradation rates the retrieval work introduced. Counts only: a test asserts the response contains
+  no question text and no per-user rows, so the aggregate-only promise is structural rather than a
+  convention.
 - Admin users API: list every account with its workspace, role, recent-activity timestamp and
   blocked status; create a user with a generated temporary password returned exactly once;
   block/unblock. All super-admin gated, 404 to anyone else.
