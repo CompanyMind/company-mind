@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 
 type Cite = {
   marker: number
-  chunkId: string
+  chunkId: string | null
   filename: string
   page: number | null
   snippet: string
@@ -159,15 +159,24 @@ export function AskChat({
                         [{c.marker}] {c.filename}
                         {c.page ? ` · p.${c.page}` : ''}
                       </button>
-                      <a
-                        href={`/s/${c.chunkId}`}
-                        target="_blank"
-                        rel="noopener"
-                        title="Open source"
-                        className="rounded-r-md border border-l-0 border-line px-1.5 py-1 font-mono text-[0.7rem] text-ink-soft hover:border-brain hover:text-brain-text"
-                      >
-                        ↗
-                      </a>
+                      {c.chunkId ? (
+                        <a
+                          href={`/s/${c.chunkId}`}
+                          target="_blank"
+                          rel="noopener"
+                          title="Open source"
+                          className="rounded-r-md border border-l-0 border-line px-1.5 py-1 font-mono text-[0.7rem] text-ink-soft hover:border-brain hover:text-brain-text"
+                        >
+                          ↗
+                        </a>
+                      ) : (
+                        <span
+                          className="rounded-r-md border border-l-0 border-line px-1.5 py-1 font-mono text-[0.7rem] text-ink-soft"
+                          title="The source document has been re-ingested; the quoted text is preserved."
+                        >
+                          ↗
+                        </span>
+                      )}
                     </span>
                   ))}
                 </div>

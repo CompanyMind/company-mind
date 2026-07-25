@@ -65,6 +65,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   already named neutrally and needed no changes.
 
 ### Fixed
+- **Re-ingesting a document no longer destroys the evidence for every past answer.**
+  `citations.chunk_id` and `citations.document_id` were `ON DELETE cascade` while
+  `ingest/store.py` deletes and re-creates every chunk on re-ingest, so re-uploading a revised
+  policy — the most routine operation in the product — silently deleted the citation rows of every
+  historical answer that cited it, while the `[1]`/`[2]` markers kept rendering in the message text.
+  Both FKs are now nullable and `ON DELETE SET NULL`; the frozen `filename`/`page`/`snippet` survive
+  and the UI renders such a citation as unlinkable rather than broken.
 - Atlas hover/click, root cause: force-graph resolves both through a shadow canvas — every
   node is painted in a unique flat color onto an invisible canvas, and each mouse move reads
   back the single pixel under the cursor (`ctx.getImageData`) to look up which node owns that

@@ -167,13 +167,13 @@ export const citations = pgTable('citations', {
   workspaceId: uuid('workspace_id')
     .notNull()
     .references(() => workspaces.id, { onDelete: 'cascade' }),
-  chunkId: uuid('chunk_id')
-    .notNull()
-    .references(() => chunks.id, { onDelete: 'cascade' }),
+  // A citation is evidence for an answer that was already given. Re-ingesting a
+  // document deletes and re-creates its chunks (engine/app/ingest/store.py), so
+  // these must NOT cascade — the row survives with a frozen filename/page/snippet
+  // and a null chunk reference, which the UI renders as an unlinkable citation.
+  chunkId: uuid('chunk_id').references(() => chunks.id, { onDelete: 'set null' }),
   marker: integer('marker').notNull(), // the [n]
-  documentId: uuid('document_id')
-    .notNull()
-    .references(() => documents.id, { onDelete: 'cascade' }),
+  documentId: uuid('document_id').references(() => documents.id, { onDelete: 'set null' }),
   filename: text('filename').notNull(),
   page: integer('page'),
   snippet: text('snippet').notNull(),
