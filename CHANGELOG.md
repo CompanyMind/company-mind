@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Admin users API: list every account with its workspace, role, recent-activity timestamp and
+  blocked status; create a user with a generated temporary password returned exactly once;
+  block/unblock. All super-admin gated, 404 to anyone else.
 - Blocking a user now revokes their live sessions and is enforced inside `validateSessionToken`,
   the choke point every authenticated request passes through, so a blocked user fails on their next
   request rather than at cookie expiry. Login refuses a blocked account with the same generic error
