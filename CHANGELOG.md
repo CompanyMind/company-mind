@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Retrieval accuracy attribution (`docs/product/2026-07-25-retrieval-attribution.md`) — the Phase 1
+  deliverable, apportioning the accuracy complaint across the eleven candidate causes from the
+  re-architecture spec. **One cause is now confirmed by measurement:** `plainto_tsquery` ANDs every
+  query term and is used as a hard `WHERE` filter, so **7 of 8 golden questions retrieve zero rows
+  from the lexical arm** — in English as well as Russian and Uzbek. The only question that fires is a
+  rare exact token (`CKPT_PREFETCH`). Equal-weight RRF then fuses a populated dense list with an empty
+  lexical one, so "hybrid retrieval" has silently been dense-only for essentially every
+  natural-language question since migration `0006`. The document separates what is measured (fixture
+  corpus, fake providers — a mechanism check, not a rate) from what still requires the pilot corpus
+  and self-hosted models, gives the exact commands for those runs, and states plainly that
+  `ef_search` must not be touched until the ANN probe has run on real data.
 - **Retrieval evaluation harness and its CI gate** (`engine/evals/run.py`,
   `.github/workflows/eval.yml`). Seeds a throwaway workspace from a committed synthetic EN/RU/UZ
   fixture corpus through the real ingest pipeline, runs each golden question as the principal it
