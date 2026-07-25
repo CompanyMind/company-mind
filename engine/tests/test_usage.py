@@ -147,6 +147,43 @@ def test_usage_summary_counts_questions_and_active_users():
         _cleanup(ws)
 
 
+def test_usage_summary_totals_active_users_is_a_platform_wide_distinct_count():
+    """The one counter in `totals` that must NOT be a per-workspace sum: a person
+    who asks questions in two different workspaces is one active user platform-wide,
+    not two. Each per-workspace `active_users` is correctly 1 (scoped to that
+    workspace) — naively summing the per-workspace values into
+    `totals["active_users"]` would double-count the same person. This is exactly
+    the bug a "just sum every counter" simplification would reintroduce; see the
+    comment at the totals computation site in app/library/usage.py."""
+    with psycopg.connect(DB) as conn:
+        baseline = lib.usage_summary(conn, days=30)
+
+        with conn.transaction():
+            ws_a = _ws(conn, "Workspace A")
+            ws_b = _ws(conn, "Workspace B")
+            shared_user = _user(conn)
+            _query(conn, ws_a, user_id=shared_user, question_type="lookup")
+            _query(conn, ws_b, user_id=shared_user, question_type="lookup")
+
+        result = lib.usage_summary(conn, days=30)
+
+    try:
+        wa = next(w for w in result["workspaces"] if w["workspace_id"] == ws_a)
+        wb = next(w for w in result["workspaces"] if w["workspace_id"] == ws_b)
+        assert wa["active_users"] == 1, "scoped to its own workspace, this is correctly 1"
+        assert wb["active_users"] == 1, "scoped to its own workspace, this is correctly 1"
+
+        # The same person active in two workspaces is one active user platform-wide,
+        # not two — a naive sum of the per-workspace counts above (1 + 1 = 2) is wrong.
+        assert result["totals"]["active_users"] == baseline["totals"]["active_users"] + 1, (
+            "totals['active_users'] must be a platform-wide DISTINCT count, not a sum "
+            "of the per-workspace DISTINCT counts"
+        )
+    finally:
+        _cleanup(ws_a)
+        _cleanup(ws_b)
+
+
 def test_usage_summary_never_returns_question_text_or_per_user_rows():
     """The aggregate-only guarantee, made structural rather than a convention.
 
