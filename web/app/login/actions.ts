@@ -38,6 +38,9 @@ export async function login(
   // Uniform timing whether or not the user exists.
   const ok = await verifyPassword(user ? user.passwordHash : await decoy(), password)
   if (!user || !ok) return { error: 'Invalid email or password.' }
+  // Same generic message as a wrong password — a distinct "you are blocked"
+  // message would confirm to an attacker that the address is real.
+  if (user.blockedAt) return { error: 'Invalid email or password.' }
 
   const { token, expires } = await createSession(user.id, {
     userAgent: h.get('user-agent') ?? undefined,

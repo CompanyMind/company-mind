@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Blocking a user now revokes their live sessions and is enforced inside `validateSessionToken`,
+  the choke point every authenticated request passes through, so a blocked user fails on their next
+  request rather than at cookie expiry. Login refuses a blocked account with the same generic error
+  as a wrong password, so the panel does not confirm which addresses exist. A super-admin cannot
+  block themselves.
 - `users.is_super_admin` (seed-only) and `users.blocked_at`; `npm run seed` idempotently ensures
   `SEED_EMAIL` is the platform super-admin — creating the account with the flag set if it's new,
   promoting it in place (without touching password, name, or memberships) if it already exists —

@@ -36,6 +36,12 @@ export async function validateSessionToken(
   }
   const user = await db.query.users.findFirst({ where: eq(users.id, row.userId) })
   if (!user) return null
+  // Blocking is enforced HERE because every authenticated request already
+  // funnels through this function — getCurrentUser, the ask route, the source
+  // viewer, every API route. Checking anywhere else would leave a surface open.
+  // The session rows are deleted at block time too; this is the belt to that
+  // braces, and it also covers a session minted in a race with the block.
+  if (user.blockedAt) return null
   // v1: one workspace per user via their first membership.
   const membership = await db.query.memberships.findFirst({
     where: eq(memberships.userId, user.id),
