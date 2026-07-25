@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     doc_cap: int = 3  # max chunks one document contributes to fusion
     rerank_base_url: str = ""  # self-hosted cross-encoder reranker; empty → LLM/fake
     rerank_model: str = ""
-    contextual_mode: str = "header"  # off | header | llm
+    contextual_mode: str = "header"  # off | header  ('llm' lands in Phase 4)
 
     # --- Atlas (governance graph) ---
     graph_seed: int = 42
@@ -53,6 +53,16 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+_IMPLEMENTED_CONTEXTUAL_MODES = {"off", "header"}
+
+if settings.contextual_mode not in _IMPLEMENTED_CONTEXTUAL_MODES:
+    raise ValueError(
+        f"CONTEXTUAL_MODE={settings.contextual_mode!r} is not implemented. "
+        f"Supported: {sorted(_IMPLEMENTED_CONTEXTUAL_MODES)}. "
+        "'llm' (Summary-Augmented Chunking) arrives in Phase 4 — until then it "
+        "silently behaved as 'header', which is why this now fails loudly."
+    )
 
 
 def use_real_models() -> bool:

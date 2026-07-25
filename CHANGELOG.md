@@ -58,6 +58,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from `marketing/`, per the web/marketing deployable boundary.
 
 ### Changed
+- **Silent failures are now recorded.** The reranker's bare `except Exception: pass` (which made a
+  reranker that never ran indistinguishable from one that worked) now appends a reason —
+  `rerank_http_error:422`, `rerank_unparseable:…`, `rerank_short_response:…` — to a `degraded` list;
+  `[n]` markers that don't resolve are recorded as `citation_out_of_range`, and an answer with no
+  working citation as `answer_uncited`. `CONTEXTUAL_MODE=llm`, documented in settings but never
+  implemented (it silently behaved as `header`), now fails fast at startup with a message pointing
+  at the phase that implements it.
 - Atlas computes per-document mean vectors with pgvector's `avg(vector)` aggregate in Postgres
   instead of streaming every chunk embedding in the workspace into Python (~4 KB per chunk at 1024
   dims, so a 100k-chunk corpus moved ~400 MB over the wire on every graph build).

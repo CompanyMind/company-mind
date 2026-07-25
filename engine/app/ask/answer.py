@@ -1,6 +1,6 @@
 import re
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import httpx
 
@@ -31,6 +31,7 @@ class Answered:
     answer: str
     citations: list[Citation]
     insufficient: bool
+    degraded: list[str] = field(default_factory=list)
 
 
 def _context_block(retrieved: list[Retrieved]) -> str:
@@ -96,9 +97,32 @@ def get_chat_call() -> Callable[[str], str] | None:
     return _call
 
 
+def resolve_citations(text: str, retrieved: list[Retrieved]) -> tuple[list[Citation], list[str]]:
+    """Resolve [n] markers to the numbered context. Unresolvable markers and
+    entirely-uncited answers are recorded rather than silently dropped — an
+    answer with no working citation is exactly the failure this product exists
+    to prevent, and it used to look identical to a well-cited one."""
+    degraded: list[str] = []
+    seen: dict[int, Citation] = {}
+    markers = re.findall(r"\[(\d+)\]", text)
+    for m in markers:
+        n = int(m)
+        if not (1 <= n <= len(retrieved)):
+            degraded.append(f"citation_out_of_range:{n}")
+            continue
+        if n in seen:
+            continue
+        r = retrieved[n - 1]
+        snippet = (r.text[:280] + "…") if len(r.text) > 280 else r.text
+        seen[n] = Citation(n, r.chunk_id, r.document_id, r.filename, r.page, snippet)
+    if not seen:
+        degraded.append("answer_uncited")
+    return list(seen.values()), degraded
+
+
 def answer_question(question: str, retrieved: list[Retrieved]) -> Answered:
     if not retrieved:
-        return Answered(REFUSAL, [], True)
+        return Answered(REFUSAL, [], True, [])
 
     text = (
         _llm_answer(question, retrieved)
@@ -107,14 +131,7 @@ def answer_question(question: str, retrieved: list[Retrieved]) -> Answered:
     )
 
     if text.strip() == REFUSAL:
-        return Answered(REFUSAL, [], True)
+        return Answered(REFUSAL, [], True, [])
 
-    # Resolve [n] markers to the numbered context; drop any that don't resolve.
-    seen: dict[int, Citation] = {}
-    for m in re.findall(r"\[(\d+)\]", text):
-        n = int(m)
-        if 1 <= n <= len(retrieved) and n not in seen:
-            r = retrieved[n - 1]
-            snippet = (r.text[:280] + "…") if len(r.text) > 280 else r.text
-            seen[n] = Citation(n, r.chunk_id, r.document_id, r.filename, r.page, snippet)
-    return Answered(text, list(seen.values()), False)
+    citations, degraded = resolve_citations(text, retrieved)
+    return Answered(text, citations, False, degraded)

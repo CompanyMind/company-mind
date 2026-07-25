@@ -15,13 +15,22 @@ class RerankItem:
 
 
 class Reranker(Protocol):
-    def rerank(self, query: str, items: list[RerankItem], top_k: int) -> list[str]: ...
+    def rerank(
+        self, query: str, items: list[RerankItem], top_k: int, degraded: list[str] | None = None
+    ) -> list[str]: ...
+
+
+def _note(degraded: list[str] | None, reason: str) -> None:
+    if degraded is not None:
+        degraded.append(reason)
 
 
 class FakeReranker:
     """Identity: keep fusion order, truncate. Used offline and in tests."""
 
-    def rerank(self, query: str, items: list[RerankItem], top_k: int) -> list[str]:
+    def rerank(
+        self, query: str, items: list[RerankItem], top_k: int, degraded: list[str] | None = None
+    ) -> list[str]:
         return [it.chunk_id for it in items[:top_k]]
 
 
@@ -58,7 +67,9 @@ class LLMReranker:
         r.raise_for_status()
         return r.json()["choices"][0]["message"]["content"]
 
-    def rerank(self, query: str, items: list[RerankItem], top_k: int) -> list[str]:
+    def rerank(
+        self, query: str, items: list[RerankItem], top_k: int, degraded: list[str] | None = None
+    ) -> list[str]:
         cands = "\n".join(f"[{i}] {it.text}" for i, it in enumerate(items, start=1))
         try:
             raw = self._call(_RERANK_PROMPT.format(q=query, cands=cands))
@@ -70,16 +81,21 @@ class LLMReranker:
                 if 0 <= idx < len(items) and items[idx].chunk_id not in order:
                     order.append(items[idx].chunk_id)
             if order:
+                if len(order) < min(top_k, len(items)):
+                    _note(degraded, f"rerank_short_response:{len(order)}/{min(top_k, len(items))}")
                 return order[:top_k]
-        except Exception:  # noqa: BLE001 — never let reranking break the answer
-            pass
+            _note(degraded, "rerank_unparseable:empty_order")
+        except Exception as e:  # noqa: BLE001 — never let reranking break the answer
+            _note(degraded, f"rerank_unparseable:{type(e).__name__}")
         return [it.chunk_id for it in items[:top_k]]
 
 
 class CrossEncoderReranker:
     """Cohere/Jina/TEI-style POST {base}/rerank — for a self-hosted bge-reranker."""
 
-    def rerank(self, query: str, items: list[RerankItem], top_k: int) -> list[str]:
+    def rerank(
+        self, query: str, items: list[RerankItem], top_k: int, degraded: list[str] | None = None
+    ) -> list[str]:
         try:
             r = httpx.post(
                 f"{settings.rerank_base_url.rstrip('/')}/rerank",
@@ -94,8 +110,11 @@ class CrossEncoderReranker:
             r.raise_for_status()
             results = r.json()["results"]
             return [items[row["index"]].chunk_id for row in results][:top_k]
-        except Exception:  # noqa: BLE001
-            return [it.chunk_id for it in items[:top_k]]
+        except httpx.HTTPStatusError as e:
+            _note(degraded, f"rerank_http_error:{e.response.status_code}")
+        except Exception as e:  # noqa: BLE001
+            _note(degraded, f"rerank_error:{type(e).__name__}")
+        return [it.chunk_id for it in items[:top_k]]
 
 
 def get_reranker() -> Reranker:
