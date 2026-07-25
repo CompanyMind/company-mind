@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Super-admin panel spec — `docs/superpowers/specs/2026-07-25-super-admin-panel-design.md`. A
+  platform super-admin above all workspaces (`users.is_super_admin`, seed-only so the panel cannot
+  mint its own privileged accounts), user creation and blocking, and aggregate-only usage built from
+  data already recorded — no new instrumentation. Blocking revokes live sessions rather than waiting
+  for cookie expiry. Two invariants are enforced by tests rather than convention: no admin endpoint
+  may return question text or a per-user activity row, and a super-admin cannot block themselves.
+  States two real gaps plainly: there is no password-change flow, and "time spent" is not reported
+  because existing data cannot answer it and a proxy would look precise while being wrong.
 - First-run experience. The Ask page no longer hands a brand-new user an empty chat box whose first
   reply is "I couldn't find anything in your sources to answer that" — an empty workspace now shows
   what CompanyMind does, the three steps to get there, and a button to add documents. A populated
