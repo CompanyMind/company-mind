@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Super-admin panel implementation plan —
+  `docs/superpowers/plans/2026-07-25-super-admin-panel.md`. 5 tasks. Blocking is enforced inside
+  `validateSessionToken`, the choke point every authenticated request already passes through, so one
+  edit covers every surface; Task 4 carries the sentinel test that keeps usage aggregate-only.
 - Super-admin panel spec — `docs/superpowers/specs/2026-07-25-super-admin-panel-design.md`. A
   platform super-admin above all workspaces (`users.is_super_admin`, seed-only so the panel cannot
   mint its own privileged accounts), user creation and blocking, and aggregate-only usage built from
