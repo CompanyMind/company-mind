@@ -65,6 +65,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   already named neutrally and needed no changes.
 
 ### Fixed
+- Ingestion no longer holds a pooled database connection across the embedding HTTP call. Parse →
+  chunk → contextualize → embed moved into a DB-free `engine/app/ingest/prepare.py::prepare_document`,
+  bracketed by two short transactions; with a ten-connection pool, ten concurrent uploads previously
+  drained it and blocked every ask, Telegram poll and Atlas request for the duration.
+- A document that parses to zero chunks is now recorded as `status='failed'` with an explanatory
+  error, instead of `status='indexed'` with `error=NULL` — the state every scanned PDF landed in,
+  which looked like a successful ingest of an empty document.
 - Embedding requests now honour the response's `index` instead of assuming positional order, are
   batched at `EMBED_BATCH_SIZE` (default 32, matching TEI's default `--max-client-batch-size`), and
   raise `EmbeddingCountMismatch` rather than silently misaligning when a provider returns the wrong
