@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Onboarding + folders implementation plan —
+  `docs/superpowers/plans/2026-07-25-onboarding-and-folders.md`. 10 TDD tasks in three stages:
+  folders (schema, engine CRUD, BFF, folder grid, folder detail with Move to…), AI organise, and the
+  first-run flow. Task 2 carries the security test that keeps folders from quietly becoming access
+  control.
 - Onboarding + document-folders spec —
   `docs/superpowers/specs/2026-07-25-onboarding-and-folders-design.md`. Diagnoses the day-one
   failure: a new owner lands on Ask, types a question, and the first thing the product says is the
