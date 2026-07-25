@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Starter questions (`engine/app/library/suggest.py`, `GET /suggestions`) built from the caller's own
+  folders and their stored keywords, ranked by how many documents that caller can actually see, with
+  a deterministic template when no chat model is configured. Scoped by the same `resolve_access` rule
+  the ask path uses — a suggested question is a disclosure, so a member is never offered one derived
+  from a document they cannot open.
 - **Organise with AI** button on Sources, shown whenever unfiled documents exist, reporting what it
   did ("Organised 12 documents into 3 folders"). Folders it creates are marked "suggested" until
   renamed or otherwise touched.
