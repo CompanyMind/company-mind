@@ -5,6 +5,7 @@ from ..access import resolve_access
 from ..db import get_conn
 from ..settings import settings, use_real_models
 from .answer import Citation, answer_question
+from .qtype import classify_question
 from .retrieve import retrieve
 
 
@@ -49,8 +50,8 @@ def answer_query(
         with conn.transaction():
             conn.execute(
                 "INSERT INTO query_log (workspace_id, user_id, telegram_link_id, question, "
-                "retrieved_chunk_ids, model, degraded, timings_ms, candidate_counts, rerank_applied) "
-                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                "retrieved_chunk_ids, model, degraded, timings_ms, candidate_counts, rerank_applied, question_type) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                 (
                     workspace_id, user_id, telegram_link_id, log_question or question,
                     chunk_ids, _model_name(),
@@ -58,6 +59,7 @@ def answer_query(
                     json.dumps(telemetry["timings_ms"]),
                     json.dumps(telemetry["candidate_counts"]),
                     telemetry["rerank_applied"],
+                    classify_question(question),
                 ),
             )
     return AskResult(

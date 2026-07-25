@@ -51,6 +51,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   classifier, the ANN-vs-exact recall probe that decides whether Phase 2 touches `ef_search` at all,
   a label-stable golden-set format with cluster-robust paired-bootstrap gating, and the attribution
   document Phase 2 is planned from.
+- Deterministic question-type classification (`aggregate` / `enumerate` / `comparison` / `lookup`,
+  EN + RU + UZ keyword rules) recorded on every logged query. This is the measurement that gates
+  whether the structured-aggregation lane gets built at all — the spec requires the aggregate share
+  of real traffic to exceed ~15% first.
 - `web/scripts/seed-corpus.ts` (`npm run seed:corpus`) — bulk-loads a directory of
   documents plus a `manifest.json` (filename -> access-group names) through the real
   web API: mints a session for an existing seeded user directly in the auth DB
