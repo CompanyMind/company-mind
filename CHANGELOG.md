@@ -24,6 +24,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the work 1–5 (~17.5 engineer-weeks) with OCR, audio and the aggregation lane deferred, and records
   the architectures rejected on evidence (visual/ColPali late interaction, agent loops, a second
   datastore, GraphRAG, RAPTOR, semantic chunking, late chunking, HyDE).
+- Phase 1 implementation plan —
+  `docs/superpowers/plans/2026-07-25-phase1-measure-and-stop-the-bleeding.md`. 14 TDD tasks: the
+  repo's first CI (which makes the ten `skipif(not DATABASE_URL)` test files actually run), the five
+  stop-the-bleeding fixes, retrieval telemetry into `query_log`, a deterministic question-type
+  classifier, the ANN-vs-exact recall probe that decides whether Phase 2 touches `ef_search` at all,
+  a label-stable golden-set format with cluster-robust paired-bootstrap gating, and the attribution
+  document Phase 2 is planned from.
 - `web/scripts/seed-corpus.ts` (`npm run seed:corpus`) — bulk-loads a directory of
   documents plus a `manifest.json` (filename -> access-group names) through the real
   web API: mints a session for an existing seeded user directly in the auth DB
