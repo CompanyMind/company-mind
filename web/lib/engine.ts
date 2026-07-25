@@ -132,3 +132,20 @@ export async function generateTitle(text: string): Promise<string> {
     return fallbackTitle(text)
   }
 }
+
+// Starter questions are a nicety, not a critical path — any failure (network,
+// non-2xx) must fall back to an empty list rather than break the Ask page.
+export async function getSuggestions(
+  workspaceId: string,
+  userId: string,
+  role: string,
+): Promise<string[]> {
+  const qs = new URLSearchParams({ workspace_id: workspaceId, user_id: userId, role })
+  const res = await fetch(`${env.ENGINE_BASE_URL}/suggestions?${qs}`, {
+    headers: { 'x-engine-secret': env.ENGINE_INTERNAL_SECRET },
+    cache: 'no-store',
+  })
+  if (!res.ok) return []
+  const data = (await res.json()) as { questions?: string[] }
+  return data.questions ?? []
+}

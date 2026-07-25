@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Onboarding state (`web/lib/onboarding.ts`): a pure `deriveOnboarding()` computing the three steps
+  from real facts — a document is indexed, any document is foldered, the user has asked a question —
+  rather than a stored wizard step, so it resumes correctly and reverts honestly if documents are
+  deleted. Dismissal (`POST /api/onboarding/dismiss`) hides the strip without ever marking
+  incomplete work complete. `GET /api/suggestions` proxies the engine's permission-scoped starter
+  questions.
 - Starter questions (`engine/app/library/suggest.py`, `GET /suggestions`) built from the caller's own
   folders and their stored keywords, ranked by how many documents that caller can actually see, with
   a deterministic template when no chat model is configured. Scoped by the same `resolve_access` rule
