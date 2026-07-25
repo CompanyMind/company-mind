@@ -1,4 +1,4 @@
-from app.ask.rerank import RerankItem, FakeReranker, LLMReranker
+from app.ask.rerank import RerankItem, FakeReranker, LLMReranker, CrossEncoderReranker
 
 
 def test_fake_preserves_order_and_truncates():
@@ -39,3 +39,27 @@ def test_llm_reranker_records_nothing_on_success():
     r = LLMReranker(call=lambda prompt: '[{"index": 2, "score": 9}, {"index": 1, "score": 3}]')
     assert r.rerank("q", items, 2, degraded) == ["b", "a"]
     assert degraded == []
+
+
+def test_cross_encoder_reranker_falls_back_to_identity_on_empty_results(monkeypatch):
+    """A 200 response with an empty results list must not pass silently — unlike
+    an HTTP error it raises nothing, so without an explicit guard it looks
+    identical to 'reranking ran and legitimately returned nothing'. It needs the
+    same fallback + degradation trace LLMReranker already has for unparseable
+    output."""
+    import app.ask.rerank as rerank_mod
+
+    class _FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"results": []}
+
+    monkeypatch.setattr(rerank_mod.httpx, "post", lambda *a, **k: _FakeResponse())
+
+    items = [RerankItem("a", "alpha"), RerankItem("b", "beta")]
+    degraded: list[str] = []
+    r = CrossEncoderReranker()
+    assert r.rerank("q", items, 2, degraded) == ["a", "b"]
+    assert degraded == ["rerank_unparseable:empty_order"]

@@ -109,7 +109,10 @@ class CrossEncoderReranker:
             )
             r.raise_for_status()
             results = r.json()["results"]
-            return [items[row["index"]].chunk_id for row in results][:top_k]
+            order = [items[row["index"]].chunk_id for row in results][:top_k]
+            if order:
+                return order
+            _note(degraded, "rerank_unparseable:empty_order")
         except httpx.HTTPStatusError as e:
             _note(degraded, f"rerank_http_error:{e.response.status_code}")
         except Exception as e:  # noqa: BLE001

@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Retrieval telemetry.** `engine/app/ask/telemetry.py::RetrievalDebug` records per-arm candidate
+  counts (dense / lexical / fused / rerank-in / final), per-stage latency, whether reranking actually
+  applied, and a `degraded[]` list; `retrieve()` now returns `(results, debug)` and `answer_query`
+  persists all of it to new `query_log` columns (`degraded`, `timings_ms`, `candidate_counts`,
+  `rerank_applied`, `question_type`). A zero-row lexical arm — the expected symptom of
+  `plainto_tsquery` ANDing every term — is itself recorded as `lexical_arm_empty`, which is how the
+  Phase 1 attribution table gets its numbers.
 - `engine/tests/test_store.py` — orchestration-level coverage for `process_document` that
   `test_prepare.py` couldn't provide (it only exercises the DB-free `prepare_document` in
   isolation). Three tests: shrinks the connection pool to one connection and proves it stays

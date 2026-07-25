@@ -56,7 +56,7 @@ def test_retrieval_is_workspace_scoped():
             _seed_doc(conn, ws1, "alpha content about pgvector")
             _seed_doc(conn, ws2, "beta content about something else")
     try:
-        hits = retrieve(str(ws1), "pgvector", k=5, all_access=True)
+        hits, dbg = retrieve(str(ws1), "pgvector", k=5, all_access=True)
         assert len(hits) == 1
         assert hits[0].text == "alpha content about pgvector"
     finally:
@@ -76,9 +76,10 @@ def test_lexical_retrieves_exact_token_without_semantic_overlap():
                 _seed_doc(conn, ws, f"noise document number {i} about weather and lunch")
             _seed_doc(conn, ws, "the flag CKPT_PREFETCH controls warmup")
     try:
-        hits = retrieve(str(ws), "CKPT_PREFETCH", all_access=True)
+        hits, dbg = retrieve(str(ws), "CKPT_PREFETCH", all_access=True)
         assert hits, "expected at least one hit"
         assert "CKPT_PREFETCH" in hits[0].text  # lexical + RRF floats it to the top
+        assert dbg.lexical_n > 0, "the lexical arm must fire for an exact-token query"
     finally:
         with psycopg.connect(DB) as conn:
             with conn.transaction():
@@ -95,12 +96,12 @@ def test_retrieval_respects_group_filter():
             ga = _tag(conn, d_a, ws, "A")
             _tag(conn, d_b, ws, "B")
     try:
-        only_a = retrieve(str(ws), "secret", k=10, group_ids=[ga], all_access=False)
+        only_a, _ = retrieve(str(ws), "secret", k=10, group_ids=[ga], all_access=False)
         assert {r.text for r in only_a} == {"alpha secret about finance"}
-        both = retrieve(str(ws), "secret", k=10, all_access=True)
+        both, _ = retrieve(str(ws), "secret", k=10, all_access=True)
         assert len(both) == 2
         # A member with no groups sees nothing group-restricted.
-        none = retrieve(str(ws), "secret", k=10, group_ids=[], all_access=False)
+        none, _ = retrieve(str(ws), "secret", k=10, group_ids=[], all_access=False)
         assert none == []
     finally:
         with psycopg.connect(DB) as conn:

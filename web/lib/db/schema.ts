@@ -205,6 +205,12 @@ export const queryLog = pgTable(
     retrievedChunkIds: uuid('retrieved_chunk_ids').array(),
     model: text('model'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    // Retrieval telemetry — how the pipeline actually behaved for this query.
+    degraded: text('degraded').array(),
+    timingsMs: jsonb('timings_ms'),
+    candidateCounts: jsonb('candidate_counts'),
+    rerankApplied: boolean('rerank_applied'),
+    questionType: text('question_type'),
   },
   // A plain btree on (workspace_id, created_at) serves ORDER BY created_at DESC
   // via a backward index scan; no .desc() modifier needed.

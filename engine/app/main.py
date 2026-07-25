@@ -72,6 +72,7 @@ def ask(body: AskBody):
         "answer": result.answer,
         "insufficient": result.insufficient,
         "retrieved_chunk_ids": result.retrieved_chunk_ids,
+        "debug": result.debug,
         "citations": [
             {
                 "marker": c.marker,

@@ -54,3 +54,42 @@ def test_answer_query_logs_with_user_principal():
             with conn.transaction():
                 conn.execute("DELETE FROM workspaces WHERE id=%s", (ws,))
                 conn.execute("DELETE FROM users WHERE id=%s", (user,))
+
+
+def test_answer_query_persists_retrieval_telemetry():
+    """Orchestration-level check: retrieval telemetry must actually reach the
+    query_log row, not merely be computed and discarded. Read it back with SQL
+    rather than trusting the function's return value — Task 14's attribution
+    table is built directly from this column, so a wiring bug here (e.g. dbg
+    computed but never passed to the INSERT) must fail a test."""
+    ws, user = uuid.uuid4(), uuid.uuid4()
+    with psycopg.connect(DB) as conn:
+        with conn.transaction():
+            _seed_ws(conn, ws)
+            conn.execute(
+                "INSERT INTO users (id,email,password_hash) VALUES (%s,%s,'x')",
+                (user, f"{user}@e.com"),
+            )
+            _seed_doc(conn, ws, "Backups are retained thirty days.")
+    try:
+        res = answer_query(str(ws), "retention?", all_access=True, user_id=str(user))
+        assert res.answer
+        with psycopg.connect(DB) as conn:
+            row = conn.execute(
+                "SELECT degraded, timings_ms, candidate_counts, rerank_applied "
+                "FROM query_log WHERE user_id=%s",
+                (user,),
+            ).fetchone()
+        assert row is not None
+        degraded, timings_ms, candidate_counts, rerank_applied = row
+        assert isinstance(degraded, list)
+        assert isinstance(timings_ms, dict) and "dense" in timings_ms
+        assert candidate_counts == {
+            "dense": 1, "lexical": 0, "fused": 1, "rerank_in": 1, "final": 1
+        }
+        assert isinstance(rerank_applied, bool)
+    finally:
+        with psycopg.connect(DB) as conn:
+            with conn.transaction():
+                conn.execute("DELETE FROM workspaces WHERE id=%s", (ws,))
+                conn.execute("DELETE FROM users WHERE id=%s", (user,))
