@@ -41,10 +41,12 @@ export function AskChat({
   csrf,
   chatId,
   onFirstMessage,
+  initialQuestion,
 }: {
   csrf: string
   chatId: string | null
   onFirstMessage: (chatId: string, title: string | null) => void
+  initialQuestion?: string | null
 }) {
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [q, setQ] = useState('')
@@ -78,13 +80,19 @@ export function AskChat({
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [msgs, busy])
 
-  async function send(e: React.FormEvent) {
-    e.preventDefault()
-    const question = q.trim()
+  // The actual submit logic, taking the question text as an argument rather
+  // than reading `q` directly, so it can be driven either by the form
+  // (current input value) or by a starter question that never touched the
+  // input at all.
+  async function send(text: string) {
+    const question = text.trim()
     if (!question || busy) return
     setQ('')
     setBusy(true)
-    setMsgs((m) => [...m, { id: `u-${Date.now()}`, role: 'user', content: question, citations: [] }])
+    setMsgs((m) => [
+      ...m,
+      { id: `u-${Date.now()}`, role: 'user', content: question, citations: [] },
+    ])
     try {
       const r = await fetch('/api/ask', {
         method: 'POST',
@@ -113,6 +121,25 @@ export function AskChat({
       setBusy(false)
     }
   }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    void send(q)
+  }
+
+  // A starter question picked on the empty state: prefill and send once.
+  // The ref (not state) survives React 19 StrictMode's double-invoke of
+  // effects in development, so a second mount pass doesn't fire a second
+  // /api/ask call and create a duplicate chat thread.
+  const sentInitial = useRef(false)
+  useEffect(() => {
+    if (initialQuestion && !sentInitial.current) {
+      sentInitial.current = true
+      setQ(initialQuestion)
+      void send(initialQuestion)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialQuestion])
 
   return (
     <div className="mx-auto flex h-full max-w-3xl flex-col px-6">
@@ -208,7 +235,7 @@ export function AskChat({
         <div ref={endRef} />
       </div>
 
-      <form onSubmit={send} className="sticky bottom-0 flex gap-2 bg-paper py-4">
+      <form onSubmit={handleSubmit} className="sticky bottom-0 flex gap-2 bg-paper py-4">
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}

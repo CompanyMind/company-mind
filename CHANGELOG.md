@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- First-run experience. The Ask page no longer hands a brand-new user an empty chat box whose first
+  reply is "I couldn't find anything in your sources to answer that" — an empty workspace now shows
+  what CompanyMind does, the three steps to get there, and a button to add documents. A populated
+  workspace instead offers three starter questions drawn from folders the caller can actually see;
+  clicking one asks it for real, landing in a live thread rather than just prefilling the input.
+  A dismissible progress strip tracks the three steps, each derived from real data rather than a
+  stored wizard position, so it resumes correctly and reverts honestly if documents are deleted.
 - Onboarding state (`web/lib/onboarding.ts`): a pure `deriveOnboarding()` computing the three steps
   from real facts — a document is indexed, any document is foldered, the user has asked a question —
   rather than a stored wizard step, so it resumes correctly and reverts honestly if documents are
