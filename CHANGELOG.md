@@ -169,6 +169,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   every node — including small, low-degree ones — is reliably hoverable at any zoom. The
   hovered node now also shows a violet ring and enlarges slightly, so it's obvious which node
   you're on — especially for hubs, whose many neighbors otherwise stay lit.
+- Added the indexes retrieval and ingest were missing: `chunks(document_id, ordinal)` (neighbour
+  expansion issued one unindexed scan per result, and re-ingest's DELETE and the documents cascade
+  scanned too), `citations(message_id|chunk_id|document_id)`, `document_groups(group_id)`,
+  `group_members(workspace_id, user_id)` and `query_log(workspace_id, created_at DESC)`. Dropped
+  `chunks_workspace_idx`: selectivity 1.0 on a single-tenant deployment, so the planner never chose
+  it while every insert paid for it. `engine/tests/test_indexes.py` asserts via `EXPLAIN` that each
+  index is applicable to the query it exists for.
 
 ### Added
 - Brain Map **interactive focus + category filter**: the legend is now a filter — click a
