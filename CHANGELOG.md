@@ -65,6 +65,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   already named neutrally and needed no changes.
 
 ### Fixed
+- Embedding requests now honour the response's `index` instead of assuming positional order, are
+  batched at `EMBED_BATCH_SIZE` (default 32, matching TEI's default `--max-client-batch-size`), and
+  raise `EmbeddingCountMismatch` rather than silently misaligning when a provider returns the wrong
+  number of vectors. Previously every chunk of a document went out in a single request — failing
+  outright for any document over roughly 16 pages against a stock self-hosted embedder — and a
+  reordered response would have paired every chunk with the wrong vector with no symptom.
 - **Re-ingesting a document no longer destroys the evidence for every past answer.**
   `citations.chunk_id` and `citations.document_id` were `ON DELETE cascade` while
   `ingest/store.py` deletes and re-creates every chunk on re-ingest, so re-uploading a revised

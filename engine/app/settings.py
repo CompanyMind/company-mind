@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     # Must match web/lib/db/schema.ts EMBED_DIM and the embedding model's output.
     # For OpenAI text-embedding-3-* this is passed as the `dimensions` request param.
     embed_dim: int = 1024
+    # Texts per embeddings request. TEI's default --max-client-batch-size is 32,
+    # so one-request-per-document fails for any document over roughly 16 pages.
+    embed_batch_size: int = 32
 
     # --- Retrieval pipeline ---
     retrieval_n_vec: int = 40  # dense candidate pool
