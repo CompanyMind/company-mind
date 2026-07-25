@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Super-admin panel at `/dashboard/admin` — aggregate usage plus user creation and blocking. Rail
+  shows the Admin link only to a super-admin; everyone else 404s on the route.
 - Aggregate usage from data already recorded — questions and active users per day, question-type
   mix, documents and folders per workspace, and the `lexical_arm_empty` / `answer_uncited`
   degradation rates the retrieval work introduced. Counts only: a test asserts the response contains
