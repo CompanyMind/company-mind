@@ -5,6 +5,7 @@ import {
   timestamp,
   primaryKey,
   index,
+  uniqueIndex,
   integer,
   bigint,
   vector,
@@ -23,6 +24,15 @@ export const users = pgTable('users', {
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
   name: text('name'),
+  // Set when the user dismisses the first-run strip. Onboarding PROGRESS is
+  // derived from real data every render; only the dismissal is stored.
+  onboardingDismissedAt: timestamp('onboarding_dismissed_at', { withTimezone: true }),
+  // Platform-level, above workspaces — NOT a membership role. Seed-only on
+  // purpose: a panel that can mint its own super-admins has no floor.
+  isSuperAdmin: boolean('is_super_admin').notNull().default(false),
+  // Set by the admin panel. Blocking also deletes the user's sessions, so this
+  // flag is a durable record, not the enforcement mechanism on its own.
+  blockedAt: timestamp('blocked_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 })
 
@@ -63,6 +73,27 @@ export const sessions = pgTable(
   (t) => [index('sessions_user_idx').on(t.userId)],
 )
 
+export const folders = pgTable(
+  'folders',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    // 'manual' | 'ai' — an AI folder that hasn't been touched renders a "suggested" chip.
+    origin: text('origin').notNull().default('manual'),
+    reviewed: boolean('reviewed').notNull().default(false),
+    // TF-IDF terms from AI organise; NULL for manual folders. Read by starter questions.
+    keywords: text('keywords').array(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('folders_workspace_idx').on(t.workspaceId),
+    uniqueIndex('folders_ws_name_unique').on(t.workspaceId, sql`lower(${t.name})`),
+  ],
+)
+
 export const documents = pgTable(
   'documents',
   {
@@ -79,6 +110,11 @@ export const documents = pgTable(
     // Full extracted text, stored at ingest so the source viewer can render the
     // document and highlight the exact cited span.
     extractedText: text('extracted_text'),
+    // NAVIGATION ONLY — never access control. Who may see a document is decided
+    // solely by document_groups x group_members (engine/app/access.py). Moving a
+    // document between folders must not change what anyone can retrieve.
+    // ON DELETE SET NULL: deleting a folder must never delete documents.
+    folderId: uuid('folder_id').references(() => folders.id, { onDelete: 'set null' }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [index('documents_workspace_idx').on(t.workspaceId)],
@@ -117,7 +153,9 @@ export const chunks = pgTable(
     embedding: vector('embedding', { dimensions: EMBED_DIM }),
   },
   (t) => [
-    index('chunks_workspace_idx').on(t.workspaceId),
+    // Neighbour expansion, re-ingest DELETE, and the documents cascade all filter
+    // by document and order by ordinal.
+    index('chunks_doc_ordinal_idx').on(t.documentId, t.ordinal),
     index('chunks_embedding_idx').using('hnsw', t.embedding.op('vector_cosine_ops')),
     // Lexical half of hybrid retrieval — must match the to_tsvector('english', …)
     // expression used by the engine's lexical query, or Postgres won't use it.
@@ -159,41 +197,61 @@ export const messages = pgTable(
   (t) => [index('messages_chat_idx').on(t.chatId)],
 )
 
-export const citations = pgTable('citations', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  messageId: uuid('message_id')
-    .notNull()
-    .references(() => messages.id, { onDelete: 'cascade' }),
-  workspaceId: uuid('workspace_id')
-    .notNull()
-    .references(() => workspaces.id, { onDelete: 'cascade' }),
-  chunkId: uuid('chunk_id')
-    .notNull()
-    .references(() => chunks.id, { onDelete: 'cascade' }),
-  marker: integer('marker').notNull(), // the [n]
-  documentId: uuid('document_id')
-    .notNull()
-    .references(() => documents.id, { onDelete: 'cascade' }),
-  filename: text('filename').notNull(),
-  page: integer('page'),
-  snippet: text('snippet').notNull(),
-})
+export const citations = pgTable(
+  'citations',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    messageId: uuid('message_id')
+      .notNull()
+      .references(() => messages.id, { onDelete: 'cascade' }),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    // A citation is evidence for an answer that was already given. Re-ingesting a
+    // document deletes and re-creates its chunks (engine/app/ingest/store.py), so
+    // these must NOT cascade — the row survives with a frozen filename/page/snippet
+    // and a null chunk reference, which the UI renders as an unlinkable citation.
+    chunkId: uuid('chunk_id').references(() => chunks.id, { onDelete: 'set null' }),
+    marker: integer('marker').notNull(), // the [n]
+    documentId: uuid('document_id').references(() => documents.id, { onDelete: 'set null' }),
+    filename: text('filename').notNull(),
+    page: integer('page'),
+    snippet: text('snippet').notNull(),
+  },
+  (t) => [
+    index('citations_message_idx').on(t.messageId),
+    index('citations_chunk_idx').on(t.chunkId),
+    index('citations_document_idx').on(t.documentId),
+  ],
+)
 
-export const queryLog = pgTable('query_log', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  workspaceId: uuid('workspace_id')
-    .notNull()
-    .references(() => workspaces.id, { onDelete: 'cascade' }),
-  // A query comes from a web user OR a Telegram identity — exactly one is set.
-  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
-  telegramLinkId: uuid('telegram_link_id').references(() => telegramLinks.id, {
-    onDelete: 'set null',
-  }),
-  question: text('question').notNull(),
-  retrievedChunkIds: uuid('retrieved_chunk_ids').array(),
-  model: text('model'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-})
+export const queryLog = pgTable(
+  'query_log',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    // A query comes from a web user OR a Telegram identity — exactly one is set.
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    telegramLinkId: uuid('telegram_link_id').references(() => telegramLinks.id, {
+      onDelete: 'set null',
+    }),
+    question: text('question').notNull(),
+    retrievedChunkIds: uuid('retrieved_chunk_ids').array(),
+    model: text('model'),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+    // Retrieval telemetry — how the pipeline actually behaved for this query.
+    degraded: text('degraded').array(),
+    timingsMs: jsonb('timings_ms'),
+    candidateCounts: jsonb('candidate_counts'),
+    rerankApplied: boolean('rerank_applied'),
+    questionType: text('question_type'),
+  },
+  // A plain btree on (workspace_id, created_at) serves ORDER BY created_at DESC
+  // via a backward index scan; no .desc() modifier needed.
+  (t) => [index('query_log_ws_created_idx').on(t.workspaceId, t.createdAt)],
+)
 
 export const groups = pgTable(
   'groups',
@@ -227,7 +285,10 @@ export const groupMembers = pgTable(
     }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  (t) => [index('group_members_group_idx').on(t.groupId)],
+  (t) => [
+    index('group_members_group_idx').on(t.groupId),
+    index('group_members_ws_user_idx').on(t.workspaceId, t.userId),
+  ],
 )
 
 export const documentGroups = pgTable(
@@ -243,7 +304,10 @@ export const documentGroups = pgTable(
       .notNull()
       .references(() => groups.id, { onDelete: 'cascade' }),
   },
-  (t) => [primaryKey({ columns: [t.documentId, t.groupId] })],
+  (t) => [
+    primaryKey({ columns: [t.documentId, t.groupId] }),
+    index('document_groups_group_idx').on(t.groupId),
+  ],
 )
 
 export const telegramBots = pgTable('telegram_bots', {

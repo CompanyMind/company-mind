@@ -10,7 +10,7 @@ export type ChatMessage = {
   content: string
   citations: {
     marker: number
-    chunkId: string
+    chunkId: string | null
     filename: string
     page: number | null
     snippet: string

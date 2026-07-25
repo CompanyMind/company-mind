@@ -25,14 +25,24 @@ async function main() {
 
   const existing = await db.query.users.findFirst({ where: eq(users.email, email) })
   if (existing) {
-    console.log(`User ${email} already exists — skipping.`)
+    // Never touch password, name, or memberships on an existing account — this
+    // branch's only job is to guarantee the named account can reach the admin
+    // panel, not to reset anything about it. An already-deployed install must
+    // be able to gain a super-admin without hand-written SQL, so "exists" is
+    // not "skip": promote if needed, but never demote anyone else.
+    if (existing.isSuperAdmin) {
+      console.log(`${email} is already the platform super-admin.`)
+    } else {
+      await db.update(users).set({ isSuperAdmin: true }).where(eq(users.id, existing.id))
+      console.log(`Promoted ${email} to platform super-admin.`)
+    }
     await sql.end()
     return
   }
 
   const [user] = await db
     .insert(users)
-    .values({ email, passwordHash: await hash(password, ARGON2), name })
+    .values({ email, passwordHash: await hash(password, ARGON2), name, isSuperAdmin: true })
     .returning()
   const slug =
     wsName
@@ -43,6 +53,7 @@ async function main() {
   await db.insert(memberships).values({ userId: user.id, workspaceId: ws.id, role: 'owner' })
 
   console.log(`Seeded ${email} -> workspace "${wsName}".`)
+  console.log(`Platform super-admin: ${email}`)
   await sql.end()
 }
 

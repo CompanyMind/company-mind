@@ -10,6 +10,7 @@ export type DocumentRow = {
   error: string | null
   createdAt: string | null
   groupIds: string[]
+  folderId: string | null
 }
 
 type EngineDoc = {
@@ -21,6 +22,7 @@ type EngineDoc = {
   error: string | null
   created_at: string | null
   group_ids?: string[]
+  folder_id?: string | null
 }
 
 export function mapDocument(d: EngineDoc): DocumentRow {
@@ -33,6 +35,7 @@ export function mapDocument(d: EngineDoc): DocumentRow {
     error: d.error,
     createdAt: d.created_at,
     groupIds: d.group_ids ?? [],
+    folderId: d.folder_id ?? null,
   }
 }
 
@@ -128,4 +131,21 @@ export async function generateTitle(text: string): Promise<string> {
   } catch {
     return fallbackTitle(text)
   }
+}
+
+// Starter questions are a nicety, not a critical path — any failure (network,
+// non-2xx) must fall back to an empty list rather than break the Ask page.
+export async function getSuggestions(
+  workspaceId: string,
+  userId: string,
+  role: string,
+): Promise<string[]> {
+  const qs = new URLSearchParams({ workspace_id: workspaceId, user_id: userId, role })
+  const res = await fetch(`${env.ENGINE_BASE_URL}/suggestions?${qs}`, {
+    headers: { 'x-engine-secret': env.ENGINE_INTERNAL_SECRET },
+    cache: 'no-store',
+  })
+  if (!res.ok) return []
+  const data = (await res.json()) as { questions?: string[] }
+  return data.questions ?? []
 }

@@ -19,7 +19,27 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest>=8.3"]
+dev = [
+    "pytest>=8.3",
+    "ranx>=0.3.21",
+]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+# Both filters are scoped to the exact third-party source file that raises the
+# warning (matched as an absolute-path regex anchored with $, since Python computes
+# the warnings-filter "module" from that file's path, not a dotted package name —
+# verified empirically, see task-12-report.md). Neither pattern can match a warning
+# raised from engine/app/ or engine/evals/. Delete each line once the upstream fix
+# ships.
+filterwarnings = [
+    # ranx/data_structures/report.py has unescaped backslashes (\centering, \le,
+    # \#, \midrule, \end) inside triple-quoted LaTeX template strings used only by
+    # report.to_latex(), which we never call. CPython's compiler emits a
+    # SyntaxWarning for each one on every cold bytecode-compile of that module.
+    "ignore::SyntaxWarning:.*ranx/data_structures/report$",
+    # ranx's JIT-compiled nDCG kernel (numba, via ranx/metrics/ndcg.py) warns once
+    # per cold cache about an internal uint64->int64 cast inside numba's own
+    # compiled code — nothing we call into directly.
+    "ignore::numba.core.errors.NumbaTypeSafetyWarning:.*ranx/metrics/ndcg$",
+]

@@ -8,6 +8,178 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Super-admin panel at `/dashboard/admin` — aggregate usage plus user creation and blocking. Rail
+  shows the Admin link only to a super-admin; everyone else 404s on the route.
+- Aggregate usage from data already recorded — questions and active users per day, question-type
+  mix, documents and folders per workspace, and the `lexical_arm_empty` / `answer_uncited`
+  degradation rates the retrieval work introduced. Counts only: a test asserts the response contains
+  no question text and no per-user rows, so the aggregate-only promise is structural rather than a
+  convention.
+- Admin users API: list every account with its workspace, role, recent-activity timestamp and
+  blocked status; create a user with a generated temporary password returned exactly once;
+  block/unblock. All super-admin gated, 404 to anyone else.
+- Blocking a user now revokes their live sessions and is enforced inside `validateSessionToken`,
+  the choke point every authenticated request passes through, so a blocked user fails on their next
+  request rather than at cookie expiry. Login refuses a blocked account with the same generic error
+  as a wrong password, so the panel does not confirm which addresses exist. A super-admin cannot
+  block themselves.
+- `users.is_super_admin` (seed-only) and `users.blocked_at`; `npm run seed` idempotently ensures
+  `SEED_EMAIL` is the platform super-admin — creating the account with the flag set if it's new,
+  promoting it in place (without touching password, name, or memberships) if it already exists —
+  and prints which state it left the account in, so an already-deployed install can always gain a
+  super-admin without hand-written SQL.
+- Super-admin panel implementation plan —
+  `docs/superpowers/plans/2026-07-25-super-admin-panel.md`. 5 tasks. Blocking is enforced inside
+  `validateSessionToken`, the choke point every authenticated request already passes through, so one
+  edit covers every surface; Task 4 carries the sentinel test that keeps usage aggregate-only.
+- Super-admin panel spec — `docs/superpowers/specs/2026-07-25-super-admin-panel-design.md`. A
+  platform super-admin above all workspaces (`users.is_super_admin`, seed-only so the panel cannot
+  mint its own privileged accounts), user creation and blocking, and aggregate-only usage built from
+  data already recorded — no new instrumentation. Blocking revokes live sessions rather than waiting
+  for cookie expiry. Two invariants are enforced by tests rather than convention: no admin endpoint
+  may return question text or a per-user activity row, and a super-admin cannot block themselves.
+  States two real gaps plainly: there is no password-change flow, and "time spent" is not reported
+  because existing data cannot answer it and a proxy would look precise while being wrong.
+- First-run experience. The Ask page no longer hands a brand-new user an empty chat box whose first
+  reply is "I couldn't find anything in your sources to answer that" — an empty workspace now shows
+  what CompanyMind does, the three steps to get there, and a button to add documents. A populated
+  workspace instead offers three starter questions drawn from folders the caller can actually see;
+  clicking one asks it for real, landing in a live thread rather than just prefilling the input.
+  A dismissible progress strip tracks the three steps, each derived from real data rather than a
+  stored wizard position, so it resumes correctly and reverts honestly if documents are deleted.
+- Onboarding state (`web/lib/onboarding.ts`): a pure `deriveOnboarding()` computing the three steps
+  from real facts — a document is indexed, any document is foldered, the user has asked a question —
+  rather than a stored wizard step, so it resumes correctly and reverts honestly if documents are
+  deleted. Dismissal (`POST /api/onboarding/dismiss`) hides the strip without ever marking
+  incomplete work complete. `GET /api/suggestions` proxies the engine's permission-scoped starter
+  questions.
+- Starter questions (`engine/app/library/suggest.py`, `GET /suggestions`) built from the caller's own
+  folders and their stored keywords, ranked by how many documents that caller can actually see, with
+  a deterministic template when no chat model is configured. Scoped by the same `resolve_access` rule
+  the ask path uses — a suggested question is a disclosure, so a member is never offered one derived
+  from a document they cannot open.
+- **Organise with AI** button on Sources, shown whenever unfiled documents exist, reporting what it
+  did ("Organised 12 documents into 3 folders"). Folders it creates are marked "suggested" until
+  renamed or otherwise touched.
+- AI organise (`engine/app/library/organize.py`, `POST /folders/organize`): clusters **unfiled**
+  documents into named folders, reusing the Atlas pipeline — mean document vectors via pgvector's
+  `avg(vector)`, KMeans at a folder-sized k (`clamp(round(√n), 2, 8)`), TF-IDF keywords, and the
+  existing labeller with its deterministic keyword fallback — so it needs no new ML, no GPU, and is
+  reproducible under the fake providers. A user's own filing is never overwritten, documents with no
+  embeddings are skipped rather than dumped into a folder, and folder names de-duplicate against
+  existing ones.
+- Folder detail pages (`/dashboard/sources/[folderId]`, plus the literal `unfiled`) listing that
+  folder's documents with the existing access-group editor, a **Move to…** select per document, and
+  folder rename/delete. Deleting a folder moves its documents to Unfiled and says so in the
+  confirmation. Deliberately not drag-and-drop: it breaks on touch and by keyboard. The access
+  editor now states in one line that folders never change who can see a document.
+- Web BFF and API routes for folders (`web/lib/folders.ts`, `/api/folders`, `/api/folders/[id]`,
+  `/api/documents/[id]/folder`), all CSRF-guarded on mutation. `GET /api/documents` accepts a
+  `folder` filter and every document row now carries `folderId`.
+- Engine folder library and endpoints (`engine/app/library/folders.py`): list with per-folder
+  document counts and an unfiled count, create/rename/delete, and document assignment. Renaming an
+  AI-created folder marks it reviewed. `GET /documents` gained a `folder` filter (a folder id or the
+  literal `unfiled`) and now returns `folder_id`. A test asserts that moving a document between
+  folders leaves permission-scoped retrieval byte-identical for both a group member and an outsider —
+  folders are navigation, and this is what stops them quietly becoming access control.
+- `folders` table plus `documents.folder_id` (one folder per document, `NULL` = Unfiled, `ON DELETE
+  SET NULL` so deleting a folder never deletes documents) and `users.onboarding_dismissed_at`.
+  Folders are navigation only — access control remains entirely in `document_groups` ×
+  `group_members`, and no code path reads `folder_id` when computing visibility.
+- Onboarding + folders implementation plan —
+  `docs/superpowers/plans/2026-07-25-onboarding-and-folders.md`. 10 TDD tasks in three stages:
+  folders (schema, engine CRUD, BFF, folder grid, folder detail with Move to…), AI organise, and the
+  first-run flow. Task 2 carries the security test that keeps folders from quietly becoming access
+  control.
+- Onboarding + document-folders spec —
+  `docs/superpowers/specs/2026-07-25-onboarding-and-folders-design.md`. Diagnoses the day-one
+  failure: a new owner lands on Ask, types a question, and the first thing the product says is the
+  refusal sentinel, because the workspace is empty and no surface says so. Adds a first-run flow
+  whose progress is **derived from real data** (indexed documents exist / any document is foldered /
+  the user has asked a question) rather than a stored wizard step, so it is resumable and cannot
+  desync; it adapts to an empty vs a populated workspace, and offers three starter questions built
+  from the caller's own folder labels and keywords, permission-scoped so a member is never shown a
+  question about a document they cannot open. Adds flat `folders` (one per document, NULL = Unfiled,
+  `ON DELETE SET NULL` so deleting a folder never deletes documents) with an AI organise step that
+  reuses Atlas's existing KMeans + TF-IDF + label pipeline rather than adding new ML. The
+  load-bearing invariant: **folders are navigation, never access control** — enforced by a test that
+  moves a document between folders and asserts permission-scoped retrieval is byte-identical.
+- Retrieval accuracy attribution (`docs/product/2026-07-25-retrieval-attribution.md`) — the Phase 1
+  deliverable, apportioning the accuracy complaint across the eleven candidate causes from the
+  re-architecture spec. **One cause is now confirmed by measurement:** `plainto_tsquery` ANDs every
+  query term and is used as a hard `WHERE` filter, so **7 of 8 golden questions retrieve zero rows
+  from the lexical arm** — in English as well as Russian and Uzbek. The only question that fires is a
+  rare exact token (`CKPT_PREFETCH`). Equal-weight RRF then fuses a populated dense list with an empty
+  lexical one, so "hybrid retrieval" has silently been dense-only for essentially every
+  natural-language question since migration `0006`. The document separates what is measured (fixture
+  corpus, fake providers — a mechanism check, not a rate) from what still requires the pilot corpus
+  and self-hosted models, gives the exact commands for those runs, and states plainly that
+  `ef_search` must not be touched until the ANN probe has run on real data.
+- **Retrieval evaluation harness and its CI gate** (`engine/evals/run.py`,
+  `.github/workflows/eval.yml`). Seeds a throwaway workspace from a committed synthetic EN/RU/UZ
+  fixture corpus through the real ingest pipeline, runs each golden question as the principal it
+  specifies, and reports doc-recall@8, quote-recall@8, nDCG@8 and MRR plus the lexical-arm row count
+  and degradation count. Gates on three things: **any permission leak fails the build outright**
+  (a member principal retrieving an HR-restricted document), a paired-bootstrap regression against
+  `engine/evals/baseline.json` fails it, and the whole run happens with deterministic fake providers
+  so CI needs no GPU, no credentials and no network. A stale baseline that shares zero question ids
+  with the current run (e.g. the golden set's ids were edited without regenerating the baseline) is
+  also a hard failure rather than the silent "no change" a naive paired diff would report. Customer
+  golden sets and corpora stay outside the repo by `.gitignore`.
+- `engine/evals/probe_ann.py` — a label-free ANN-vs-exact recall probe sweeping
+  `hnsw.ef_search` × `hnsw.iterative_scan` × synthesized ACL selectivity (100% down to 0.5%), using
+  exact search (`enable_indexscan=off`) as ground truth. Run before Phase 2 changes any GUC, so the
+  "filtered HNSW loses recall" hypothesis is measured on this corpus rather than assumed. Each
+  `ProbeRow` carries `n_gold` (the ground-truth set size) alongside `recall`, and `recall` is `None`
+  — never a fabricated `1.0` — when `n_gold == 0`, so a vacuous "nothing survived the filter" row
+  can't be misread as a perfect match at the low-selectivity end of the sweep.
+- **Retrieval telemetry.** `engine/app/ask/telemetry.py::RetrievalDebug` records per-arm candidate
+  counts (dense / lexical / fused / rerank-in / final), per-stage latency, whether reranking actually
+  applied, and a `degraded[]` list; `retrieve()` now returns `(results, debug)` and `answer_query`
+  persists all of it to new `query_log` columns (`degraded`, `timings_ms`, `candidate_counts`,
+  `rerank_applied`, `question_type`). A zero-row lexical arm — the expected symptom of
+  `plainto_tsquery` ANDing every term — is itself recorded as `lexical_arm_empty`, which is how the
+  Phase 1 attribution table gets its numbers.
+- `engine/tests/test_store.py` — orchestration-level coverage for `process_document` that
+  `test_prepare.py` couldn't provide (it only exercises the DB-free `prepare_document` in
+  isolation). Three tests: shrinks the connection pool to one connection and proves it stays
+  available for the pool to hand out *while `prepare_document` runs*, so a future regression that
+  re-wraps that call inside the phase-1 `with get_conn()` block trips a `PoolTimeout` and fails
+  the test instead of silently starving `/ask`/Telegram/Atlas again; a zero-chunk document ends
+  at `status='failed'` with a non-null error rather than `status='indexed'`; and a failure inside
+  the prepare phase is recorded in both `documents` and `ingestion_jobs`.
+- **The repo's first CI** (`.github/workflows/ci.yml`): the engine job runs against a real
+  `pgvector/pgvector:pg16` service with migrations applied, so the ten `skipif(not DATABASE_URL)`
+  test files — including the permission-filter test — now actually execute on every push instead of
+  silently skipping. The web job runs vitest plus `next build` with no env, guarding the lazy
+  DB-client/env design.
+- Retrieval & ingestion re-architecture spec —
+  `docs/superpowers/specs/2026-07-25-retrieval-rearchitecture-design.md`. Backed by a 24-agent
+  research run (12 web-research sweeps, 2 code audits, 3 competing architectures, 6 adversarial
+  critiques). Core finding: the blocker is the **type of a citation** — `ParsedDoc(text: str)` plus
+  `(page, char_start, char_end)` cannot express a cell range, an audio timespan, or a bbox, which is
+  why "any format" and "cite the exact source" are currently mutually exclusive. Replaces the flat
+  string with typed `blocks` carrying a modality-polymorphic `locator jsonb`, makes `chunks` a pure
+  retrieval unit joined via `chunk_blocks`, and keeps everything in the one Postgres. Documents
+  eleven verified accuracy defects (chief among them: `plainto_tsquery` ANDs every term and is used
+  as a hard WHERE filter, so the lexical arm usually returns zero rows and "hybrid" silently
+  degrades to dense-only; `to_tsvector('english', …)` over Cyrillic is a no-op stemmer), two
+  data-destroying bugs (`citations` cascade-delete on re-ingest destroys the evidence for every past
+  answer; `embed.py` assumes response ordering), and the absence of any CI or eval harness. Phases
+  the work 1–5 (~17.5 engineer-weeks) with OCR, audio and the aggregation lane deferred, and records
+  the architectures rejected on evidence (visual/ColPali late interaction, agent loops, a second
+  datastore, GraphRAG, RAPTOR, semantic chunking, late chunking, HyDE).
+- Phase 1 implementation plan —
+  `docs/superpowers/plans/2026-07-25-phase1-measure-and-stop-the-bleeding.md`. 14 TDD tasks: the
+  repo's first CI (which makes the ten `skipif(not DATABASE_URL)` test files actually run), the five
+  stop-the-bleeding fixes, retrieval telemetry into `query_log`, a deterministic question-type
+  classifier, the ANN-vs-exact recall probe that decides whether Phase 2 touches `ef_search` at all,
+  a label-stable golden-set format with cluster-robust paired-bootstrap gating, and the attribution
+  document Phase 2 is planned from.
+- Deterministic question-type classification (`aggregate` / `enumerate` / `comparison` / `lookup`,
+  EN + RU + UZ keyword rules) recorded on every logged query. This is the measurement that gates
+  whether the structured-aggregation lane gets built at all — the spec requires the aggregate share
+  of real traffic to exceed ~15% first.
 - `web/scripts/seed-corpus.ts` (`npm run seed:corpus`) — bulk-loads a directory of
   documents plus a `manifest.json` (filename -> access-group names) through the real
   web API: mints a session for an existing seeded user directly in the auth DB
@@ -20,8 +192,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   marketing nav and the favicon: nested squares, violet inner square on the app's `--brain`
   token / hardcoded `#684BFF` in the standalone SVGs. Duplicated rather than shared-imported
   from `marketing/`, per the web/marketing deployable boundary.
+- Golden-set format and retrieval metrics (`engine/evals/goldenset.py`, `engine/evals/metrics.py`).
+  Gold is `(filename, verbatim quote)` rather than chunk ids, so labels survive the re-chunking that
+  Phases 3–4 deliberately perform. Metrics: doc-recall@k, quote-recall@k, MRR and nDCG@k (via `ranx`),
+  plus a paired bootstrap whose resampling unit is the **source document**, because with several
+  questions per document naive standard errors can be ~3× too small and real regressions read as noise.
 
 ### Changed
+- Sources is now a folder grid instead of one flat list of every document — the flat list was already
+  unusable at the 150-document demo corpus. Folder cards show a document count and a "suggested" chip
+  for AI folders nobody has touched yet; an Unfiled card appears whenever unfiled documents exist.
+  Atlas's `?doc=` deep links still work: they now redirect into whichever folder the document is in.
+- **Silent failures are now recorded.** The reranker's bare `except Exception: pass` (which made a
+  reranker that never ran indistinguishable from one that worked) now appends a reason —
+  `rerank_http_error:422`, `rerank_unparseable:…`, `rerank_short_response:…` — to a `degraded` list;
+  `[n]` markers that don't resolve are recorded as `citation_out_of_range`, and an answer with no
+  working citation as `answer_uncited`. `CONTEXTUAL_MODE=llm`, documented in settings but never
+  implemented (it silently behaved as `header`), now fails fast at startup with a message pointing
+  at the phase that implements it.
+- Atlas computes per-document mean vectors with pgvector's `avg(vector)` aggregate in Postgres
+  instead of streaming every chunk embedding in the workspace into Python (~4 KB per chunk at 1024
+  dims, so a 100k-chunk corpus moved ~400 MB over the wire on every graph build).
 - `marketing/components/Wordmark.tsx` and `marketing/app/opengraph-image.tsx` switched from
   the previous "walls + 3-node lattice" icon to the same nested-squares mark as the favicon
   and dashboard, so the logo is now identical everywhere it appears — landing page nav, OG
@@ -37,6 +228,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   already named neutrally and needed no changes.
 
 ### Fixed
+- `retrieve()` no longer holds a pooled database connection across the rerank HTTP call — the same
+  defect class already fixed on ingest, below. Reranking (`LLMReranker`/`CrossEncoderReranker`,
+  `timeout=60s`) now runs with no connection held: candidate retrieval/fusion/capping (phase A) and
+  neighbor expansion (phase C) each acquire a pooled connection only for as long as they need one,
+  and reranking (phase B) runs in between with none held. The shared pool has ten connections, used
+  by ask, ingest, the Telegram worker, and Atlas; a slow or degraded rerank backend under concurrent
+  asks could otherwise burn through it and produce `PoolTimeout` on unrelated lightweight requests.
+  `engine/tests/test_retrieve.py::test_retrieve_does_not_hold_a_connection_during_rerank` shrinks the
+  pool to one connection and proves it's free to acquire while `reranker.rerank(...)` is running.
+- Ingestion no longer holds a pooled database connection across the embedding HTTP call. Parse →
+  chunk → contextualize → embed moved into a DB-free `engine/app/ingest/prepare.py::prepare_document`,
+  bracketed by two short transactions; with a ten-connection pool, ten concurrent uploads previously
+  drained it and blocked every ask, Telegram poll and Atlas request for the duration.
+- A document that parses to zero chunks is now recorded as `status='failed'` with an explanatory
+  error, instead of `status='indexed'` with `error=NULL` — the state every scanned PDF landed in,
+  which looked like a successful ingest of an empty document.
+- Embedding requests now honour the response's `index` instead of assuming positional order, are
+  batched at `EMBED_BATCH_SIZE` (default 32, matching TEI's default `--max-client-batch-size`), and
+  raise `EmbeddingCountMismatch` rather than silently misaligning when a provider returns the wrong
+  number of vectors. Previously every chunk of a document went out in a single request — failing
+  outright for any document over roughly 16 pages against a stock self-hosted embedder — and a
+  reordered response would have paired every chunk with the wrong vector with no symptom.
+- **Re-ingesting a document no longer destroys the evidence for every past answer.**
+  `citations.chunk_id` and `citations.document_id` were `ON DELETE cascade` while
+  `ingest/store.py` deletes and re-creates every chunk on re-ingest, so re-uploading a revised
+  policy — the most routine operation in the product — silently deleted the citation rows of every
+  historical answer that cited it, while the `[1]`/`[2]` markers kept rendering in the message text.
+  Both FKs are now nullable and `ON DELETE SET NULL`; the frozen `filename`/`page`/`snippet` survive
+  and the UI renders such a citation as unlinkable rather than broken.
 - Atlas hover/click, root cause: force-graph resolves both through a shadow canvas — every
   node is painted in a unique flat color onto an invisible canvas, and each mouse move reads
   back the single pixel under the cursor (`ctx.getImageData`) to look up which node owns that
@@ -113,6 +333,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   every node — including small, low-degree ones — is reliably hoverable at any zoom. The
   hovered node now also shows a violet ring and enlarges slightly, so it's obvious which node
   you're on — especially for hubs, whose many neighbors otherwise stay lit.
+- Added the indexes retrieval and ingest were missing: `chunks(document_id, ordinal)` (neighbour
+  expansion issued one unindexed scan per result, and re-ingest's DELETE and the documents cascade
+  scanned too), `citations(message_id|chunk_id|document_id)`, `document_groups(group_id)`,
+  `group_members(workspace_id, user_id)` and `query_log(workspace_id, created_at DESC)`. Dropped
+  `chunks_workspace_idx`: selectivity 1.0 on a single-tenant deployment, so the planner never chose
+  it while every insert paid for it. `engine/tests/test_indexes.py` asserts via `EXPLAIN` that each
+  index is applicable to the query it exists for.
 
 ### Added
 - Brain Map **interactive focus + category filter**: the legend is now a filter — click a
@@ -268,6 +495,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Marketing's dynamic `app/icon.tsx` (replaced by the static `icon.svg`).
 
 ### Fixed
+- Oversized uploads are rejected from the declared `Content-Length` before `req.formData()` buffers
+  the whole body into memory, and now answer `413` rather than `400`. The authoritative post-parse
+  `file.size` check remains, since `Content-Length` can lie.
 - Brain Map: the over-exposure lens now actually produces findings. `build_graph`
   previously computed `exposure_score` only for the map's heat coloring; a new
   `engine/app/graph/lenses.py::over_exposure_findings()` flags docs at/above a new

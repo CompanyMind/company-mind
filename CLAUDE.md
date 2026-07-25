@@ -64,8 +64,12 @@ tables, rendered at `web/app/(app)/dashboard/atlas/`.
 
 ## Gotchas (bugs already paid for — don't reintroduce)
 
-- **psycopg3**: use `with conn.transaction()`, NOT `with conn:` — the connection context
-  manager COMMITS AND CLOSES the connection in psycopg3. Insert vectors via `%s::vector`.
+- **psycopg3**: on a **pooled** connection (`app/db.py::get_conn`), use `with conn.transaction()`,
+  NOT `with conn:` — the connection context manager COMMITS AND CLOSES the connection in psycopg3,
+  which returns it to the pool mid-work. This is about the *transaction* scope: opening a fresh
+  short-lived connection with `with psycopg.connect(DSN) as conn:` is fine and is the established
+  pattern in the DB-gated tests, because there closing at block exit is exactly what you want.
+  Insert vectors via `%s::vector`.
 - **Next build needs no DB**: `web/lib/db/client.ts` (lazy Proxy) and `web/lib/env.ts`
   (getter-based) exist so `next build` runs with no env. Keep them lazy.
 - `server-only` throws under vitest/tsx — tests alias it to an empty stub; seed scripts

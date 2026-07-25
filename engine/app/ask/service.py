@@ -1,9 +1,11 @@
+import json
 from dataclasses import dataclass
 
 from ..access import resolve_access
 from ..db import get_conn
 from ..settings import settings, use_real_models
 from .answer import Citation, answer_question
+from .qtype import classify_question
 from .retrieve import retrieve
 
 
@@ -13,6 +15,7 @@ class AskResult:
     insufficient: bool
     citations: list[Citation]
     retrieved_chunk_ids: list[str]
+    debug: dict
 
 
 def _model_name() -> str:
@@ -38,15 +41,27 @@ def answer_query(
     if role is not None:
         with get_conn() as conn:
             group_ids, all_access = resolve_access(conn, workspace_id, user_id or "", role)
-    retrieved = retrieve(workspace_id, question, group_ids=group_ids, all_access=all_access)
+    retrieved, dbg = retrieve(workspace_id, question, group_ids=group_ids, all_access=all_access)
     result = answer_question(question, retrieved)
+    dbg.degraded.extend(result.degraded)
     chunk_ids = [r.chunk_id for r in retrieved]
+    telemetry = dbg.as_dict()
     with get_conn() as conn:
         with conn.transaction():
             conn.execute(
                 "INSERT INTO query_log (workspace_id, user_id, telegram_link_id, question, "
-                "retrieved_chunk_ids, model) VALUES (%s,%s,%s,%s,%s,%s)",
-                (workspace_id, user_id, telegram_link_id, log_question or question,
-                 chunk_ids, _model_name()),
+                "retrieved_chunk_ids, model, degraded, timings_ms, candidate_counts, rerank_applied, question_type) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                (
+                    workspace_id, user_id, telegram_link_id, log_question or question,
+                    chunk_ids, _model_name(),
+                    telemetry["degraded"],
+                    json.dumps(telemetry["timings_ms"]),
+                    json.dumps(telemetry["candidate_counts"]),
+                    telemetry["rerank_applied"],
+                    classify_question(question),
+                ),
             )
-    return AskResult(result.answer, result.insufficient, result.citations, chunk_ids)
+    return AskResult(
+        result.answer, result.insufficient, result.citations, chunk_ids, telemetry
+    )

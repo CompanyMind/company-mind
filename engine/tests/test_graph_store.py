@@ -3,8 +3,11 @@ import uuid
 import numpy as np
 import psycopg
 import pytest
+from pgvector.psycopg import register_vector
 
 from app.graph import store
+from app.graph.store import load_docs
+from app.ingest.embed import FakeEmbeddings
 
 DB = os.environ.get("DATABASE_URL")
 pytestmark = pytest.mark.skipif(not DB, reason="needs DATABASE_URL")
@@ -12,6 +15,10 @@ pytestmark = pytest.mark.skipif(not DB, reason="needs DATABASE_URL")
 
 def _vec_lit(v):
     return "[" + ",".join(f"{x:.6f}" for x in v) + "]"
+
+
+def _seed_ws(conn, ws):
+    conn.execute("INSERT INTO workspaces (id,name,slug) VALUES (%s,%s,%s)", (ws, f"ws-{ws}", str(ws)))
 
 
 def _seed(conn, ws, ev, docs):
@@ -63,6 +70,42 @@ def test_load_docs_and_write_read_roundtrip():
             read_one = store.read_topics(conn, str(ws), {str(d1)})
             assert read_one[0]["doc_count"] == 1
             assert store.read_findings(conn, str(ws), {str(d1)}) == []
+    finally:
+        with psycopg.connect(DB) as conn:
+            with conn.transaction():
+                conn.execute("DELETE FROM workspaces WHERE id=%s", (ws,))
+
+
+def test_mean_vector_matches_numpy_mean():
+    """load_docs must compute the same per-document mean as numpy did, now that
+    the average is computed in Postgres via pgvector's avg(vector)."""
+    import numpy as np
+
+    ws = uuid.uuid4()
+    vecs = [FakeEmbeddings(1024).embed([f"chunk {i}"])[0] for i in range(3)]
+    with psycopg.connect(DB) as conn:
+        with conn.transaction():
+            _seed_ws(conn, ws)
+            doc = uuid.uuid4()
+            conn.execute(
+                "INSERT INTO documents (id, workspace_id, filename, mime, bytes, storage_key, status) "
+                "VALUES (%s,%s,'f.txt','text/plain',1,'k','indexed')",
+                (doc, ws),
+            )
+            for i, v in enumerate(vecs):
+                lit = "[" + ",".join(str(x) for x in v) + "]"
+                conn.execute(
+                    "INSERT INTO chunks (document_id, workspace_id, ordinal, text, embedding) "
+                    "VALUES (%s,%s,%s,%s,%s::vector)",
+                    (doc, ws, i, f"chunk {i}", lit),
+                )
+    try:
+        with psycopg.connect(DB) as conn:
+            register_vector(conn)
+            docs = load_docs(conn, str(ws))
+        assert len(docs) == 1
+        expected = np.mean(np.vstack([np.array(v) for v in vecs]), axis=0)
+        assert np.allclose(docs[0].vector, expected, atol=1e-5)
     finally:
         with psycopg.connect(DB) as conn:
             with conn.transaction():

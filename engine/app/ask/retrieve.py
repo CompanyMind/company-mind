@@ -5,6 +5,7 @@ from ..ingest.embed import get_provider
 from ..settings import settings
 from .fusion import rrf, cap_by_document
 from .rerank import RerankItem, get_reranker
+from .telemetry import RetrievalDebug, stage
 
 
 @dataclass
@@ -103,30 +104,65 @@ def retrieve(
     k: int | None = None,
     group_ids: list[str] | None = None,
     all_access: bool = False,
-) -> list[Retrieved]:
+) -> tuple[list[Retrieved], RetrievalDebug]:
     """Hybrid retrieval: dense (pgvector) + lexical (Postgres full-text), fused
     with RRF, per-document capped, reranked, then neighbor-expanded. One
-    permission predicate serves both retrievers."""
+    permission predicate serves both retrievers. Returns the results and a
+    RetrievalDebug describing how the pipeline actually behaved.
+
+    Three connection phases, mirroring ingest's process_document: candidate
+    retrieval (phase A) and neighbor expansion (phase C) each hold a pooled
+    connection only as long as they need one. Reranking (phase B) is a network
+    call (LLMReranker/CrossEncoderReranker, timeout=60s) and MUST NOT hold a
+    connection — the pool has ten, shared with ingest, the Telegram worker, and
+    Atlas; holding one across the HTTP call would starve them under load."""
     final_k = k or settings.final_k
     gids = group_ids or []
-    qvec = get_provider().embed([contextualize_query(query)])[0]
+    dbg = RetrievalDebug()
+
+    with stage(dbg, "embed_query"):
+        qvec = get_provider().embed([contextualize_query(query)])[0]
     qlit = "[" + ",".join(str(x) for x in qvec) + "]"
 
+    # Phase A: candidate retrieval + fusion + capping. Connection released on exit.
     with get_conn() as conn:
-        dense = _dense_ids(conn, workspace_id, qlit, all_access, gids, settings.retrieval_n_vec)
-        lexical = _lexical_ids(conn, workspace_id, query, all_access, gids, settings.retrieval_n_lex)
+        with stage(dbg, "dense"):
+            dense = _dense_ids(conn, workspace_id, qlit, all_access, gids, settings.retrieval_n_vec)
+        with stage(dbg, "lexical"):
+            lexical = _lexical_ids(
+                conn, workspace_id, query, all_access, gids, settings.retrieval_n_lex
+            )
+        dbg.dense_n, dbg.lexical_n = len(dense), len(lexical)
+
         fused = [cid for cid, _ in rrf([dense, lexical], k=settings.rrf_k)]
+        dbg.fused_n = len(fused)
         if not fused:
-            return []
+            dbg.finalize()
+            return [], dbg
 
         meta = _fetch_meta(conn, workspace_id, fused)
         ordered = [c for c in fused if c in meta]
         chunk_to_doc = {c: meta[c]["document_id"] for c in ordered}
         capped = cap_by_document(ordered, chunk_to_doc, settings.doc_cap)[: settings.rerank_in]
+        dbg.rerank_in_n = len(capped)
 
-        ranked_ids = get_reranker().rerank(
-            query, [RerankItem(c, meta[c]["text"]) for c in capped], final_k
+    # Phase B: rerank — a network call. No connection held.
+    reranker = get_reranker()
+    dbg.reranker = type(reranker).__name__
+    with stage(dbg, "rerank"):
+        before = len(dbg.degraded)
+        ranked_ids = reranker.rerank(
+            query, [RerankItem(c, meta[c]["text"]) for c in capped], final_k, dbg.degraded
         )
-        results = [_to_retrieved(c, meta[c]) for c in ranked_ids if c in meta]
-        _expand_neighbors(conn, workspace_id, results, meta)
-        return results
+        dbg.rerank_applied = len(dbg.degraded) == before
+
+    results = [_to_retrieved(c, meta[c]) for c in ranked_ids if c in meta]
+
+    # Phase C: neighbor expansion, on a fresh connection.
+    with get_conn() as conn:
+        with stage(dbg, "expand"):
+            _expand_neighbors(conn, workspace_id, results, meta)
+
+    dbg.final_n = len(results)
+    dbg.finalize()
+    return results, dbg

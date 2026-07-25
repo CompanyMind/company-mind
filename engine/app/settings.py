@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     # Must match web/lib/db/schema.ts EMBED_DIM and the embedding model's output.
     # For OpenAI text-embedding-3-* this is passed as the `dimensions` request param.
     embed_dim: int = 1024
+    # Texts per embeddings request. TEI's default --max-client-batch-size is 32,
+    # so one-request-per-document fails for any document over roughly 16 pages.
+    embed_batch_size: int = 32
 
     # --- Retrieval pipeline ---
     retrieval_n_vec: int = 40  # dense candidate pool
@@ -33,7 +36,7 @@ class Settings(BaseSettings):
     doc_cap: int = 3  # max chunks one document contributes to fusion
     rerank_base_url: str = ""  # self-hosted cross-encoder reranker; empty → LLM/fake
     rerank_model: str = ""
-    contextual_mode: str = "header"  # off | header | llm
+    contextual_mode: str = "header"  # off | header  ('llm' lands in Phase 4)
 
     # --- Atlas (governance graph) ---
     graph_seed: int = 42
@@ -50,6 +53,16 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+_IMPLEMENTED_CONTEXTUAL_MODES = {"off", "header"}
+
+if settings.contextual_mode not in _IMPLEMENTED_CONTEXTUAL_MODES:
+    raise ValueError(
+        f"CONTEXTUAL_MODE={settings.contextual_mode!r} is not implemented. "
+        f"Supported: {sorted(_IMPLEMENTED_CONTEXTUAL_MODES)}. "
+        "'llm' (Summary-Augmented Chunking) arrives in Phase 4 — until then it "
+        "silently behaved as 'header', which is why this now fails loudly."
+    )
 
 
 def use_real_models() -> bool:
