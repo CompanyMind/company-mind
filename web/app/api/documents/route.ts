@@ -15,10 +15,11 @@ const ALLOWED = new Map<string, string>([
   ['docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
 ])
 
-export async function GET() {
+export async function GET(req: Request) {
   const auth = await getCurrentUser()
   if (!auth) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-  return NextResponse.json({ documents: await listDocuments(auth.workspace.id) })
+  const folder = new URL(req.url).searchParams.get('folder') ?? undefined
+  return NextResponse.json({ documents: await listDocuments(auth.workspace.id, folder) })
 }
 
 export async function POST(req: Request) {

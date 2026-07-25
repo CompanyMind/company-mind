@@ -10,6 +10,7 @@ export type DocumentRow = {
   error: string | null
   createdAt: string | null
   groupIds: string[]
+  folderId: string | null
 }
 
 type EngineDoc = {
@@ -21,6 +22,7 @@ type EngineDoc = {
   error: string | null
   created_at: string | null
   group_ids?: string[]
+  folder_id?: string | null
 }
 
 export function mapDocument(d: EngineDoc): DocumentRow {
@@ -33,6 +35,7 @@ export function mapDocument(d: EngineDoc): DocumentRow {
     error: d.error,
     createdAt: d.created_at,
     groupIds: d.group_ids ?? [],
+    folderId: d.folder_id ?? null,
   }
 }
 

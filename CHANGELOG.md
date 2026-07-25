@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Web BFF and API routes for folders (`web/lib/folders.ts`, `/api/folders`, `/api/folders/[id]`,
+  `/api/documents/[id]/folder`), all CSRF-guarded on mutation. `GET /api/documents` accepts a
+  `folder` filter and every document row now carries `folderId`.
 - Engine folder library and endpoints (`engine/app/library/folders.py`): list with per-folder
   document counts and an unfiled count, create/rename/delete, and document assignment. Renaming an
   AI-created folder marks it reviewed. `GET /documents` gained a `folder` filter (a folder id or the

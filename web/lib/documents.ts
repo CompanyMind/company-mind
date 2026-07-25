@@ -4,8 +4,13 @@ import { mapDocument, type DocumentRow } from '@/lib/engine'
 
 export type DocumentWithGroups = DocumentRow
 
-export async function listDocuments(workspaceId: string): Promise<DocumentWithGroups[]> {
-  const res = await fetch(`${env.ENGINE_BASE_URL}/documents?workspace_id=${workspaceId}`, {
+export async function listDocuments(
+  workspaceId: string,
+  folder?: string,
+): Promise<DocumentWithGroups[]> {
+  const qs = new URLSearchParams({ workspace_id: workspaceId })
+  if (folder) qs.set('folder', folder)
+  const res = await fetch(`${env.ENGINE_BASE_URL}/documents?${qs}`, {
     headers: { 'x-engine-secret': env.ENGINE_INTERNAL_SECRET },
     cache: 'no-store',
   })
