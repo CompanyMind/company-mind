@@ -32,20 +32,21 @@ def group_names(conn, ws: str) -> dict[str, tuple[str, bool]]:
 def load_docs(conn, ws: str) -> list[DocInfo]:
     """One DocInfo per document with >=1 embedded chunk. Mean chunk vector,
     its document_groups, age in days, and whether any chunk was ever retrieved."""
-    # Mean vector per doc.
+    # Mean vector per doc, computed by pgvector's avg(vector) aggregate rather than
+    # streaming every chunk embedding into Python (~4 KB per chunk at 1024 dims).
     rows = conn.execute(
-        "SELECT c.document_id, c.embedding, d.created_at "
-        "FROM chunks c JOIN documents d ON d.id=c.document_id "
-        "WHERE c.workspace_id=%s AND c.embedding IS NOT NULL",
+        "SELECT c.document_id, AVG(c.embedding), MIN(d.created_at) "
+        "FROM chunks c JOIN documents d ON d.id = c.document_id "
+        "WHERE c.workspace_id=%s AND c.embedding IS NOT NULL "
+        "GROUP BY c.document_id",
         (ws,),
     ).fetchall()
-    acc: dict[str, list] = {}
+    means: dict[str, np.ndarray] = {}
     created: dict[str, datetime] = {}
-    for did, emb, cat in rows:
-        # This pgvector version's register_vector() hands back pgvector.Vector
-        # wrapper objects (not raw numpy arrays) for vector columns; unwrap explicitly.
-        vec = emb.to_numpy() if hasattr(emb, "to_numpy") else np.asarray(emb, dtype=float)
-        acc.setdefault(str(did), []).append(vec.astype(float))
+    for did, mean, cat in rows:
+        # register_vector() hands back pgvector.Vector wrappers, not numpy arrays.
+        vec = mean.to_numpy() if hasattr(mean, "to_numpy") else np.asarray(mean, dtype=float)
+        means[str(did)] = vec.astype(float)
         created[str(did)] = cat
     # Groups per doc.
     grp: dict[str, set[str]] = {}
@@ -69,8 +70,7 @@ def load_docs(conn, ws: str) -> list[DocInfo]:
                 retrieved_docs.add(str(did[0]))
     now = _now()
     out: list[DocInfo] = []
-    for did, vecs in acc.items():
-        mean = np.mean(np.vstack(vecs), axis=0)
+    for did, mean in means.items():
         age = (now - created[did]).total_seconds() / 86400 if created.get(did) else 0.0
         out.append(DocInfo(did, grp.get(did, set()), mean, age, did in retrieved_docs))
     out.sort(key=lambda d: d.id)  # stable order for determinism

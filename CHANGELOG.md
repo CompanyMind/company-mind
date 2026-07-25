@@ -58,6 +58,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from `marketing/`, per the web/marketing deployable boundary.
 
 ### Changed
+- Atlas computes per-document mean vectors with pgvector's `avg(vector)` aggregate in Postgres
+  instead of streaming every chunk embedding in the workspace into Python (~4 KB per chunk at 1024
+  dims, so a 100k-chunk corpus moved ~400 MB over the wire on every graph build).
 - `marketing/components/Wordmark.tsx` and `marketing/app/opengraph-image.tsx` switched from
   the previous "walls + 3-node lattice" icon to the same nested-squares mark as the favicon
   and dashboard, so the logo is now identical everywhere it appears — landing page nav, OG
