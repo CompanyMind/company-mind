@@ -18,7 +18,9 @@ class GoldenQuestion:
     qtype: str                    # lookup | comparison | aggregate | enumerate
     answerable: bool
     gold_filenames: list[str]
-    gold_quotes: list[str]
+    gold_quotes: list[str]         # each quote must fit inside ONE chunk — quote_recall
+                                    # (metrics.py) matches per-chunk and never stitches
+                                    # adjacent chunks together
     group_names: list[str]        # the principal's access groups
     all_access: bool              # True = ask as an owner
     must_not_retrieve: list[str]  # filenames this principal must never see

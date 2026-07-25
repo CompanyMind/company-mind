@@ -3,6 +3,14 @@
 Clustering matters: with several questions drawn from the same source document,
 naive standard errors can be ~3x too small, so a real regression looks like noise
 and ships.
+
+LIMITATION — quote_recall does not stitch chunks. `score_question` checks each gold
+quote against each retrieved chunk's text independently; it never concatenates
+adjacent chunks. A verbatim quote that straddles a chunk boundary is invisible to
+it even though the document was clearly retrieved (doc_recall/mrr/ndcg all
+succeed). This is deliberate — cross-chunk stitching would introduce its own
+matching errors — so gold quotes must be authored short enough to sit inside a
+single chunk (see `GoldenQuestion.gold_quotes` in goldenset.py).
 """
 
 import math
@@ -19,7 +27,12 @@ def _norm(s: str) -> str:
 
 
 def score_question(retrieved: list[dict], q: GoldenQuestion, k: int) -> dict[str, float]:
-    """`retrieved` is an ordered list of {"filename": str, "text": str}, best first."""
+    """`retrieved` is an ordered list of {"filename": str, "text": str}, best first.
+
+    quote_recall matches each gold quote against one chunk's text at a time — it
+    does not stitch adjacent chunks. A gold quote that spans a chunk boundary will
+    never be found, regardless of retrieval quality; see the module docstring.
+    """
     top = retrieved[:k]
     if not q.answerable:
         # An unanswerable question has no gold, so every retrieval metric is
@@ -43,14 +56,23 @@ def score_question(retrieved: list[dict], q: GoldenQuestion, k: int) -> dict[str
     quote_recall = found / len(gold_quotes) if gold_quotes else 0.0
 
     # nDCG over the document-level relevance signal, via ranx so the discounting
-    # is a well-tested implementation rather than ours.
+    # is a well-tested implementation rather than ours. ranx's Run takes one score
+    # per (query, doc) pair, but a gold filename can appear at several ranks — the
+    # NORMAL case once retrieval is chunk-level, not an edge case — so duplicates
+    # must be collapsed before building the Run. Keep the BEST (highest) score per
+    # filename: a plain `{_norm(...): score for i, r in enumerate(top)}`
+    # comprehension would instead keep the LAST-seen occurrence, which is always
+    # the worst-ranked one (scores decrease with rank), silently punishing a
+    # question for having MORE correct evidence retrieved. Do not "simplify" this
+    # back into a comprehension.
+    run_scores: dict[str, float] = {}
+    for i, r in enumerate(top):
+        fname = _norm(r.get("filename", ""))
+        score = float(len(top) - i)
+        if score > run_scores.get(fname, float("-inf")):
+            run_scores[fname] = score
     qrels = Qrels({q.id: {f: 1 for f in sorted(gold_files)}})
-    run = Run({
-        q.id: {
-            _norm(r.get("filename", "")): float(len(top) - i)
-            for i, r in enumerate(top)
-        }
-    })
+    run = Run({q.id: run_scores})
     # Pass the metric as a STRING, not a list: ranx returns a bare float for a
     # single metric name and a dict when given a list.
     ndcg = float(evaluate(qrels, run, f"ndcg@{k}")) if top else 0.0
