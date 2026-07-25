@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Organise with AI** button on Sources, shown whenever unfiled documents exist, reporting what it
+  did ("Organised 12 documents into 3 folders"). Folders it creates are marked "suggested" until
+  renamed or otherwise touched.
 - AI organise (`engine/app/library/organize.py`, `POST /folders/organize`): clusters **unfiled**
   documents into named folders, reusing the Atlas pipeline — mean document vectors via pgvector's
   `avg(vector)`, KMeans at a folder-sized k (`clamp(round(√n), 2, 8)`), TF-IDF keywords, and the

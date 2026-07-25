@@ -101,3 +101,30 @@ export async function setDocumentFolder(
   if (!res.ok) throw new Error(`engine PUT /documents/folder responded ${res.status}`)
   return true
 }
+
+export type OrganizeResult = {
+  folders: { id: string; name: string; documentCount: number }[]
+  organized: number
+}
+
+export async function organizeFolders(workspaceId: string): Promise<OrganizeResult | 'nothing'> {
+  const res = await engineFetch('/folders/organize', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ workspace_id: workspaceId }),
+  })
+  if (res.status === 400) return 'nothing'
+  if (!res.ok) throw new Error(`engine POST /folders/organize responded ${res.status}`)
+  const data = (await res.json()) as {
+    folders: { id: string; name: string; document_count: number }[]
+    organized: number
+  }
+  return {
+    organized: data.organized,
+    folders: data.folders.map((f) => ({
+      id: f.id,
+      name: f.name,
+      documentCount: f.document_count,
+    })),
+  }
+}

@@ -25,6 +25,8 @@ export function FolderGrid({
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [organizing, setOrganizing] = useState(false)
+  const [note, setNote] = useState<string | null>(null)
 
   async function create(e: React.FormEvent) {
     e.preventDefault()
@@ -45,17 +47,52 @@ export function FolderGrid({
     onChanged()
   }
 
+  async function organize() {
+    setOrganizing(true)
+    setNote(null)
+    setError(null)
+    try {
+      const r = await fetch('/api/folders/organize', {
+        method: 'POST',
+        headers: { 'x-csrf-token': csrf },
+      })
+      const d = await r.json().catch(() => ({}))
+      if (!r.ok) {
+        setError(d.error ?? 'could not organise')
+        return
+      }
+      setNote(
+        `Organised ${d.organized} ${d.organized === 1 ? 'document' : 'documents'} into ${d.folders.length} ${d.folders.length === 1 ? 'folder' : 'folders'}.`,
+      )
+      onChanged()
+    } finally {
+      setOrganizing(false)
+    }
+  }
+
   return (
     <section className="mt-6">
       <div className="flex items-center justify-between">
         <h2 className="font-display text-lg text-ink">Folders</h2>
-        <button
-          type="button"
-          onClick={() => setCreating((c) => !c)}
-          className="text-body-sm text-ink-soft underline underline-offset-2 hover:text-ink"
-        >
-          {creating ? 'Cancel' : 'New folder'}
-        </button>
+        <div className="flex items-center">
+          {unfiledCount > 0 && (
+            <button
+              type="button"
+              onClick={organize}
+              disabled={organizing}
+              className="mr-3 rounded-md border border-brain px-3 py-1 text-body-sm text-brain-text disabled:opacity-60"
+            >
+              {organizing ? 'Organising…' : 'Organise with AI'}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setCreating((c) => !c)}
+            className="text-body-sm text-ink-soft underline underline-offset-2 hover:text-ink"
+          >
+            {creating ? 'Cancel' : 'New folder'}
+          </button>
+        </div>
       </div>
 
       {creating && (
@@ -72,6 +109,7 @@ export function FolderGrid({
         </form>
       )}
       {error && <p className="mt-2 text-body-sm text-sovereign-text">{error}</p>}
+      {note && <p className="mt-2 text-body-sm text-brain-text">{note}</p>}
 
       {folders.length === 0 && unfiledCount === 0 && (
         <p className="mt-4 rounded-md border border-line px-4 py-6 text-body-sm text-ink-soft">
