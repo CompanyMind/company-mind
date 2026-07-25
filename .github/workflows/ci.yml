@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  engine:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: compbrain
+          POSTGRES_PASSWORD: compbrain
+          POSTGRES_DB: compbrain
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U compbrain -d compbrain"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgres://compbrain:compbrain@localhost:5432/compbrain
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - name: Apply migrations
+        run: npm run db:migrate
+        working-directory: web
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Engine tests (with a real database)
+        run: uv run pytest -v
+        working-directory: engine
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - run: npm test
+        working-directory: web
+      # Must succeed with no env and no database — see Global Constraints.
+      - run: npm run build
+        working-directory: web

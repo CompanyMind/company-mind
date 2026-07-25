@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **The repo's first CI** (`.github/workflows/ci.yml`): the engine job runs against a real
+  `pgvector/pgvector:pg16` service with migrations applied, so the ten `skipif(not DATABASE_URL)`
+  test files — including the permission-filter test — now actually execute on every push instead of
+  silently skipping. The web job runs vitest plus `next build` with no env, guarding the lazy
+  DB-client/env design.
 - Retrieval & ingestion re-architecture spec —
   `docs/superpowers/specs/2026-07-25-retrieval-rearchitecture-design.md`. Backed by a 24-agent
   research run (12 web-research sweeps, 2 code audits, 3 competing architectures, 6 adversarial
