@@ -32,7 +32,7 @@ async function main() {
 
   const [user] = await db
     .insert(users)
-    .values({ email, passwordHash: await hash(password, ARGON2), name })
+    .values({ email, passwordHash: await hash(password, ARGON2), name, isSuperAdmin: true })
     .returning()
   const slug =
     wsName
@@ -43,6 +43,7 @@ async function main() {
   await db.insert(memberships).values({ userId: user.id, workspaceId: ws.id, role: 'owner' })
 
   console.log(`Seeded ${email} -> workspace "${wsName}".`)
+  console.log(`Platform super-admin: ${email}`)
   await sql.end()
 }
 

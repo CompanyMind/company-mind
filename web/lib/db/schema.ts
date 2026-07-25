@@ -27,6 +27,12 @@ export const users = pgTable('users', {
   // Set when the user dismisses the first-run strip. Onboarding PROGRESS is
   // derived from real data every render; only the dismissal is stored.
   onboardingDismissedAt: timestamp('onboarding_dismissed_at', { withTimezone: true }),
+  // Platform-level, above workspaces — NOT a membership role. Seed-only on
+  // purpose: a panel that can mint its own super-admins has no floor.
+  isSuperAdmin: boolean('is_super_admin').notNull().default(false),
+  // Set by the admin panel. Blocking also deletes the user's sessions, so this
+  // flag is a durable record, not the enforcement mechanism on its own.
+  blockedAt: timestamp('blocked_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 })
 
