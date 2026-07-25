@@ -8,8 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- `users.is_super_admin` (seed-only) and `users.blocked_at`; `npm run seed` marks the seeded owner as
-  the platform super-admin and prints which account it is.
+- `users.is_super_admin` (seed-only) and `users.blocked_at`; `npm run seed` idempotently ensures
+  `SEED_EMAIL` is the platform super-admin — creating the account with the flag set if it's new,
+  promoting it in place (without touching password, name, or memberships) if it already exists —
+  and prints which state it left the account in, so an already-deployed install can always gain a
+  super-admin without hand-written SQL.
 - Super-admin panel implementation plan —
   `docs/superpowers/plans/2026-07-25-super-admin-panel.md`. 5 tasks. Blocking is enforced inside
   `validateSessionToken`, the choke point every authenticated request already passes through, so one

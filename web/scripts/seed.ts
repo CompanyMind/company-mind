@@ -25,7 +25,17 @@ async function main() {
 
   const existing = await db.query.users.findFirst({ where: eq(users.email, email) })
   if (existing) {
-    console.log(`User ${email} already exists — skipping.`)
+    // Never touch password, name, or memberships on an existing account — this
+    // branch's only job is to guarantee the named account can reach the admin
+    // panel, not to reset anything about it. An already-deployed install must
+    // be able to gain a super-admin without hand-written SQL, so "exists" is
+    // not "skip": promote if needed, but never demote anyone else.
+    if (existing.isSuperAdmin) {
+      console.log(`${email} is already the platform super-admin.`)
+    } else {
+      await db.update(users).set({ isSuperAdmin: true }).where(eq(users.id, existing.id))
+      console.log(`Promoted ${email} to platform super-admin.`)
+    }
     await sql.end()
     return
   }
