@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Engine folder library and endpoints (`engine/app/library/folders.py`): list with per-folder
+  document counts and an unfiled count, create/rename/delete, and document assignment. Renaming an
+  AI-created folder marks it reviewed. `GET /documents` gained a `folder` filter (a folder id or the
+  literal `unfiled`) and now returns `folder_id`. A test asserts that moving a document between
+  folders leaves permission-scoped retrieval byte-identical for both a group member and an outsider —
+  folders are navigation, and this is what stops them quietly becoming access control.
 - `folders` table plus `documents.folder_id` (one folder per document, `NULL` = Unfiled, `ON DELETE
   SET NULL` so deleting a folder never deletes documents) and `users.onboarding_dismissed_at`.
   Folders are navigation only — access control remains entirely in `document_groups` ×

@@ -13,6 +13,7 @@ from .ask.title import generate_title
 from .library.source import get_source
 from .library import groups as lib_groups
 from .library import documents as lib_documents
+from .library import folders as lib_folders
 from .telegram import api as tg_api, store as tg_store
 from .graph import service as graph_service
 
@@ -48,9 +49,63 @@ async def ingest(
 
 
 @app.get("/documents", dependencies=[Depends(require_secret)])
-def documents_list(workspace_id: str):
+def documents_list(workspace_id: str, folder: str = ""):
     with get_conn() as conn:
-        return {"documents": lib_documents.list_documents(conn, workspace_id)}
+        return {"documents": lib_documents.list_documents(conn, workspace_id, folder or None)}
+
+
+@app.get("/folders", dependencies=[Depends(require_secret)])
+def folders_list(workspace_id: str):
+    with get_conn() as conn:
+        return lib_folders.list_folders(conn, workspace_id)
+
+
+class FolderNameBody(BaseModel):
+    workspace_id: str
+    name: str
+
+
+@app.post("/folders", dependencies=[Depends(require_secret)])
+def folders_create(body: FolderNameBody):
+    with get_conn() as conn:
+        f = lib_folders.create_folder(conn, body.workspace_id, body.name)
+    if f is None:
+        raise HTTPException(status_code=409, detail="a folder with that name already exists")
+    return {"folder": f}
+
+
+@app.patch("/folders/{folder_id}", dependencies=[Depends(require_secret)])
+def folders_rename(folder_id: str, body: FolderNameBody):
+    with get_conn() as conn:
+        res = lib_folders.rename_folder(conn, body.workspace_id, folder_id, body.name)
+    if res == "notfound":
+        raise HTTPException(status_code=404, detail="not found")
+    if res == "conflict":
+        raise HTTPException(status_code=409, detail="a folder with that name already exists")
+    return {"ok": True}
+
+
+@app.delete("/folders/{folder_id}", dependencies=[Depends(require_secret)])
+def folders_delete(folder_id: str, workspace_id: str):
+    with get_conn() as conn:
+        ok = lib_folders.delete_folder(conn, workspace_id, folder_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="not found")
+    return {"ok": True}
+
+
+class DocFolderBody(BaseModel):
+    workspace_id: str
+    folder_id: str | None = None
+
+
+@app.put("/documents/{document_id}/folder", dependencies=[Depends(require_secret)])
+def document_folder_set(document_id: str, body: DocFolderBody):
+    with get_conn() as conn:
+        ok = lib_folders.set_document_folder(conn, body.workspace_id, document_id, body.folder_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="not found")
+    return {"ok": True}
 
 
 class AskBody(BaseModel):
