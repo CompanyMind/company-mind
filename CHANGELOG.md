@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `engine/tests/test_store.py` — orchestration-level coverage for `process_document` that
+  `test_prepare.py` couldn't provide (it only exercises the DB-free `prepare_document` in
+  isolation). Three tests: shrinks the connection pool to one connection and proves it stays
+  available for the pool to hand out *while `prepare_document` runs*, so a future regression that
+  re-wraps that call inside the phase-1 `with get_conn()` block trips a `PoolTimeout` and fails
+  the test instead of silently starving `/ask`/Telegram/Atlas again; a zero-chunk document ends
+  at `status='failed'` with a non-null error rather than `status='indexed'`; and a failure inside
+  the prepare phase is recorded in both `documents` and `ingestion_jobs`.
 - **The repo's first CI** (`.github/workflows/ci.yml`): the engine job runs against a real
   `pgvector/pgvector:pg16` service with migrations applied, so the ten `skipif(not DATABASE_URL)`
   test files — including the permission-filter test — now actually execute on every push instead of
