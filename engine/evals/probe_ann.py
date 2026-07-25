@@ -27,7 +27,9 @@ class ProbeRow:
     selectivity: float
     ef_search: int
     iterative_scan: str
-    recall: float
+    n_gold: int
+    recall: float | None  # None (never a fabricated 1.0) when n_gold == 0 —
+    # a vacuous "everything matched nothing" is not evidence of good recall.
     ann_ms: float
     exact_ms: float
 
@@ -49,6 +51,13 @@ def _search(conn, ws: str, qlit: str, pred: str, limit: int, exact: bool,
             conn.execute("SET LOCAL enable_indexscan = off")
             conn.execute("SET LOCAL enable_bitmapscan = off")
         else:
+            # The exact-search branch always runs before this one for a given
+            # selectivity (see probe() below) and already touched a vector
+            # operator (`<=>`/`::vector`), which is what causes Postgres to
+            # dlopen vector.so into this backend. hnsw.* GUCs are registered by
+            # that library's _PG_init, so on a backend that had never touched
+            # pgvector, SET/SHOW on them would raise "unrecognized
+            # configuration parameter" — confirmed on pgvector 0.8.5/PG 16.14.
             conn.execute(f"SET LOCAL hnsw.ef_search = {int(ef)}")
             conn.execute(f"SET LOCAL hnsw.iterative_scan = '{iterative}'")
         start = time.perf_counter()
@@ -99,7 +108,13 @@ def probe(
                             selectivity=sel,
                             ef_search=ef,
                             iterative_scan=mode,
-                            recall=(hits / total) if total else 1.0,
+                            n_gold=total,
+                            # Never fabricate a recall of 1.0 for a zero-gold row — at
+                            # the low end of the selectivity sweep it is entirely
+                            # plausible that no chunk in the corpus passes the filter
+                            # for a given query, and that is exactly the regime this
+                            # probe exists to measure honestly.
+                            recall=(hits / total) if total else None,
                             ann_ms=round(ann_ms / max(1, len(qlits)), 2),
                             exact_ms=round(exact_ms / max(1, len(qlits)), 2),
                         )
@@ -129,11 +144,15 @@ def main() -> None:
     with open(args.out, "w", encoding="utf-8") as fh:
         json.dump([asdict(r) for r in rows], fh, indent=2)
 
-    print(f"{'sel':>7} {'ef':>5} {'iterative':>14} {'recall':>7} {'ann_ms':>8} {'exact_ms':>9}")
+    print(
+        f"{'sel':>7} {'ef':>5} {'iterative':>14} {'n_gold':>7} {'recall':>7} "
+        f"{'ann_ms':>8} {'exact_ms':>9}"
+    )
     for r in rows:
+        recall_str = f"{r.recall:.3f}" if r.recall is not None else "n/a"
         print(
             f"{r.selectivity:>7.3f} {r.ef_search:>5} {r.iterative_scan:>14} "
-            f"{r.recall:>7.3f} {r.ann_ms:>8.2f} {r.exact_ms:>9.2f}"
+            f"{r.n_gold:>7} {recall_str:>7} {r.ann_ms:>8.2f} {r.exact_ms:>9.2f}"
         )
 
 

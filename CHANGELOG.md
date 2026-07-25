@@ -11,7 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `engine/evals/probe_ann.py` — a label-free ANN-vs-exact recall probe sweeping
   `hnsw.ef_search` × `hnsw.iterative_scan` × synthesized ACL selectivity (100% down to 0.5%), using
   exact search (`enable_indexscan=off`) as ground truth. Run before Phase 2 changes any GUC, so the
-  "filtered HNSW loses recall" hypothesis is measured on this corpus rather than assumed.
+  "filtered HNSW loses recall" hypothesis is measured on this corpus rather than assumed. Each
+  `ProbeRow` carries `n_gold` (the ground-truth set size) alongside `recall`, and `recall` is `None`
+  — never a fabricated `1.0` — when `n_gold == 0`, so a vacuous "nothing survived the filter" row
+  can't be misread as a perfect match at the low-selectivity end of the sweep.
 - **Retrieval telemetry.** `engine/app/ask/telemetry.py::RetrievalDebug` records per-arm candidate
   counts (dense / lexical / fused / rerank-in / final), per-stage latency, whether reranking actually
   applied, and a `degraded[]` list; `retrieve()` now returns `(results, debug)` and `answer_query`
