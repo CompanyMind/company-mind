@@ -74,6 +74,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   marketing nav and the favicon: nested squares, violet inner square on the app's `--brain`
   token / hardcoded `#684BFF` in the standalone SVGs. Duplicated rather than shared-imported
   from `marketing/`, per the web/marketing deployable boundary.
+- Golden-set format and retrieval metrics (`engine/evals/goldenset.py`, `engine/evals/metrics.py`).
+  Gold is `(filename, verbatim quote)` rather than chunk ids, so labels survive the re-chunking that
+  Phases 3–4 deliberately perform. Metrics: doc-recall@k, quote-recall@k, MRR and nDCG@k (via `ranx`),
+  plus a paired bootstrap whose resampling unit is the **source document**, because with several
+  questions per document naive standard errors can be ~3× too small and real regressions read as noise.
 
 ### Changed
 - **Silent failures are now recorded.** The reranker's bare `except Exception: pass` (which made a
