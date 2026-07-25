@@ -8,6 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Onboarding + document-folders spec —
+  `docs/superpowers/specs/2026-07-25-onboarding-and-folders-design.md`. Diagnoses the day-one
+  failure: a new owner lands on Ask, types a question, and the first thing the product says is the
+  refusal sentinel, because the workspace is empty and no surface says so. Adds a first-run flow
+  whose progress is **derived from real data** (indexed documents exist / any document is foldered /
+  the user has asked a question) rather than a stored wizard step, so it is resumable and cannot
+  desync; it adapts to an empty vs a populated workspace, and offers three starter questions built
+  from the caller's own folder labels and keywords, permission-scoped so a member is never shown a
+  question about a document they cannot open. Adds flat `folders` (one per document, NULL = Unfiled,
+  `ON DELETE SET NULL` so deleting a folder never deletes documents) with an AI organise step that
+  reuses Atlas's existing KMeans + TF-IDF + label pipeline rather than adding new ML. The
+  load-bearing invariant: **folders are navigation, never access control** — enforced by a test that
+  moves a document between folders and asserts permission-scoped retrieval is byte-identical.
 - Retrieval accuracy attribution (`docs/product/2026-07-25-retrieval-attribution.md`) — the Phase 1
   deliverable, apportioning the accuracy complaint across the eleven candidate causes from the
   re-architecture spec. **One cause is now confirmed by measurement:** `plainto_tsquery` ANDs every
