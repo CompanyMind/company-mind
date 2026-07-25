@@ -14,6 +14,7 @@ from .library.source import get_source
 from .library import groups as lib_groups
 from .library import documents as lib_documents
 from .library import folders as lib_folders
+from .library.organize import NothingToOrganize, organize_unfiled
 from .telegram import api as tg_api, store as tg_store
 from .graph import service as graph_service
 
@@ -92,6 +93,19 @@ def folders_delete(folder_id: str, workspace_id: str):
     if not ok:
         raise HTTPException(status_code=404, detail="not found")
     return {"ok": True}
+
+
+class OrganizeBody(BaseModel):
+    workspace_id: str
+
+
+@app.post("/folders/organize", dependencies=[Depends(require_secret)])
+def folders_organize(body: OrganizeBody):
+    with get_conn() as conn:
+        try:
+            return organize_unfiled(conn, body.workspace_id)
+        except NothingToOrganize as e:
+            raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 class DocFolderBody(BaseModel):

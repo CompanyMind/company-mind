@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- AI organise (`engine/app/library/organize.py`, `POST /folders/organize`): clusters **unfiled**
+  documents into named folders, reusing the Atlas pipeline — mean document vectors via pgvector's
+  `avg(vector)`, KMeans at a folder-sized k (`clamp(round(√n), 2, 8)`), TF-IDF keywords, and the
+  existing labeller with its deterministic keyword fallback — so it needs no new ML, no GPU, and is
+  reproducible under the fake providers. A user's own filing is never overwritten, documents with no
+  embeddings are skipped rather than dumped into a folder, and folder names de-duplicate against
+  existing ones.
 - Folder detail pages (`/dashboard/sources/[folderId]`, plus the literal `unfiled`) listing that
   folder's documents with the existing access-group editor, a **Move to…** select per document, and
   folder rename/delete. Deleting a folder moves its documents to Unfiled and says so in the
