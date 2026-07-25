@@ -26,6 +26,12 @@ def test_fixture_eval_runs_and_finds_no_permission_leak():
         # With FakeEmbeddings the dense arm is not semantic, so only assert on the
         # lexical-driven exact-token question, which must always be findable.
         assert report["per_question"]["f2"]["doc_recall"] == 1.0
+        # f8's "no leak" result must not be vacuous: if group-name resolution ever
+        # regressed to returning zero group ids for "Everyone", the permission
+        # predicate would deny f8 everything, `leaks` would stay trivially empty,
+        # and this test would keep passing while enforcing nothing. Assert f8's
+        # principal actually saw SOME document (the non-HR ones), not none at all.
+        assert report["unanswerable"]["f8"]["retrieved_n"] > 0
     finally:
         from evals.run import drop_fixture_workspace
 
