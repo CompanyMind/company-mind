@@ -1,62 +1,30 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { FolderGrid, type FolderCard } from './sources/FolderGrid'
 
-type Doc = {
-  id: string
-  filename: string
-  status: 'uploaded' | 'parsing' | 'indexed' | 'failed'
-  error: string | null
-  bytes: number
-  groupIds: string[]
-}
-type Group = { id: string; name: string; isDefault: boolean }
-
-const STATUS_LABEL: Record<Doc['status'], string> = {
-  uploaded: 'Queued',
-  parsing: 'Indexing…',
-  indexed: 'Indexed',
-  failed: 'Failed',
-}
-
-export function Sources({ csrf, initialDoc }: { csrf: string; initialDoc?: string }) {
-  const [docs, setDocs] = useState<Doc[]>([])
-  const [groups, setGroups] = useState<Group[]>([])
+export function Sources({ csrf }: { csrf: string }) {
+  const [folders, setFolders] = useState<FolderCard[]>([])
+  const [unfiledCount, setUnfiledCount] = useState(0)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [editing, setEditing] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const appliedInitialDoc = useRef(false)
 
   const refresh = useCallback(async () => {
-    const [dr, gr] = await Promise.all([fetch('/api/documents'), fetch('/api/groups')])
-    if (dr.ok) setDocs((await dr.json()).documents)
-    if (gr.ok) setGroups((await gr.json()).groups)
+    const r = await fetch('/api/folders')
+    if (!r.ok) return
+    const d = (await r.json()) as { folders: FolderCard[]; unfiledCount: number }
+    setFolders(d.folders)
+    setUnfiledCount(d.unfiledCount)
   }, [])
 
   useEffect(() => {
     refresh()
-    const t = setInterval(() => {
-      // Only poll document status, not while editing visibility.
-      fetch('/api/documents').then((r) => (r.ok ? r.json() : null)).then((d) => d && setDocs(d.documents))
-    }, 2500)
+    // Documents move from 'uploaded' to 'indexed' in the background, which changes
+    // the unfiled count, so keep polling while the page is open.
+    const t = setInterval(refresh, 2500)
     return () => clearInterval(t)
   }, [refresh])
-
-  // Deep-link support: `?doc=<id>` (from Atlas's Fix buttons) opens that
-  // document's group editor once the doc list has loaded, then scrolls it into
-  // view. Applied at most once so the status-polling refresh above never
-  // reopens or re-scrolls to it after the owner closes the editor.
-  useEffect(() => {
-    if (appliedInitialDoc.current || !initialDoc || docs.length === 0) return
-    appliedInitialDoc.current = true
-    if (docs.some((d) => d.id === initialDoc)) {
-      setEditing(initialDoc)
-      requestAnimationFrame(() => {
-        document.getElementById(`doc-${initialDoc}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
-      })
-    }
-  }, [docs, initialDoc])
 
   async function onFiles(files: FileList | null) {
     if (!files?.length) return
@@ -80,27 +48,10 @@ export function Sources({ csrf, initialDoc }: { csrf: string; initialDoc?: strin
     }
   }
 
-  async function toggleGroup(doc: Doc, groupId: string) {
-    const has = doc.groupIds.includes(groupId)
-    const groupIds = has ? doc.groupIds.filter((g) => g !== groupId) : [...doc.groupIds, groupId]
-    setDocs((ds) => ds.map((d) => (d.id === doc.id ? { ...d, groupIds } : d)))
-    await fetch(`/api/documents/${doc.id}/groups`, {
-      method: 'PUT',
-      headers: { 'content-type': 'application/json', 'x-csrf-token': csrf },
-      body: JSON.stringify({ groupIds }),
-    })
-  }
-
-  function visibleLabel(doc: Doc) {
-    const names = groups.filter((g) => doc.groupIds.includes(g.id)).map((g) => g.name)
-    return names.length ? names.join(', ') : 'No one'
-  }
-
   return (
-    <section className="mt-6">
-      <div className="flex items-center justify-between">
-        <h2 className="sr-only">Documents</h2>
-        <label className="ml-auto cursor-pointer rounded-md bg-ink px-4 py-2 text-body-sm text-paper">
+    <>
+      <div className="mt-6 flex items-center justify-end">
+        <label className="cursor-pointer rounded-md bg-ink px-4 py-2 text-body-sm text-paper">
           {busy ? 'Uploading…' : 'Upload documents'}
           <input
             ref={inputRef}
@@ -114,61 +65,12 @@ export function Sources({ csrf, initialDoc }: { csrf: string; initialDoc?: strin
         </label>
       </div>
       {error && <p className="mt-2 text-body-sm text-sovereign-text">{error}</p>}
-      <ul className="mt-4 divide-y divide-line rounded-md border border-line">
-        {docs.length === 0 && (
-          <li className="px-4 py-6 text-body-sm text-ink-soft">
-            No documents yet. Upload PDFs, Word, text, or markdown to build this workspace’s brain.
-          </li>
-        )}
-        {docs.map((d) => (
-          <li key={d.id} id={`doc-${d.id}`} className="px-4 py-3">
-            <div className="flex items-center justify-between">
-              <span className="truncate text-body text-ink">{d.filename}</span>
-              <span
-                className={
-                  d.status === 'indexed'
-                    ? 'text-body-sm text-brain-text'
-                    : d.status === 'failed'
-                      ? 'text-body-sm text-sovereign-text'
-                      : 'text-body-sm text-ink-soft'
-                }
-                title={d.error ?? undefined}
-              >
-                {STATUS_LABEL[d.status]}
-              </span>
-            </div>
-            <div className="mt-1 flex items-center gap-2 text-body-sm text-ink-soft">
-              <span className="font-mono text-[0.6875rem] uppercase tracking-[0.08em]">
-                visible to: {visibleLabel(d)}
-              </span>
-              <button
-                onClick={() => setEditing(editing === d.id ? null : d.id)}
-                className="underline underline-offset-2 hover:text-ink"
-              >
-                {editing === d.id ? 'done' : 'edit'}
-              </button>
-            </div>
-            {editing === d.id && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {groups.map((g) => {
-                  const on = d.groupIds.includes(g.id)
-                  return (
-                    <button
-                      key={g.id}
-                      onClick={() => toggleGroup(d, g.id)}
-                      data-on={on}
-                      className="rounded-md border border-line px-2.5 py-1 text-body-sm text-ink-soft data-[on=true]:border-brain data-[on=true]:bg-[color-mix(in_srgb,var(--brain)_12%,transparent)] data-[on=true]:text-brain-text"
-                    >
-                      {on ? '✓ ' : ''}
-                      {g.name}
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          </li>
-        ))}
-      </ul>
-    </section>
+      <FolderGrid
+        folders={folders}
+        unfiledCount={unfiledCount}
+        csrf={csrf}
+        onChanged={refresh}
+      />
+    </>
   )
 }

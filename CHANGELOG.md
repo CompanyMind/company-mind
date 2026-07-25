@@ -134,6 +134,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   questions per document naive standard errors can be ~3× too small and real regressions read as noise.
 
 ### Changed
+- Sources is now a folder grid instead of one flat list of every document — the flat list was already
+  unusable at the 150-document demo corpus. Folder cards show a document count and a "suggested" chip
+  for AI folders nobody has touched yet; an Unfiled card appears whenever unfiled documents exist.
+  Atlas's `?doc=` deep links still work: they now redirect into whichever folder the document is in.
 - **Silent failures are now recorded.** The reranker's bare `except Exception: pass` (which made a
   reranker that never ran indistinguishable from one that worked) now appends a reason —
   `rerank_http_error:422`, `rerank_unparseable:…`, `rerank_short_response:…` — to a `degraded` list;
