@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Retrieval evaluation harness and its CI gate** (`engine/evals/run.py`,
+  `.github/workflows/eval.yml`). Seeds a throwaway workspace from a committed synthetic EN/RU/UZ
+  fixture corpus through the real ingest pipeline, runs each golden question as the principal it
+  specifies, and reports doc-recall@8, quote-recall@8, nDCG@8 and MRR plus the lexical-arm row count
+  and degradation count. Gates on three things: **any permission leak fails the build outright**
+  (a member principal retrieving an HR-restricted document), a paired-bootstrap regression against
+  `engine/evals/baseline.json` fails it, and the whole run happens with deterministic fake providers
+  so CI needs no GPU, no credentials and no network. A stale baseline that shares zero question ids
+  with the current run (e.g. the golden set's ids were edited without regenerating the baseline) is
+  also a hard failure rather than the silent "no change" a naive paired diff would report. Customer
+  golden sets and corpora stay outside the repo by `.gitignore`.
 - `engine/evals/probe_ann.py` — a label-free ANN-vs-exact recall probe sweeping
   `hnsw.ef_search` × `hnsw.iterative_scan` × synthesized ACL selectivity (100% down to 0.5%), using
   exact search (`enable_indexscan=off`) as ground truth. Run before Phase 2 changes any GUC, so the

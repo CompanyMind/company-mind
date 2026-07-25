@@ -53,3 +53,8 @@ marketing/next-env.d.ts
 
 # uploaded files (dev)
 /web/.storage/
+
+# Customer golden sets and corpora are never committed.
+engine/evals/local/
+engine/evals/*.local.jsonl
+probe_ann.json

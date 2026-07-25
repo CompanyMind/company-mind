@@ -1,0 +1,5 @@
+Data Retention Policy
+
+All customer transaction records are retained for seven years from the date of the
+transaction. Backup media are destroyed after seven years. The flag CKPT_PREFETCH
+controls warmup behaviour in the archival job and defaults to off.

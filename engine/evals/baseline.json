@@ -1,0 +1,50 @@
+{
+  "f1": {
+    "degraded_n": 1.0,
+    "doc_recall": 1.0,
+    "lexical_n": 0.0,
+    "mrr": 0.3333333333333333,
+    "ndcg": 0.5,
+    "quote_recall": 1.0
+  },
+  "f2": {
+    "degraded_n": 0.0,
+    "doc_recall": 1.0,
+    "lexical_n": 1.0,
+    "mrr": 1.0,
+    "ndcg": 1.0,
+    "quote_recall": 1.0
+  },
+  "f3": {
+    "degraded_n": 1.0,
+    "doc_recall": 1.0,
+    "lexical_n": 0.0,
+    "mrr": 0.25,
+    "ndcg": 0.43067655807339306,
+    "quote_recall": 1.0
+  },
+  "f4": {
+    "degraded_n": 1.0,
+    "doc_recall": 1.0,
+    "lexical_n": 0.0,
+    "mrr": 1.0,
+    "ndcg": 1.0,
+    "quote_recall": 1.0
+  },
+  "f5": {
+    "degraded_n": 1.0,
+    "doc_recall": 1.0,
+    "lexical_n": 0.0,
+    "mrr": 0.3333333333333333,
+    "ndcg": 0.5,
+    "quote_recall": 1.0
+  },
+  "f6": {
+    "degraded_n": 1.0,
+    "doc_recall": 1.0,
+    "lexical_n": 0.0,
+    "mrr": 1.0,
+    "ndcg": 1.0,
+    "quote_recall": 1.0
+  }
+}
