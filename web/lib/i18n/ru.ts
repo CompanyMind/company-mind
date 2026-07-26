@@ -39,6 +39,8 @@ export const ru: Dictionary = {
       stepOf: 'Шаг {current} из {total}',
       takeTour: 'Начать тур',
       guide: 'Гид',
+      startTour: 'Провести экскурсию',
+      declineTour: 'Не сейчас',
     },
   },
 }

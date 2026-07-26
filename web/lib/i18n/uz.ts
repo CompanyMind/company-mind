@@ -43,6 +43,8 @@ export const uz: Dictionary = {
       stepOf: 'Qadam {current} / {total}',
       takeTour: 'Tanishtiruvni boshlash',
       guide: 'Qoʻllanma',
+      startTour: 'Koʻrsatib bering',
+      declineTour: 'Hozir emas',
     },
   },
 }

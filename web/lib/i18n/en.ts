@@ -39,6 +39,9 @@ export const en = {
       stepOf: 'Step {current} of {total}',
       takeTour: 'Take the tour',
       guide: 'Guide',
+      // Step 1's bespoke pair — spec §4.1: `[Show me around] [Not now]`.
+      startTour: 'Show me around',
+      declineTour: 'Not now',
     },
   },
 }
