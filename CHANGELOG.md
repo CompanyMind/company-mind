@@ -219,6 +219,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   questions per document naive standard errors can be ~3× too small and real regressions read as noise.
 
 ### Changed
+- Sources' inline upload logic extracted into `web/lib/useDocumentUpload.ts`
+  (`useDocumentUpload(csrf)` → `{ upload, busy, error, accepted }`), so the guided tour's upload
+  step and the Sources page share one implementation instead of risking drift from the server's
+  contract. Pure refactor — same endpoint, same per-file sequential loop (not `Promise.all`; the
+  ingest path holds a database connection per request), same error copy. The hook owns `busy`/
+  `error`; refreshing the folder list afterwards stays the caller's job since Sources and the tour
+  do different things once an upload finishes.
 - Sources is now a folder grid instead of one flat list of every document — the flat list was already
   unusable at the 150-document demo corpus. Folder cards show a document count and a "suggested" chip
   for AI folders nobody has touched yet; an Unfiled card appears whenever unfiled documents exist.

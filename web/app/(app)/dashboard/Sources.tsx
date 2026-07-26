@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FolderGrid, type FolderCard } from './sources/FolderGrid'
+import { useDocumentUpload } from '@/lib/useDocumentUpload'
 
 export function Sources({ csrf }: { csrf: string }) {
   const [folders, setFolders] = useState<FolderCard[]>([])
   const [unfiledCount, setUnfiledCount] = useState(0)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const { upload, busy, error } = useDocumentUpload(csrf)
 
   const refresh = useCallback(async () => {
     const r = await fetch('/api/folders')
@@ -28,22 +28,10 @@ export function Sources({ csrf }: { csrf: string }) {
 
   async function onFiles(files: FileList | null) {
     if (!files?.length) return
-    setBusy(true)
-    setError(null)
     try {
-      for (const file of Array.from(files)) {
-        const body = new FormData()
-        body.set('file', file)
-        const r = await fetch('/api/documents', {
-          method: 'POST',
-          headers: { 'x-csrf-token': csrf },
-          body,
-        })
-        if (!r.ok) setError((await r.json().catch(() => ({}))).error ?? 'upload failed')
-      }
+      await upload(files)
       await refresh()
     } finally {
-      setBusy(false)
       if (inputRef.current) inputRef.current.value = ''
     }
   }
