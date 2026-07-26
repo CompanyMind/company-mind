@@ -1,10 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { getDictionary, isLocale } from '@/lib/i18n'
 import { FolderGrid, type FolderCard } from './sources/FolderGrid'
 import { useDocumentUpload } from '@/lib/useDocumentUpload'
 
-export function Sources({ csrf }: { csrf: string }) {
+export function Sources({ csrf, locale }: { csrf: string; locale: string }) {
+  const dict = getDictionary(isLocale(locale) ? locale : 'en')
   const [folders, setFolders] = useState<FolderCard[]>([])
   const [unfiledCount, setUnfiledCount] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -58,6 +60,8 @@ export function Sources({ csrf }: { csrf: string }) {
         unfiledCount={unfiledCount}
         csrf={csrf}
         onChanged={refresh}
+        emptyState={dict.emptyStates.sourcesEmpty}
+        onUploadClick={() => inputRef.current?.click()}
       />
     </>
   )

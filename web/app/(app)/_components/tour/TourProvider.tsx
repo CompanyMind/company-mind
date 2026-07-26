@@ -40,12 +40,35 @@ type TourContextValue = {
   start: (opts?: StartOptions) => void
   /** Whether a tour is currently running. */
   active: boolean
+  /**
+   * Whether `key` is already in `user_tour_steps` for this user+workspace —
+   * seeded from the server (`seenSteps`) and kept current in-memory for the
+   * rest of the session. Exposed for `CitationHint.tsx` (spec §4
+   * "Deliberately not tour steps"): the citation coach mark reuses this
+   * same seen-set and the same honest "seen" semantic as every joyride
+   * step, even though it is never one of `stepDefs` and never runs through
+   * joyride at all — a citation button doesn't exist in the DOM until an
+   * answer with one actually renders, so it can never be a fixed step.
+   */
+  hasSeenStep: (key: string) => boolean
+  /**
+   * Records `key` as seen — the same `POST /api/tour/step` call and
+   * `ON CONFLICT DO NOTHING` idempotency every joyride step already relies
+   * on (see the "record seen" effect below, which now calls this too), just
+   * reachable from outside the joyride lifecycle for `CitationHint.tsx`.
+   */
+  recordStepSeen: (key: string) => void
 }
 
 // Harmless no-op default, same pattern as targets.ts's noopRegistry: any
 // dashboard surface can call useTour() unconditionally without caring
 // whether it happens to render above or below TourProvider.
-const noopTour: TourContextValue = { start: () => {}, active: false }
+const noopTour: TourContextValue = {
+  start: () => {},
+  active: false,
+  hasSeenStep: () => false,
+  recordStepSeen: () => {},
+}
 const TourContext = createContext<TourContextValue>(noopTour)
 
 export function useTour(): TourContextValue {
@@ -393,24 +416,51 @@ function TourEngine({
     }
   }, [currentTarget])
 
-  // Records that `currentStepDef` was SHOWN — not completed, spec §6's
-  // honest "seen" semantic — the instant it becomes current, including on
-  // Back to a step already seen this run (POST /api/tour/step's insert is
-  // ON CONFLICT DO NOTHING, so a repeat is a harmless no-op). Also updates
-  // `seenKeysRef` synchronously (not waiting on the response) so `nextIndex`
-  // is correct for a pill click or Guide replay later in the same session.
-  // Fire-and-forget, same shape as `refreshHasUnfiled` above: a failed POST
-  // must never block or error the tour, only cost that one row until the
-  // next successful call.
+  // The shared "record seen" primitive — spec §6's honest "seen" semantic
+  // (shown, not completed), reused by both the joyride step-record effect
+  // below and `CitationHint.tsx` via context. Updates `seenKeysRef`
+  // synchronously (not waiting on the response) so `nextIndex`/`hasSeenStep`
+  // are correct for a pill click, Guide replay, or a second cited answer
+  // later in the same session, and skips the network call entirely for a
+  // key already recorded — the same idempotency `ON CONFLICT DO NOTHING`
+  // gives the write itself, just without the round trip. Fire-and-forget: a
+  // failed POST must never block or error the caller, only cost that one row
+  // until the next successful call.
+  const recordStepSeen = useCallback(
+    (key: string) => {
+      if (seenKeysRef.current.has(key)) return
+      seenKeysRef.current.add(key)
+      void fetch('/api/tour/step', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-csrf-token': csrf },
+        body: JSON.stringify({ stepKey: key }),
+      }).catch(() => {})
+    },
+    [csrf],
+  )
+
+  const hasSeenStep = useCallback((key: string) => seenKeysRef.current.has(key), [])
+
+  // Records that `currentStepDef` was SHOWN, gated on `currentTarget` also
+  // being resolved — NOT on `currentStepDef` alone. Task 7's own report
+  // flagged the bug this closes: on an all-empty workspace, `AskWorkspace`
+  // renders `GetStarted` instead of `AskChat`, so `ask-composer` (ask-v1's
+  // target) never mounts; `stepIndex` still advances to `ask-v1` regardless
+  // (joyride's own TARGET_NOT_FOUND check runs a tick later), and recording
+  // "seen" on the index change alone wrote a row for a card the user was
+  // never actually shown — corrupting `nextStepKey`'s resume logic, which
+  // trusts every row in `user_tour_steps` to mean exactly that. Requiring
+  // `currentTarget` first means this effect can only ever fire once
+  // joyride has something real to draw the card on — the same condition
+  // joyride itself needs to render anything instead of emitting
+  // TARGET_NOT_FOUND — so "recorded" and "actually shown" can no longer
+  // drift apart. A target that never resolves (this empty-workspace case)
+  // now correctly records nothing; the tour still ends cleanly via the
+  // existing TARGET_NOT_FOUND branch in `handleEvent` above.
   useEffect(() => {
-    if (!currentStepDef) return
-    seenKeysRef.current.add(currentStepDef.key)
-    void fetch('/api/tour/step', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-csrf-token': csrf },
-      body: JSON.stringify({ stepKey: currentStepDef.key }),
-    }).catch(() => {})
-  }, [currentStepDef, csrf])
+    if (!currentStepDef || !currentTarget) return
+    recordStepSeen(currentStepDef.key)
+  }, [currentStepDef, currentTarget, recordStepSeen])
 
   // The pill's own decline — a real, permanent dismissal (users.tour_dismissed_at),
   // the same weight declining at welcome-v1 would carry. The rail's Guide
@@ -479,7 +529,10 @@ function TourEngine({
     [dictionary],
   )
 
-  const contextValue = useMemo<TourContextValue>(() => ({ start, active: run }), [start, run])
+  const contextValue = useMemo<TourContextValue>(
+    () => ({ start, active: run, hasSeenStep, recordStepSeen }),
+    [start, run, hasSeenStep, recordStepSeen],
+  )
 
   return (
     <TourContext.Provider value={contextValue}>

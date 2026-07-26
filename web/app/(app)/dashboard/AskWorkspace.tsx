@@ -2,11 +2,11 @@
 
 import { useCallback, useState } from 'react'
 import type { OnboardingState } from '@/lib/onboarding'
+import type { Dictionary } from '@/lib/i18n'
 import { useTourTarget } from '@/lib/tour/targets'
 import { Conversations } from './Conversations'
 import { AskChat } from './AskChat'
 import { GetStarted } from './GetStarted'
-import { ProgressStrip } from './ProgressStrip'
 
 // Whether to show the Get Started empty state instead of the real chat pane.
 // Once step 3 (ask) is done, or a chat/starter-question is already active,
@@ -35,10 +35,16 @@ export function AskWorkspace({
   csrf,
   onboarding,
   initialSuggestions,
+  dict,
 }: {
   csrf: string
   onboarding: OnboardingState | null
   initialSuggestions: string[]
+  /** Resolved once, server-side, for the caller's locale. Forwarded in
+   * slices to whichever child actually needs copy — GetStarted's empty
+   * state, AskChat's just-in-time citation hint — rather than each child
+   * re-resolving its own dictionary. */
+  dict: Dictionary
 }) {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
   // Bumped whenever the sidebar list needs to refetch out-of-band — right now
@@ -70,8 +76,6 @@ export function AskWorkspace({
 
   return (
     <div className="flex h-dvh flex-col max-md:h-[calc(100dvh-3.5rem)]">
-      {onboarding && <ProgressStrip state={onboarding} csrf={csrf} />}
-
       <div className="hidden items-center justify-end border-b border-line px-4 py-2 max-md:flex">
         <button
           type="button"
@@ -109,6 +113,7 @@ export function AskWorkspace({
               workspaceEmpty={onboarding.workspaceEmpty}
               suggestions={initialSuggestions}
               onPick={(q) => setPending(q)}
+              emptyState={dict.emptyStates.askNoDocuments}
             />
           ) : (
             <AskChat
@@ -116,6 +121,7 @@ export function AskWorkspace({
               chatId={selectedChatId}
               onFirstMessage={handleFirstMessage}
               initialQuestion={pending}
+              citationHint={dict.tour.citationHint}
             />
           )}
         </div>

@@ -39,6 +39,7 @@ export const uz: Dictionary = {
     citationHint: {
       heading: 'Har bir havola manbani ochadi',
       body: 'Kerakli qismga oʻtish uchun havolani bosing.',
+      dismiss: 'Tushunarli',
     },
     ui: {
       next: 'Keyingisi',
@@ -50,6 +51,22 @@ export const uz: Dictionary = {
       guide: 'Qoʻllanma',
       startTour: 'Koʻrsatib bering',
       declineTour: 'Hozir emas',
+    },
+  },
+  emptyStates: {
+    askNoDocuments: {
+      body: 'Birinchi hujjatlaringizni yuklang — CompanyMind ular haqida savollarga javob beradi va har bir javobni aniq manbagacha kuzatish mumkin boʻladi.',
+      cta: 'Hujjat qoʻshish',
+    },
+    sourcesEmpty: {
+      body: 'Hozircha hujjat yoʻq. PDF, Word, matn yoki markdown fayllarni yuklang — CompanyMind ularni papkalarga tartiblab beradi.',
+      cta: 'Hujjatlarni yuklash',
+    },
+    access: {
+      body: 'Javoblaringiz faqat siz aʻzo boʻlgan ruxsat guruhlarining kesishmasidan tuziladi — shu guruhlarning birortasiga kirmagan hujjat hech qachon koʻrinmaydi, hatto toʻgʻridan-toʻgʻri soʻrasangiz ham. Ishchi makon egalari esa barcha hujjatlarni koʻra oladi.',
+    },
+    atlas: {
+      body: 'Atlas kompaniyangiz biladigan narsalar xaritasini chizadi: hujjatlar mavzu boʻyicha guruhlanadi va boʻlim boʻyicha rangga ega boʻladi, shuningdek ruxsat anomaliyalari, ortiqcha ochiqlik, aloqasiz va eskirgan hujjatlarni koʻrsatuvchi rejimlar mavjud. Biror narsa koʻrsatish uchun hujjatlar kerak — ularni Manbalar boʻlimida yuklang, soʻng xaritani qayta tuzing.',
     },
   },
 }

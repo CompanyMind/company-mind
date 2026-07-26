@@ -7,7 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- The rejected first-run panel. `ProgressStrip.tsx` (a dismissible strip listing "Add documents /
+  Sort them / Ask a question") is deleted outright, and `GetStarted.tsx`'s `workspaceEmpty` branch
+  no longer renders the same three-item numbered instruction list — the founder's own verdict on
+  this UI: *"it shows in one static part it wrote down the instruction but i do not want it."* The
+  starter-suggestions branch (three clickable questions on a populated-but-unasked workspace) is
+  untouched — that was always a real empty state, not a tutorial, and was never what got rejected.
+  `AskWorkspace.tsx` no longer imports or renders `ProgressStrip`; `dashboard/page.tsx`'s onboarding
+  facts (`deriveOnboarding`, `onboarding_dismissed_at`) are kept exactly as they were — they still
+  decide `workspaceEmpty`/whether Get Started shows at all, which is a live, still-needed question
+  independent of the panel that used to sit on top of it.
+
 ### Added
+- Real empty states, replacing the deleted panel — one line of orientation plus a single action,
+  never a list. **Ask pane** (no documents): one sentence plus an **Add documents** button to
+  Sources. **Sources**: an **Upload documents** button now lives inside `FolderGrid`'s own empty
+  message (`onUploadClick` opens the same hidden file input `Sources.tsx`'s top-of-page button
+  already drives — one upload implementation, two entry points). **Access**: permanent prose on the
+  access model — group intersection, owner bypass — rendered directly on `/dashboard/access`, not
+  only inside the tour's `access-v1` card, since a bank evaluator re-reading how the model works six
+  months from now has no tour to replay it from. **Atlas**: what it is and that it needs documents,
+  in its existing empty-canvas message — Atlas is deliberately not a tour step (`react-force-graph-2d`
+  paints to one `<canvas>`, so no selector can ever resolve a graph node), which makes this the only
+  place it gets explained at all. All four are localized: `emptyStates.{askNoDocuments,sourcesEmpty,
+  access,atlas}` added to `web/lib/i18n/{en,ru,uz}.ts`, keeping every locale's key set in sync
+  (`i18n.test.ts`) and the Uzbek free of ASCII apostrophes.
+- The just-in-time citation hint (`web/app/(app)/_components/tour/CitationHint.tsx`) — a single
+  non-modal coach mark anchored to the first citation chip of the first cited answer a user ever
+  sees, shown once per user and never again. Deliberately not a tour step: the citation button does
+  not exist in the DOM until an answer with a citation actually renders, so a fixed step anchored to
+  one is broken by construction, and teaching it at the moment it happens beats narrating it 90
+  seconds earlier at `ask-v1`. No scrim, no focus trap, no stolen focus — dismisses on click
+  (anywhere, including the citation chip itself) or Escape, and records `citation-hint-v1` via the
+  existing `POST /api/tour/step` the instant it becomes visible, not gated behind the user actually
+  dismissing it, so "never returns" holds even for someone who ignores it and navigates away.
+  `TourProvider.tsx`'s context grew `hasSeenStep`/`recordStepSeen`, generalized out of the joyride
+  step-record effect so the hint can reuse the exact same seen-set and `ON CONFLICT DO NOTHING`
+  idempotency every tour step already relies on, without running through joyride at all. Caught live
+  against a real Docker build (not just tests): the first implementation called `hasSeenStep()` fresh
+  on every render, and the hint's own position-tracking effect calls `setPos` once per animation frame
+  while visible — so the very next frame after the hint appeared, it re-read the ref its own "record
+  seen" effect had just flipped to `true` one render earlier and unmounted itself, all inside one
+  frame (<16ms), correctly recorded but never actually seen by anyone. Fixed by snapshotting
+  `hasSeenStep(CITATION_HINT_KEY)` once, via a lazy `useState` initializer at mount (`anchorEl` is
+  still `null` at that point, before any citation exists), instead of re-deriving it on every render.
+- Fixed a bug Task 7 flagged and carried forward: `ask-v1` could be recorded as "seen" even when its
+  target (`ask-composer`) never mounted — on an all-empty workspace `AskWorkspace` renders
+  `GetStarted` instead of `AskChat`, so the composer doesn't exist, yet `stepIndex` still advanced to
+  `ask-v1` and the old effect recorded it regardless, a tick before joyride's own `TARGET_NOT_FOUND`
+  ended the tour. The "record seen" effect in `TourProvider.tsx` is now gated on the step's own
+  `currentTarget` actually being resolved, not on `currentStepDef` alone — recording a step the user
+  was never shown corrupts `nextStepKey`'s resume logic, which trusts every `user_tour_steps` row to
+  mean exactly that. Deleting `GetStarted.tsx`'s instruction branch alone did **not** fix this:
+  `showGetStarted()`'s condition — GetStarted vs. AskChat — was unchanged, so the composer still
+  never mounts on a genuinely empty workspace; this provider-level gate is what actually closes it,
+  for every step, not just `ask-v1`.
 - Guided tour persistence, auto-start gate and replay entry point. `user_tour_steps(user_id,
   workspace_id, step_key, seen_at)` and `users.tour_dismissed_at` — server-side, never localStorage,
   so a second person signing in on a shared bank-branch workstation gets their own tour instead of

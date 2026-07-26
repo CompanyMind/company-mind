@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import type { Dictionary } from '@/lib/i18n'
 import { useTourTarget } from '@/lib/tour/targets'
 
 export type FolderCard = {
@@ -17,11 +18,21 @@ export function FolderGrid({
   unfiledCount,
   csrf,
   onChanged,
+  emptyState,
+  onUploadClick,
 }: {
   folders: FolderCard[]
   unfiledCount: number
   csrf: string
   onChanged: () => void
+  /** Copy for the empty-workspace message below — real orientation plus one
+   * action, not a description on its own (spec §4 "Real empty states"). */
+  emptyState: Dictionary['emptyStates']['sourcesEmpty']
+  /** Opens the same hidden file input Sources.tsx's own top-of-page "Upload
+   * documents" button drives, so the empty state is actionable rather than
+   * purely descriptive — one upload implementation (`useDocumentUpload`),
+   * two entry points into it. */
+  onUploadClick: () => void
 }) {
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
@@ -115,10 +126,16 @@ export function FolderGrid({
       {note && <p className="mt-2 text-body-sm text-brain-text">{note}</p>}
 
       {folders.length === 0 && unfiledCount === 0 && (
-        <p className="mt-4 rounded-md border border-line px-4 py-6 text-body-sm text-ink-soft">
-          No documents yet. Upload PDFs, Word, text or markdown above, then let CompanyMind sort
-          them into folders for you.
-        </p>
+        <div className="mt-4 rounded-md border border-line px-4 py-6 text-center">
+          <p className="text-body-sm text-ink-soft">{emptyState.body}</p>
+          <button
+            type="button"
+            onClick={onUploadClick}
+            className="mt-3 rounded-md bg-ink px-4 py-2 text-body-sm text-paper"
+          >
+            {emptyState.cta}
+          </button>
+        </div>
       )}
 
       <ul className="mt-4 grid grid-cols-3 gap-3 max-md:grid-cols-1">

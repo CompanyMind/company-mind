@@ -35,6 +35,7 @@ export const en = {
     citationHint: {
       heading: 'Every citation opens the source',
       body: 'Click a citation to jump straight to the passage it came from.',
+      dismiss: 'Got it',
     },
     ui: {
       next: 'Next',
@@ -47,6 +48,31 @@ export const en = {
       // Step 1's bespoke pair — spec §4.1: `[Show me around] [Not now]`.
       startTour: 'Show me around',
       declineTour: 'Not now',
+    },
+  },
+  // Real empty-state copy — prose plus one action, never a numbered
+  // tutorial (the rejected first-run panel this task deletes). See
+  // docs/superpowers/specs/2026-07-26-guided-tour-design.md §4/§5.
+  emptyStates: {
+    askNoDocuments: {
+      body: 'Upload your first documents and CompanyMind will answer questions about them, every claim traced back to its source.',
+      cta: 'Add documents',
+    },
+    sourcesEmpty: {
+      body: 'No documents yet. Upload PDFs, Word, text or markdown and CompanyMind will sort them into folders for you.',
+      cta: 'Upload documents',
+    },
+    // Permanent page prose, not a dismissible hint — the spec requires this
+    // to exist outside the tour card, since it must still be re-readable in
+    // month six by someone who never took the tour at all.
+    access: {
+      body: 'Your answers are built only from the intersection of the access groups you belong to — a document outside all of them never appears, even if you ask about it directly. Workspace owners bypass this and see everything.',
+    },
+    // Atlas is deliberately not a tour step — it paints to a single
+    // <canvas>, so no selector can ever resolve a graph node — which makes
+    // this the only place it gets explained at all.
+    atlas: {
+      body: 'Atlas maps what your company knows: documents clustered by topic, coloured by department, with lenses for permission anomalies, over-exposure, orphans and stale content. It needs documents to show anything — upload some in Sources, then rebuild the map.',
     },
   },
 }
