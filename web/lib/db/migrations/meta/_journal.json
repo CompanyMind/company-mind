@@ -99,6 +99,13 @@
       "when": 1784992817715,
       "tag": "0013_curly_zaran",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1785045242515,
+      "tag": "0014_curly_puma",
+      "breakpoints": true
     }
   ]
 }

@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- i18n dictionaries (`web/lib/i18n/{index,en,ru,uz}.ts`) and `users.locale`, per-user (`'en'|'ru'|'uz'`,
+  defaulting `'en'`) — the first piece of the guided tour, built before any tour UI so the copy is data
+  from the start instead of hardcoded English dug back out later. `Dictionary` type is inferred from
+  `en.ts` and checked against `ru.ts`/`uz.ts` at compile time as well as by a vitest key-set walk. The
+  Uzbek dictionary is real Uzbek Latin — `ʻ` (U+02BB), never the ASCII apostrophe that already broke
+  `engine/app/ask/qtype.py`'s keyword matching; a test enforces it. `getDictionary` is intentionally
+  not behind `server-only` in `index.ts` since `isLocale` and the dictionary objects themselves must
+  stay importable from tests and client components — the guard belongs on whichever server component
+  later reads the user's locale.
 - Guided tour spec — `docs/superpowers/specs/2026-07-26-guided-tour-design.md`. Replaces last week's
   static first-run panel, which was rejected for covering the dashboard with instructions instead of
   explaining it in place. Two layers: the real dashboard untouched underneath, a guidance card above

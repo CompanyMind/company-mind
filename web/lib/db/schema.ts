@@ -33,6 +33,9 @@ export const users = pgTable('users', {
   // Set by the admin panel. Blocking also deletes the user's sessions, so this
   // flag is a durable record, not the enforcement mechanism on its own.
   blockedAt: timestamp('blocked_at', { withTimezone: true }),
+  // 'en' | 'ru' | 'uz'. Per-user rather than per-workspace: a bank's Russian-speaking
+  // analyst and its English-speaking admin share one workspace.
+  locale: text('locale').notNull().default('en'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 })
 
