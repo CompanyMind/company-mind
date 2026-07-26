@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react'
 import type { OnboardingState } from '@/lib/onboarding'
+import { useTourTarget } from '@/lib/tour/targets'
 import { Conversations } from './Conversations'
 import { AskChat } from './AskChat'
 import { GetStarted } from './GetStarted'
@@ -52,6 +53,10 @@ export function AskWorkspace({
   // navigation, so without this, picking a suggestion would immediately
   // re-render Get Started instead of the chat thread that's now sending it.
   const [pending, setPending] = useState<string | null>(null)
+  // The Ask pane wrapper — anchors the tour's welcome step. It exists
+  // whether GetStarted or the real chat is showing inside it, so it's a
+  // durable anchor even before a user has asked anything.
+  const askPaneRef = useTourTarget('ask-pane')
 
   const handleFirstMessage = useCallback((newChatId: string) => {
     setSelectedChatId(newChatId)
@@ -98,7 +103,7 @@ export function AskWorkspace({
           />
         </div>
 
-        <div className="h-full min-w-0 flex-1">
+        <div ref={askPaneRef} className="h-full min-w-0 flex-1">
           {onboarding && showGetStarted(onboarding, initialSuggestions, selectedChatId, pending) ? (
             <GetStarted
               workspaceEmpty={onboarding.workspaceEmpty}

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useTourTarget } from '@/lib/tour/targets'
 
 type Cite = {
   marker: number
@@ -57,6 +58,7 @@ export function AskChat({
   // created, so a rapid second send (before the parent's re-render lands)
   // still targets the right chat instead of creating a duplicate thread.
   const activeChatId = useRef<string | null>(chatId)
+  const composerRef = useTourTarget('ask-composer')
 
   useEffect(() => {
     activeChatId.current = chatId
@@ -235,7 +237,7 @@ export function AskChat({
         <div ref={endRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="sticky bottom-0 flex gap-2 bg-paper py-4">
+      <form ref={composerRef} onSubmit={handleSubmit} className="sticky bottom-0 flex gap-2 bg-paper py-4">
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}

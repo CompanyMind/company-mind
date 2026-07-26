@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { useTourTarget } from '@/lib/tour/targets'
 
 export type FolderCard = {
   id: string
@@ -27,6 +28,7 @@ export function FolderGrid({
   const [error, setError] = useState<string | null>(null)
   const [organizing, setOrganizing] = useState(false)
   const [note, setNote] = useState<string | null>(null)
+  const organiseRef = useTourTarget('organise-button')
 
   async function create(e: React.FormEvent) {
     e.preventDefault()
@@ -78,6 +80,7 @@ export function FolderGrid({
           {unfiledCount > 0 && (
             <button
               type="button"
+              ref={organiseRef}
               onClick={organize}
               disabled={organizing}
               className="mr-3 rounded-md border border-brain px-3 py-1 text-body-sm text-brain-text disabled:opacity-60"

@@ -217,6 +217,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Phases 3–4 deliberately perform. Metrics: doc-recall@k, quote-recall@k, MRR and nDCG@k (via `ranx`),
   plus a paired bootstrap whose resampling unit is the **source document**, because with several
   questions per document naive standard errors can be ~3× too small and real regressions read as noise.
+- Typed guided-tour target registry (`web/lib/tour/targets.ts`): `TourTarget`, a five-member const
+  union (`'ask-pane' | 'ask-composer' | 'rail-sources' | 'rail-access' | 'organise-button'`), plus a
+  `TourTargetProvider`, `useTourTarget(name)` (a memoised callback ref that registers on mount and
+  deletes on unmount) and `useTourTargetEl(name)` for the tour shell to read. Naming a target that
+  isn't in the union is a `tsc` error at `npm run build`, instead of a CSS selector that silently
+  stops matching once someone renames a class. The five refs are wired up: the Ask pane wrapper
+  (`AskWorkspace.tsx`), the composer form (`AskChat.tsx`), the Sources and Access rail links
+  (`Rail.tsx`, matched by `href` since NAV's length varies with role and hooks can't be called
+  inside its `.map()`), and the Organise-with-AI button (`FolderGrid.tsx`, which only renders when
+  `unfiledCount > 0` — the callback ref's `null`-on-unmount call is what keeps that safe). No DOM,
+  styling, or behaviour changes; `TourTargetProvider` is not yet mounted anywhere (that's the tour
+  shell, a later task), so until then registration is a harmless no-op by design.
 
 ### Changed
 - Sources' inline upload logic extracted into `web/lib/useDocumentUpload.ts`
