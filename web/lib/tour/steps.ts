@@ -27,6 +27,16 @@ export type TourStep = {
   target: TourTarget
   /** @default 'bottom' (joyride's own default) */
   placement?: JoyrideStepConfig['placement']
+  /**
+   * The card's heading. TourProvider.tsx maps this straight onto joyride's
+   * own `title` field, which TourCard.tsx renders as the `<h2>` its
+   * `aria-labelledby` points at — every step needs one; there is no safe
+   * "no heading" default for a dialog's accessible name. Kept here rather
+   * than looked up separately in TourProvider.tsx so a step's heading and
+   * its body can never drift apart from having two different places that
+   * both have to know the same dict path.
+   */
+  heading: string
   content: ReactNode
 }
 
@@ -34,12 +44,11 @@ export type BuildStepsOptions = {
   role: 'owner' | 'member'
   dict: Dictionary
   /**
-   * Whether the workspace has unfiled documents right now. Unread this
-   * release: `organise-v1` (spec §4 step 3) only appears when this is
-   * true, and only once the Organise-with-AI button — and its tour target —
-   * ships on the Sources page (a later task). Accepted now so this
-   * function's shape doesn't change again when that step lands; see the
-   * seam noted in `buildSteps` below.
+   * Whether the workspace has unfiled documents right now.
+   * `organise-v1` (spec §4 step 3) only appears in the owner list when this
+   * is true — a fixed step list would point at a button
+   * (`FolderGrid.tsx`'s "Organise with AI") that only renders once
+   * `unfiledCount > 0`.
    */
   hasUnfiled: boolean
   /**
@@ -88,13 +97,17 @@ function citationReplica(): ReactNode {
 
 /**
  * Builds the ordered step list for one role. Owner gets `welcome-v1`,
- * `upload-v1`, `access-v1`, `ask-v1` this release (`organise-v1` is the
- * next task's seam — see the comment at its insertion point below). Member
- * gets `welcome-v1`, `access-member-v1`, `ask-v1` — no upload step, ever:
- * members may not have upload rights, and telling them to upload is the
- * exact failure the adaptive per-role design exists to avoid.
+ * `upload-v1`, `access-v1`, `ask-v1`, plus `organise-v1` inserted between
+ * `upload-v1` and `access-v1` whenever `hasUnfiled` is true (spec §4 step
+ * 3) — 5 steps or 4. Member gets `welcome-v1`, `access-member-v1`,
+ * `ask-v1` — no upload step, ever: members may not have upload rights, and
+ * telling them to upload is the exact failure the adaptive per-role design
+ * exists to avoid. `organise-v1` never appears for a member either,
+ * regardless of `hasUnfiled` — the same reasoning: organising is an owner
+ * action (`FolderGrid.tsx`'s "Organise with AI" is gated on nothing but
+ * `unfiledCount`, but there is no reason to send a member to it).
  */
-export function buildSteps({ role, dict, csrf }: BuildStepsOptions): TourStep[] {
+export function buildSteps({ role, dict, hasUnfiled, csrf }: BuildStepsOptions): TourStep[] {
   const welcome: TourStep = {
     key: 'welcome-v1',
     target: 'ask-pane',
@@ -104,6 +117,7 @@ export function buildSteps({ role, dict, csrf }: BuildStepsOptions): TourStep[] 
     // whole-pane target (mirrors TourProvider.tsx's throwaway welcome step
     // from Task 4).
     placement: 'center',
+    heading: dict.tour.welcome.heading,
     content: dict.tour.welcome.body,
   }
 
@@ -114,6 +128,7 @@ export function buildSteps({ role, dict, csrf }: BuildStepsOptions): TourStep[] 
     // bottom-0` in AskChat.tsx); the default 'bottom' placement would push
     // the card below the fold.
     placement: 'top',
+    heading: dict.tour.ask.heading,
     content: createElement(
       Fragment,
       null,
@@ -128,6 +143,7 @@ export function buildSteps({ role, dict, csrf }: BuildStepsOptions): TourStep[] 
       {
         key: 'access-member-v1',
         target: 'rail-access',
+        heading: dict.tour.accessMember.heading,
         content: dict.tour.accessMember.body,
       },
       ask,
@@ -137,20 +153,33 @@ export function buildSteps({ role, dict, csrf }: BuildStepsOptions): TourStep[] 
   const upload: TourStep = {
     key: 'upload-v1',
     target: 'rail-sources',
+    heading: dict.tour.upload.heading,
     content: createElement(UploadStep, { csrf, dict }),
   }
 
   const access: TourStep = {
     key: 'access-v1',
     target: 'rail-access',
+    heading: dict.tour.access.heading,
     content: dict.tour.access.body,
   }
 
-  // organise-v1 (spec §4 step 3) belongs here, between upload-v1 and
-  // access-v1, conditional on `hasUnfiled` — anchored to the
-  // Organise-with-AI button that only renders once unfiled documents
-  // exist. Deliberately not built this release; do not add it here without
-  // also adding its target to web/lib/tour/targets.ts and wiring the
-  // before-hook navigation in TourProvider.tsx.
-  return [welcome, upload, access, ask]
+  // Conditional on `hasUnfiled` (spec §4 step 3) — anchored to the real
+  // Organise-with-AI button (`FolderGrid.tsx`), which only renders once
+  // unfiled documents exist. Its `before` hook (navigate to
+  // /dashboard/sources, then back to /dashboard for access-v1) lives in
+  // TourProvider.tsx, not here — steps.ts stays free of routing concerns,
+  // same as every other step.
+  if (!hasUnfiled) {
+    return [welcome, upload, access, ask]
+  }
+
+  const organise: TourStep = {
+    key: 'organise-v1',
+    target: 'organise-button',
+    heading: dict.tour.organise.heading,
+    content: dict.tour.organise.body,
+  }
+
+  return [welcome, upload, organise, access, ask]
 }

@@ -19,14 +19,27 @@ const KNOWN_TARGETS: readonly TourTarget[] = [
 ]
 
 describe('buildSteps', () => {
-  it('an owner with unfiled documents gets 4 steps in this release', () => {
+  it('an owner with unfiled documents gets 5 steps, organise-v1 between upload-v1 and access-v1', () => {
     const steps = buildSteps({ role: 'owner', dict, hasUnfiled: true, csrf })
-    expect(steps.map((s) => s.key)).toEqual(['welcome-v1', 'upload-v1', 'access-v1', 'ask-v1'])
+    expect(steps.map((s) => s.key)).toEqual([
+      'welcome-v1',
+      'upload-v1',
+      'organise-v1',
+      'access-v1',
+      'ask-v1',
+    ])
   })
 
-  it('an owner with no unfiled documents also gets 4 steps this release (organise-v1 is a later task)', () => {
+  it('an owner with no unfiled documents gets 4 steps, organise-v1 absent', () => {
     const steps = buildSteps({ role: 'owner', dict, hasUnfiled: false, csrf })
-    expect(steps).toHaveLength(4)
+    expect(steps.map((s) => s.key)).toEqual(['welcome-v1', 'upload-v1', 'access-v1', 'ask-v1'])
+    expect(steps.some((s) => s.key === 'organise-v1')).toBe(false)
+  })
+
+  it('organise-v1 anchors the real Organise-with-AI button', () => {
+    const steps = buildSteps({ role: 'owner', dict, hasUnfiled: true, csrf })
+    const organise = steps.find((s) => s.key === 'organise-v1')
+    expect(organise?.target).toBe('organise-button')
   })
 
   it('a member gets 3 steps', () => {
@@ -34,10 +47,11 @@ describe('buildSteps', () => {
     expect(steps.map((s) => s.key)).toEqual(['welcome-v1', 'access-member-v1', 'ask-v1'])
   })
 
-  it("a member's step list never contains upload-v1, regardless of hasUnfiled", () => {
+  it("a member's step list never contains upload-v1 or organise-v1, regardless of hasUnfiled", () => {
     for (const hasUnfiled of [true, false]) {
       const steps = buildSteps({ role: 'member', dict, hasUnfiled, csrf })
       expect(steps.some((s) => s.key === 'upload-v1')).toBe(false)
+      expect(steps.some((s) => s.key === 'organise-v1')).toBe(false)
     }
   })
 
@@ -52,11 +66,12 @@ describe('buildSteps', () => {
     }
   })
 
-  it('every step has non-empty content', () => {
+  it('every step has non-empty content and a non-empty heading', () => {
     for (const role of ['owner', 'member'] as const) {
       const steps = buildSteps({ role, dict, hasUnfiled: true, csrf })
       for (const step of steps) {
         expect(step.content, `${role}/${step.key}`).toBeTruthy()
+        expect(step.heading, `${role}/${step.key}`).toBeTruthy()
       }
     }
   })

@@ -288,6 +288,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the moment the server returned 201 (before indexing finished), the status line then tracked indexing
   separately, the document reached `status='indexed'` in Postgres, Escape ended the tour mid-upload
   and the polling interval stopped with it, and a member's tour never showed an upload step at all.
+- Guided tour wiring (`web/app/(app)/_components/tour/TourProvider.tsx`) and the conditional
+  `organise-v1` step (`web/lib/tour/steps.ts`, spec §4 step 3) — the tour's only step that changes
+  route, and the last step-work in the plan. `TourProvider` now builds its real step list via
+  `buildSteps({ role, dict, hasUnfiled, csrf })` (replacing Task 4's two-step proof-of-wiring
+  placeholder); `hasUnfiled` comes from `GET /api/folders`, checked once when the tour starts and
+  held fixed for that run so the step array's length can never drift out from under an in-flight
+  `stepIndex`. `organise-v1` is included only when unfiled documents exist, sitting between
+  `upload-v1` and `access-v1`, anchored to `FolderGrid.tsx`'s real "Organise with AI" button.
+  `TourStep` gained a `heading` field (steps.ts), sourced from the same dict entry as its body, so
+  `TourCard`'s `<h2>`/`aria-labelledby` never renders empty — a gap Task 5 deliberately left for this
+  task to close.
+  Its `before` hook (`router.push('/dashboard/sources')`) is the tour's one forward navigation;
+  `access-v1`'s `before` (`router.push('/dashboard')`) is the one return, attached only when
+  `organise-v1` ran this tour. **`before` and joyride's `targetWaitTimeout` don't compose the way
+  the plan assumed** — verified by reading `react-joyride@3.2.0`'s own shipped source
+  (`useLifecycleEffect.ts`; its docs site 404s): a step with a `before` hook gets exactly one
+  target-existence check the instant the hook's promise resolves, never joyride's own poll. So
+  `organise-v1`'s hook polls the target registry itself (100ms interval, 4000ms budget — under
+  joyride's 5000ms `beforeTimeout`, so the wait always settles on its own terms rather than via
+  joyride's before-hook timeout, which also fires an `EVENTS.ERROR`). `handleEvent` now treats
+  `EVENTS.TARGET_NOT_FOUND` as "skip this step" (advance `stepIndex`, or end the tour if it was
+  last) instead of ending the tour outright — joyride's own auto-advance for a missing target only
+  runs in *uncontrolled* mode, so a controlled tour doing nothing here would strand the user with no
+  card and no ring. Escape still ends the tour unconditionally from every step, including
+  `organise-v1` — the user is left on whatever page they're on, never navigated as a parting act.
+  Verified against the real Docker app: with unfiled documents present, the step appears after
+  navigating to Sources with the ring on the real Organise button; with none, the tour goes straight
+  from `upload-v1` to `access-v1` with no gap or stall; Escape mid-`organise-v1` leaves the user on
+  `/dashboard/sources`.
 
 ### Changed
 - Sources' inline upload logic extracted into `web/lib/useDocumentUpload.ts`
