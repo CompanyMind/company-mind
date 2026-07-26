@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Guided tour: `UploadStep.tsx`'s dropzone file input used `className="hidden"` (`display:none`),
+  which removes an element from the tab order entirely — a keyboard-only user could never reach or
+  open the native file chooser at the tour's upload step, confirmed live (`Tab` skipped straight
+  from the card to "Skip this"). WCAG 2.1 SC 2.1.1, Level A. Changed to `className="sr-only"`
+  (visually hidden, stays focusable and announced to assistive tech) plus a
+  `has-[:focus-visible]` ring on the wrapping label, since the input's own focus ring is otherwise
+  clipped to 1px. Confirmed live after the fix: `Tab` reaches the input, `Enter` opens the native
+  file chooser, and a visible ring appears on the label (6.27:1 against `--paper`).
+- Guided tour: focus fell to `<body>` whenever the tour ended (`Escape`, `TARGET_NOT_FOUND`, or
+  `Done`), confirmed live across all three paths. `TourProvider.tsx` now captures
+  `document.activeElement` when `start()` runs and restores it in `endTour()` if still attached to
+  the document — fixes the common Guide-replay path (confirmed live: ending a Guide-launched tour
+  now returns focus to the Guide button, not `<body>`). Auto-start and pill-launched sessions still
+  fall back to `<body>`, since neither has a durable element to restore to — a known, documented
+  gap (see the new accessibility note below), not chased further in the last task of this feature.
+
+### Added
+- `docs/product/2026-07-26-tour-accessibility-note.md` — a WCAG 2.1 AA note for the guided tour
+  with measured evidence (contrast ratios computed from `styles/tokens.css` and cross-checked
+  against live `getComputedStyle()` reads; keyboard-only, focus-management, 400%-zoom/320px in all
+  three locales, and `prefers-reduced-motion` all verified live against the real Docker app) and
+  honestly stated gaps, including the two fixes above and two gaps left undone (no `aria-live` on
+  the upload status line, and the identical hidden-file-input pattern still present in the
+  standalone `Sources.tsx`, out of this task's scope). Explicitly **not** an EAA/EN 301 549
+  conformance claim, which requires a documented assessment this task does not perform — states
+  that distinction outright rather than letting an AA note read as more than it is. No real screen
+  reader (NVDA/JAWS/VoiceOver) was available in this environment; states that plainly rather than
+  fabricating a session, and uses Playwright's accessibility-tree snapshot as the documented
+  fallback.
+
 ### Removed
 - The rejected first-run panel. `ProgressStrip.tsx` (a dismissible strip listing "Add documents /
   Sort them / Ask a question") is deleted outright, and `GetStarted.tsx`'s `workspaceEmpty` branch

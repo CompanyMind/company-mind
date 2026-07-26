@@ -112,7 +112,17 @@ export function UploadStep({ csrf, dict }: { csrf: string; dict: Dictionary }) {
           void onFiles(e.dataTransfer.files)
         }}
         data-drag-over={dragOver}
-        className="mt-3 block cursor-pointer rounded-md border-2 border-dashed border-line p-6 text-center data-[drag-over=true]:border-brain data-[drag-over=true]:bg-[color-mix(in_srgb,var(--brain)_6%,transparent)]"
+        // `sr-only` on the input below (not `hidden`/display:none) is
+        // load-bearing: a display:none input is pulled out of the tab order
+        // entirely, so a keyboard-only user could open a drag surface but
+        // never the native file chooser (confirmed live — Tab skipped
+        // straight from the card container to "Skip this", never landing
+        // here). sr-only keeps it focusable and announced by assistive tech
+        // while staying visually hidden; native inputs already open on
+        // Enter/Space once focused, so no extra key handling is needed. The
+        // has-[:focus-visible] ring on this label is what makes that focus
+        // visible, since the input itself is clipped to 1px.
+        className="mt-3 block cursor-pointer rounded-md border-2 border-dashed border-line p-6 text-center data-[drag-over=true]:border-brain data-[drag-over=true]:bg-[color-mix(in_srgb,var(--brain)_6%,transparent)] has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-[3px] has-[:focus-visible]:outline-[color:var(--brain-text)]"
       >
         <p className="text-body-sm text-ink">{copy.dropzone}</p>
         <p className="mt-1 text-body-sm text-ink-soft underline underline-offset-2">
@@ -123,7 +133,7 @@ export function UploadStep({ csrf, dict }: { csrf: string; dict: Dictionary }) {
           type="file"
           multiple
           accept=".pdf,.docx,.txt,.md"
-          className="hidden"
+          className="sr-only"
           disabled={busy}
           onChange={(e) => void onFiles(e.target.files)}
         />

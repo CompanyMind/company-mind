@@ -309,8 +309,19 @@ function TourEngine({
   const [run, setRun] = useState(false)
   const [stepIndex, setStepIndex] = useState(0)
 
+  // Whatever had focus the instant the tour was asked to start — the Guide
+  // rail button on a manual replay, the pill's own button on a resume, or
+  // nothing meaningful (document.body) on auto-start, where nothing has
+  // been interacted with yet. Restored in `endTour` below so keyboard focus
+  // never falls through to <body> when the card unmounts (confirmed live:
+  // without this, Escape/Done/TARGET_NOT_FOUND all left `document.body`
+  // focused, and the next Tab press restarted from the top of the page).
+  const preTourFocusRef = useRef<HTMLElement | null>(null)
+
   const start = useCallback(
     (opts?: StartOptions) => {
+      preTourFocusRef.current =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null
       void refreshHasUnfiled()
       // Resume at the first unseen step unless a full replay was asked for
       // (spec §5/§6) — auto-start's own facts always resolve this to 0 (it
@@ -327,6 +338,19 @@ function TourEngine({
   const endTour = useCallback(() => {
     setRun(false)
     setStepIndex(0)
+    // Best-effort: the pill's own button is gone by the time the tour ends
+    // (start() hides it immediately), so this only ever finds something to
+    // restore when the tour was launched from a durable element — chiefly
+    // the rail's Guide button. That is still the common manual-replay path
+    // and a real improvement over the unconditional body-fallback; the
+    // auto-start and pill-launched paths are a documented, accepted gap
+    // (see the accessibility note) rather than a risk worth chasing further
+    // plumbing for in the last task of this feature.
+    const toFocus = preTourFocusRef.current
+    if (toFocus && toFocus.isConnected) {
+      toFocus.focus()
+    }
+    preTourFocusRef.current = null
   }, [])
 
   // Shared by STEP_AFTER/NEXT and TARGET_NOT_FOUND below: move to the next
