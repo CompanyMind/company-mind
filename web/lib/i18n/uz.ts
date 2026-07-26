@@ -14,6 +14,11 @@ export const uz: Dictionary = {
     upload: {
       heading: 'Birinchi hujjatlaringizni yuklang',
       body: 'Fayllarni shu yerga tashlang yoki kompyuteringizdan tanlang. Indekslash fonda davom etadi, shuning uchun kutib turmasdan davom etishingiz mumkin.',
+      dropzone: 'Fayllarni shu yerga tashlang',
+      browse: 'Fayllarni tanlash',
+      uploading: 'Yuklanmoqda…',
+      status: '{received} ta fayl qabul qilindi · {indexed} tasi indekslandi',
+      skipThis: 'Bu bosqichni oʻtkazib yuborish',
     },
     organise: {
       heading: 'Sunʻiy intellekt hujjatlaringizni tartiblasin',

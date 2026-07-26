@@ -10,6 +10,11 @@ export const en = {
     upload: {
       heading: 'Bring in your first documents',
       body: "Drop files here or pick them from your computer. Indexing keeps running in the background, so you can move on whenever you're ready.",
+      dropzone: 'Drop files here',
+      browse: 'Choose files',
+      uploading: 'Uploading…',
+      status: '{received} files received · {indexed} indexed',
+      skipThis: 'Skip this',
     },
     organise: {
       heading: 'Let AI organise what you uploaded',

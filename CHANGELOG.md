@@ -260,6 +260,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   change, and the card holds to `min(92vw, 28rem)` (294px) with no overflow at a 320px viewport.
   Zero outbound network calls (checked the full request log — only the app's own assets and API
   routes).
+- Guided tour steps (`web/lib/tour/steps.ts`): `buildSteps({ role, dict, hasUnfiled, csrf })` returns
+  the owner's four-step tour (`welcome-v1`, `upload-v1`, `access-v1`, `ask-v1`; `organise-v1` is a
+  later task's seam) or the member's three (`welcome-v1`, `access-member-v1`, `ask-v1`) — no upload
+  step for members, ever, since telling someone without upload rights to upload is exactly the
+  failure the adaptive per-role design exists to avoid. `TourStep.placement` is typed as joyride's own
+  `Step['placement']`, not the `Placement` export alone — `Placement` by itself excludes `'center'`,
+  which `welcome-v1` needs; found by reading the installed react-joyride 3.2.0 source directly, since
+  its docs site 404s. `ask-v1` renders a static, non-interactive replica of `AskChat.tsx`'s citation
+  chip (`[1] hr-policy.pdf · p.4 ↗`, `aria-hidden`, same classes, plain `<span>`s) — a step can never
+  target the real button, which doesn't exist until an answer with a citation renders.
+- `web/app/(app)/_components/tour/UploadStep.tsx`: a real dropzone + file picker inside the tour card,
+  built on `useDocumentUpload(csrf)`, plus a live "N files received · M indexed" line polling
+  `GET /api/documents` every 2500ms. **The rule that matters most:** the shared "Next" button enables
+  the moment `accepted >= 1` (an HTTP 201), never on indexing completion — ingestion runs for minutes
+  on a real corpus, and joyride's `before` hook is capped at 5000ms, so gating advance on indexing
+  would time out and strand the user at a spinner in a card they cannot dismiss. A "Skip this" control
+  always advances regardless, for someone with no files to hand. The indexed count is a delta against
+  a baseline captured at mount (not the workspace's whole history, which could be hundreds of
+  pre-existing documents on a replayed tour) and is purely informational — a failed poll shows nothing
+  rather than an error, and the interval is cleared on unmount so it never outlives the step.
+  `web/lib/tour/step-controls.ts` adds a small context (`TourStepControlsContext`, provided by
+  `TourCard.tsx` around `step.content`) so a step's own content can gate and bypass the shared Next
+  button — needed because `TourStep.content` is an opaque `ReactNode` with no props channel of its
+  own back to the card shell; every other step never calls it, so Next stays enabled by default.
+  Verified against the real Docker app end to end: dropped a real file into the card, `Next` enabled
+  the moment the server returned 201 (before indexing finished), the status line then tracked indexing
+  separately, the document reached `status='indexed'` in Postgres, Escape ended the tour mid-upload
+  and the polling interval stopped with it, and a member's tour never showed an upload step at all.
 
 ### Changed
 - Sources' inline upload logic extracted into `web/lib/useDocumentUpload.ts`

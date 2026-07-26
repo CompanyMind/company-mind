@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useId, useRef } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { TooltipRenderProps } from 'react-joyride'
 import type { Dictionary } from '@/lib/i18n'
+import { TourStepControlsContext, type TourStepControls } from '@/lib/tour/step-controls'
 
 export type TourCardProps = TooltipRenderProps & {
   ui: Dictionary['tour']['ui']
@@ -30,9 +31,17 @@ export type TourCardProps = TooltipRenderProps & {
  * - Fluid `max-width` (`min(92vw, 28rem)`), never a fixed 380px — that
  *   breaks the 320 CSS px reflow target at 400% zoom, and Russian runs
  *   15–30% longer than English on exactly these short strings.
+ * - The primary "Next" button is gated through `TourStepControlsContext`
+ *   (web/lib/tour/step-controls.ts), provided around `step.content` below.
+ *   `TourStep.content` (steps.ts) is an opaque `ReactNode` with no props
+ *   channel of its own back to this shell, yet the upload step must keep
+ *   Next disabled until the server has accepted a file — never on indexing
+ *   completion (spec §4 step 2, §5). Every other step never calls
+ *   `setNextEnabled`, so Next simply stays enabled, its default state here.
  */
 export function TourCard({
   backProps,
+  controls,
   index,
   isLastStep,
   primaryProps,
@@ -44,6 +53,16 @@ export function TourCard({
   const containerRef = useRef<HTMLDivElement>(null)
   const headingId = useId()
   const bodyId = useId()
+
+  // Defaults to enabled — most steps are plain prose with nothing to gate
+  // on. Not reset by an effect: this component fully remounts per step (see
+  // the module doc above), so a fresh `true` here on every step change is
+  // already correct without extra plumbing.
+  const [nextEnabled, setNextEnabled] = useState(true)
+  const stepControls = useMemo<TourStepControls>(
+    () => ({ advance: () => controls.next(), setNextEnabled }),
+    [controls],
+  )
 
   // Reacts to a step that has already changed (via remount, see the module
   // doc above) — this does not drive `stepIndex`, it only moves DOM focus in
@@ -72,7 +91,9 @@ export function TourCard({
         {step.title}
       </h2>
       <div id={bodyId} className="mt-2 text-body text-ink-soft">
-        {step.content}
+        <TourStepControlsContext.Provider value={stepControls}>
+          {step.content}
+        </TourStepControlsContext.Provider>
       </div>
       <div className="mt-5 flex flex-wrap items-center gap-3">
         {!isLastStep && (
@@ -100,7 +121,8 @@ export function TourCard({
             type="button"
             data-tour-action="primary"
             onClick={primaryProps.onClick}
-            className="rounded-md bg-ink px-4 py-2 text-body-sm text-paper"
+            disabled={!nextEnabled}
+            className="rounded-md bg-ink px-4 py-2 text-body-sm text-paper disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isLastStep ? ui.done : ui.next}
           </button>
