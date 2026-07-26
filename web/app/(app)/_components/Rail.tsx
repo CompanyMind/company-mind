@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { getDictionary, isLocale } from '@/lib/i18n'
+import { useTour } from './tour/TourProvider'
 import { useTourTarget } from '@/lib/tour/targets'
 import { Wordmark } from './Wordmark'
 
@@ -10,13 +12,24 @@ export function Rail({
   userName,
   isOwner,
   isSuperAdmin,
+  locale,
 }: {
   workspace: string
   userName: string | null
   isOwner: boolean
   isSuperAdmin: boolean
+  locale: string
 }) {
   const path = usePathname()
+  const dict = getDictionary(isLocale(locale) ? locale : 'en')
+  // The permanent replay entry point (spec §5) — the only affordance that
+  // serves a user onboarded outside the narrow auto-start window (a deep
+  // link, a dismissal they regret, a step added long after they joined).
+  // `fromBeginning: true`: Guide is a deliberate full walkthrough, not a
+  // resume — it never clears user_tour_steps (the POST route is
+  // insert-only, ON CONFLICT DO NOTHING), so replaying changes nothing about
+  // what a FUTURE new step's set-difference check will see.
+  const { start } = useTour()
   const NAV = [
     { href: '/dashboard', label: 'Ask' },
     { href: '/dashboard/sources', label: 'Sources' },
@@ -57,6 +70,13 @@ export function Rail({
         </nav>
       </div>
       <div className="mt-auto flex flex-col gap-3 max-md:mt-0 max-md:flex-row max-md:items-center">
+        <button
+          type="button"
+          onClick={() => start({ fromBeginning: true })}
+          className="self-start text-body-sm text-ink-soft underline underline-offset-2 hover:text-ink max-md:self-auto"
+        >
+          {dict.tour.ui.guide}
+        </button>
         <div className="flex items-center gap-2 font-mono text-[0.6875rem] uppercase tracking-[0.12em] text-ink-soft">
           <span
             className="h-1.5 w-1.5 rounded-full bg-brain motion-safe:animate-heartbeat"

@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Guided tour persistence, auto-start gate and replay entry point. `user_tour_steps(user_id,
+  workspace_id, step_key, seen_at)` and `users.tour_dismissed_at` — server-side, never localStorage,
+  so a second person signing in on a shared bank-branch workstation gets their own tour instead of
+  inheriting the first person's "completed" flag (proved live: two accounts in one browser session,
+  each auto-started independently). No stored step cursor anywhere: `web/lib/tour/state.ts` exports
+  two pure, no-import functions — `nextStepKey` (the first defined step key not yet in `seen`,
+  ignoring any unknown/retired key so a renamed step can never break resume) and `shouldAutoStart`
+  (true only when there are zero seen rows, the user hasn't dismissed, the landing path is exactly
+  `/dashboard`, and no upload is in flight). `POST /api/tour/step` (auth → CSRF → upsert `ON CONFLICT
+  DO NOTHING`) records `{stepKey}` the instant a step is SHOWN, not completed, and rejects any
+  `stepKey` outside the known, append-only set with 400 so a typo can't silently pollute the table.
+  The provider auto-starts per that gate; otherwise a quiet, dismissible "Take the tour" pill appears
+  (never on a deep link — landing on `/dashboard/sources?doc=…` shows the pill, not the tour). A
+  permanent **Guide** item in `Rail.tsx`'s bottom cluster, above `egress 0 B`, replays the full tour
+  from step 1 on demand without ever clearing `user_tour_steps` — verified live (rows identical before
+  and after) — which is what lets a future new step still be offered to a user who "completed" an
+  earlier version of the tour, and is the only affordance for the user onboarded months after
+  everyone else, who never hits the narrow first-run window at all.
 - i18n dictionaries (`web/lib/i18n/{index,en,ru,uz}.ts`) and `users.locale`, per-user (`'en'|'ru'|'uz'`,
   defaulting `'en'`) — the first piece of the guided tour, built before any tour UI so the copy is data
   from the start instead of hardcoded English dug back out later. `Dictionary` type is inferred from

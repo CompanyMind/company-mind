@@ -11,19 +11,33 @@ import {
   useSyncExternalStore,
 } from 'react'
 import type { ReactNode } from 'react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { ACTIONS, EVENTS, Joyride, ORIGIN } from 'react-joyride'
 import type { EventData, Step as JoyrideStepConfig, TooltipRenderProps } from 'react-joyride'
 import { getDictionary, isLocale, type Dictionary } from '@/lib/i18n'
 import { TourTargetProvider, useTourTargetEl, type TourTarget } from '@/lib/tour/targets'
 import { buildSteps } from '@/lib/tour/steps'
+import { nextStepKey, shouldAutoStart } from '@/lib/tour/state'
 import { TourCard } from './TourCard'
+import { TourPill } from './TourPill'
 
 export type TourRole = 'owner' | 'member'
 
+type StartOptions = {
+  /**
+   * Force step 0 regardless of what's already in `user_tour_steps` — the
+   * rail's permanent Guide item (spec §5) uses this for a full replay.
+   * Omitted (or false): resume at the first step whose key isn't seen yet
+   * (web/lib/tour/state.ts::nextStepKey) — what auto-start and the pill both
+   * use, spec §6's "offered exactly that step behind a pill, not the whole
+   * tour again."
+   */
+  fromBeginning?: boolean
+}
+
 type TourContextValue = {
-  /** Starts the tour from step 0. */
-  start: () => void
+  /** Starts the tour. See `StartOptions`. */
+  start: (opts?: StartOptions) => void
   /** Whether a tour is currently running. */
   active: boolean
 }
@@ -95,14 +109,21 @@ function TourEngine({
   dictionary,
   role,
   csrf,
+  seenSteps,
+  tourDismissed,
   children,
 }: {
   dictionary: Dictionary
   role: TourRole
   csrf: string
+  /** Step keys already in `user_tour_steps` for this user+workspace, from the server. */
+  seenSteps: readonly string[]
+  /** `users.tour_dismissed_at !== null`, from the server. */
+  tourDismissed: boolean
   children: ReactNode
 }) {
   const router = useRouter()
+  const pathname = usePathname()
   const reducedMotion = usePrefersReducedMotion()
 
   // Whether the workspace has unfiled documents right now — the fact
@@ -140,6 +161,38 @@ function TourEngine({
     () => buildSteps({ role, dict: dictionary, hasUnfiled, csrf }),
     [role, dictionary, hasUnfiled, csrf],
   )
+
+  // Mutable, seeded once from the server-rendered `seenSteps` prop and
+  // appended to as steps are shown this session (see the "record seen"
+  // effect below) — never re-derived from the prop again after mount. This
+  // is what lets `nextIndex` below stay accurate for a second pill click or
+  // Guide replay within the same page load, without a stale snapshot from
+  // the initial server render or a round trip back to the database just to
+  // ask "what have I already seen". A `Set`, not the array itself: every
+  // read here is membership, never order.
+  const seenKeysRef = useRef<Set<string>>(new Set(seenSteps))
+
+  // The first currently-defined step key not yet in `seenKeysRef` — spec
+  // §6's set difference, `nextStepKey` (web/lib/tour/state.ts). `null` means
+  // every step this role's tour currently defines has already been shown, in
+  // which case there is nothing left to offer via auto-start or the pill
+  // (the rail's Guide item still gives a full replay regardless — see
+  // `start`'s `fromBeginning`).
+  const nextIndex = useCallback((): number | null => {
+    const key = nextStepKey(
+      stepDefs.map((d) => d.key),
+      Array.from(seenKeysRef.current),
+    )
+    if (key === null) return null
+    const idx = stepDefs.findIndex((d) => d.key === key)
+    return idx === -1 ? null : idx
+  }, [stepDefs])
+
+  // Local mirror of `tourDismissed`, flipped the instant the pill's own
+  // dismiss button is clicked (see `dismissTour` below) so the pill
+  // disappears immediately rather than waiting on a round trip.
+  const [dismissed, setDismissed] = useState(tourDismissed)
+  const [pillVisible, setPillVisible] = useState(false)
 
   // Every possible tour target, resolved live. A `Record<TourTarget, ...>`
   // literal rather than a lookup by string keeps this exhaustive: a new
@@ -233,11 +286,20 @@ function TourEngine({
   const [run, setRun] = useState(false)
   const [stepIndex, setStepIndex] = useState(0)
 
-  const start = useCallback(() => {
-    void refreshHasUnfiled()
-    setStepIndex(0)
-    setRun(true)
-  }, [refreshHasUnfiled])
+  const start = useCallback(
+    (opts?: StartOptions) => {
+      void refreshHasUnfiled()
+      // Resume at the first unseen step unless a full replay was asked for
+      // (spec §5/§6) — auto-start's own facts always resolve this to 0 (it
+      // only ever fires when seenCount is 0), so this changes nothing for
+      // that path; it matters for the pill, which can fire with real
+      // progress already on record.
+      setStepIndex(opts?.fromBeginning ? 0 : (nextIndex() ?? 0))
+      setRun(true)
+      setPillVisible(false)
+    },
+    [refreshHasUnfiled, nextIndex],
+  )
 
   const endTour = useCallback(() => {
     setRun(false)
@@ -331,6 +393,87 @@ function TourEngine({
     }
   }, [currentTarget])
 
+  // Records that `currentStepDef` was SHOWN — not completed, spec §6's
+  // honest "seen" semantic — the instant it becomes current, including on
+  // Back to a step already seen this run (POST /api/tour/step's insert is
+  // ON CONFLICT DO NOTHING, so a repeat is a harmless no-op). Also updates
+  // `seenKeysRef` synchronously (not waiting on the response) so `nextIndex`
+  // is correct for a pill click or Guide replay later in the same session.
+  // Fire-and-forget, same shape as `refreshHasUnfiled` above: a failed POST
+  // must never block or error the tour, only cost that one row until the
+  // next successful call.
+  useEffect(() => {
+    if (!currentStepDef) return
+    seenKeysRef.current.add(currentStepDef.key)
+    void fetch('/api/tour/step', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-csrf-token': csrf },
+      body: JSON.stringify({ stepKey: currentStepDef.key }),
+    }).catch(() => {})
+  }, [currentStepDef, csrf])
+
+  // The pill's own decline — a real, permanent dismissal (users.tour_dismissed_at),
+  // the same weight declining at welcome-v1 would carry. The rail's Guide
+  // item still works afterwards; only auto-start and the pill itself respect
+  // `dismissed`.
+  const dismissTour = useCallback(() => {
+    setDismissed(true)
+    setPillVisible(false)
+    void fetch('/api/tour/step', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-csrf-token': csrf },
+      body: JSON.stringify({ dismissed: true }),
+    }).catch(() => {})
+  }, [csrf])
+
+  // The auto-start gate (spec §5) — evaluated exactly once, at mount, using
+  // whatever `pathname` and `seenKeysRef`/`dismissed` are at that instant:
+  // the "landing path", not a re-check on every later client-side
+  // navigation (organise-v1 alone pushes two routes mid-tour; re-running
+  // this on every pathname change would fight that). Short-circuits away
+  // without a network call whenever the server-rendered facts alone already
+  // rule out auto-start (any progress, a dismissal, or landing anywhere but
+  // exactly `/dashboard`) — `uploadInFlight` is the one fact that needs a
+  // fetch, so it's only ever asked for when every other condition already
+  // holds. Same cancelled-flag shape as UploadStep.tsx's own poll effect.
+  useEffect(() => {
+    let cancelled = false
+    async function evaluate() {
+      if (dismissed || pathname !== '/dashboard' || seenKeysRef.current.size !== 0) {
+        if (!cancelled) setPillVisible(!dismissed && nextIndex() !== null)
+        return
+      }
+      let uploadInFlight = false
+      try {
+        const r = await fetch('/api/documents')
+        if (r.ok) {
+          const d = (await r.json()) as { documents: { status: string }[] }
+          uploadInFlight = d.documents.some(
+            (doc) => doc.status === 'uploaded' || doc.status === 'parsing',
+          )
+        }
+      } catch {
+        // Best-effort, same as every other fetch in this file: a failed
+        // check defaults to "no upload in flight" rather than stalling the
+        // gate — the safer direction here, since a wrongly-skipped
+        // auto-start just falls back to the pill, never a stuck page.
+      }
+      if (cancelled) return
+      if (shouldAutoStart({ seenCount: 0, dismissed, path: pathname, uploadInFlight })) {
+        start()
+      } else {
+        setPillVisible(nextIndex() !== null)
+      }
+    }
+    void evaluate()
+    return () => {
+      cancelled = true
+    }
+    // Deliberately empty: this must run once, for the landing path, not on
+    // every render or every `pathname` change thereafter.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const tooltipComponent = useMemo(
     () => createTooltipComponent(dictionary.tour.ui),
     [dictionary],
@@ -371,6 +514,14 @@ function TourEngine({
           scrollDuration: reducedMotion ? 0 : 300,
         }}
       />
+      {pillVisible && !run && (
+        <TourPill
+          label={dictionary.tour.ui.takeTour}
+          dismissLabel={dictionary.tour.ui.declineTour}
+          onStart={() => start()}
+          onDismiss={dismissTour}
+        />
+      )}
       {children}
     </TourContext.Provider>
   )
@@ -391,17 +542,26 @@ type TourProviderProps = {
  * /dashboard/sources and back: were this provider mounted per-page instead,
  * the whole joyride instance (and its `run`/`stepIndex` state) would
  * unmount on the very navigation this step makes.
- * `seenSteps`/`tourDismissed` are accepted now so this provider's shape
- * already matches what auto-start and persistence (a later task, once
- * `user_tour_steps` exists — spec §6) will need; this task's tour starts
- * only when `start()` is called, so they go unread here on purpose.
+ *
+ * `seenSteps`/`tourDismissed` come from the server (layout.tsx reads
+ * `user_tour_steps` and `users.tour_dismissed_at` directly via Drizzle —
+ * both are auth-owned tables, spec §6) and drive the auto-start gate and
+ * resume position below. Server-side, never localStorage: on a shared
+ * workstation the second person to sign in must get their own tour, not
+ * inherit the first person's "completed" flag.
  */
 export function TourProvider(props: TourProviderProps) {
   const dictionary = getDictionary(isLocale(props.locale) ? props.locale : 'en')
 
   return (
     <TourTargetProvider>
-      <TourEngine dictionary={dictionary} role={props.role} csrf={props.csrf}>
+      <TourEngine
+        dictionary={dictionary}
+        role={props.role}
+        csrf={props.csrf}
+        seenSteps={props.seenSteps}
+        tourDismissed={props.tourDismissed}
+      >
         {props.children}
       </TourEngine>
     </TourTargetProvider>

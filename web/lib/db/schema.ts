@@ -36,6 +36,13 @@ export const users = pgTable('users', {
   // 'en' | 'ru' | 'uz'. Per-user rather than per-workspace: a bank's Russian-speaking
   // analyst and its English-speaking admin share one workspace.
   locale: text('locale').notNull().default('en'),
+  // Set when the user explicitly declines the guided tour (the pill's own
+  // dismiss action). Deliberately separate from onboardingDismissedAt above —
+  // that column belongs to the older static first-run strip a later task
+  // deletes; conflating the two would make that deletion destructive to this
+  // feature. Tour PROGRESS is derived from user_tour_steps below, same
+  // philosophy as onboarding: only the dismissal itself is stored.
+  tourDismissedAt: timestamp('tour_dismissed_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 })
 
@@ -58,6 +65,33 @@ export const memberships = pgTable(
     role: text('role').notNull().default('member'), // 'owner' | 'member'
   },
   (t) => [primaryKey({ columns: [t.userId, t.workspaceId] })],
+)
+
+// One row per (user, workspace, step) the guided tour has ever SHOWN that
+// user — not completed, shown (spec §6, §5). No stored step cursor anywhere:
+// what to show next is always the set difference between the role's defined
+// step keys and the rows here (web/lib/tour/state.ts::nextStepKey). Replaying
+// the tour via the rail's Guide item never deletes from this table — the
+// upsert route (app/api/tour/step/route.ts) is insert-only, ON CONFLICT DO
+// NOTHING, so a replay can never erase evidence that a step was already
+// shown once. An auth-owned table (not knowledge-domain): web writes it
+// directly via Drizzle, the same as users/sessions/memberships.
+export const userTourSteps = pgTable(
+  'user_tour_steps',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    workspaceId: uuid('workspace_id')
+      .notNull()
+      .references(() => workspaces.id, { onDelete: 'cascade' }),
+    // Free text, not an enum — an enum would need a migration to add a new
+    // step key, contradicting the append-only, no-hand-edited-migration
+    // discipline spec §6 asks for.
+    stepKey: text('step_key').notNull(),
+    seenAt: timestamp('seen_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.workspaceId, t.stepKey] })],
 )
 
 export const sessions = pgTable(
