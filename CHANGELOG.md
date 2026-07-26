@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Guided tour spec — `docs/superpowers/specs/2026-07-26-guided-tour-design.md`. Replaces last week's
+  static first-run panel, which was rejected for covering the dashboard with instructions instead of
+  explaining it in place. Two layers: the real dashboard untouched underneath, a guidance card above
+  with Next/Back, and the file upload happening **inside** the card. react-joyride (MIT) in controlled
+  mode with a fully custom card; **no dimming scrim**, because a 0.3-0.5 veil drops `--ink-soft` to
+  2.99-4.16:1 on `--paper` and fails WCAG 1.4.3 — and because the dashboard staying readable is the
+  point. Records why Shepherd.js (relicensed MIT->AGPL at v14.0.1), intro.js (AGPL + paid licence) and
+  Onborda (claims MIT, ships no LICENSE file) were rejected, and that every hosted tour SaaS is
+  disqualified by air-gap. Tour state is an append-only seen-steps table server-side, never
+  localStorage — on a shared branch workstation the second employee would inherit the first's
+  "completed" flag and never be onboarded.
 - Super-admin panel at `/dashboard/admin` — aggregate usage plus user creation and blocking. Rail
   shows the Admin link only to a super-admin; everyone else 404s on the route.
 - Aggregate usage from data already recorded — questions and active users per day, question-type
