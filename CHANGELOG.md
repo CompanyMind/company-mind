@@ -229,6 +229,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `unfiledCount > 0` — the callback ref's `null`-on-unmount call is what keeps that safe). No DOM,
   styling, or behaviour changes; `TourTargetProvider` is not yet mounted anywhere (that's the tour
   shell, a later task), so until then registration is a harmless no-op by design.
+- Guided tour shell: `react-joyride@3.2.0` (MIT, pinned exact, ~20.3 kB gzipped on its own —
+  bundlephobia's 25.6 kB cited in the spec includes its transitive deps) in controlled mode, with a
+  fully custom card (`web/app/(app)/_components/tour/TourCard.tsx`) and provider
+  (`TourProvider.tsx`), both mounted in `(app)/layout.tsx` so the tour survives route changes.
+  `useTour()` exposes `{ start(), active }`; `stepIndex` is set only from joyride's own `onEvent`
+  callback, never a `useEffect` watching app state, per joyride's own "don't" about that. `options`
+  sets `hideOverlay: true` (no dimming scrim — a 0.3–0.5 veil drops `--ink-soft` to 2.99–4.16:1 on
+  `--paper` and fails WCAG 1.4.3), `overlayClickAction: false`, `disableFocusTrap: true` (joyride's
+  default focus trap targets whatever DOM node ends up as the floater wrapper regardless of a custom
+  `tooltipComponent`, and would fight the file input a later step hosts inside the card), and
+  `scrollDuration: 0` under `prefers-reduced-motion` (via `useSyncExternalStore`, not
+  `useState`+`useEffect`, on `matchMedia`). `TourCard` uses `role="dialog"` +
+  `aria-labelledby`/`aria-describedby`, never joyride's own `tooltipProps`
+  (`role="alertdialog"` + `aria-modal="true"`, which would confine a screen reader's virtual cursor
+  to the card and hide the exact dashboard element the step points at); `tabIndex={-1}` with focus
+  moved to the card on every step (joyride remounts the floater per step index, so a mount effect is
+  a per-step focus move); fluid `max-width: min(92vw, 28rem)`, never a fixed width — joyride's
+  380px default breaks the 320 CSS px reflow target at 400% zoom, and Russian runs 15–30% longer
+  than English on exactly these short strings. Escape ends the tour unconditionally from every step
+  (checked via the event's `origin`, ahead of `action`/`type` — joyride's own `dismissKeyAction:
+  'close'` only closes the current step, silently advancing on a non-final one instead of exiting;
+  WCAG 2.1.2 Level A). The active target gets a `--brain` ring via a `data-tour-active` attribute
+  (`globals.css`), set and removed on every step change and on tour end. Two throwaway steps prove
+  the wiring end to end (`welcome-v1` → the Ask pane, `access-v1` → the Access rail link); the real
+  steps land in `web/lib/tour/steps.ts` next task. Verified against the real Docker app: the card
+  renders in the product's visual language, the dashboard behind it stays clickable (a click on
+  "+ New chat" while the tour is open lands for real), Escape ends the tour from a non-final step
+  with the ring and card both gone, Tab reaches Skip/Next and focus lands on the new card on step
+  change, and the card holds to `min(92vw, 28rem)` (294px) with no overflow at a 320px viewport.
+  Zero outbound network calls (checked the full request log — only the app's own assets and API
+  routes).
 
 ### Changed
 - Sources' inline upload logic extracted into `web/lib/useDocumentUpload.ts`

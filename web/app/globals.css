@@ -29,6 +29,19 @@
     border-radius: 2px;
   }
 
+  /* Guided tour target ring — spec §3: no dimming scrim, so the active
+     target is marked instead of everything else being darkened. --brain
+     measures 4.49:1 on --paper (see styles/tokens.css's contrast law),
+     clearing WCAG 1.4.11's 3:1 non-text minimum. The tour provider sets and
+     removes this attribute on every step change and when the tour ends —
+     a ring left behind after that is a bug, not a style. */
+  [data-tour-active] {
+    outline: 2px solid var(--brain);
+    outline-offset: 3px;
+    border-radius: 2px;
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--brain) 16%, transparent);
+  }
+
   h1,
   h2,
   h3 {
