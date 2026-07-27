@@ -65,6 +65,22 @@ def documents_list(workspace_id: str, folder: str = "", user_id: str = "", role:
         }
 
 
+@app.post("/workspaces/{workspace_id}/bootstrap", dependencies=[Depends(require_secret)])
+def workspace_bootstrap(workspace_id: str):
+    """Prepare a brand-new firm's knowledge-side state.
+
+    Right now that is exactly one thing: the default Everyone group, which
+    resolve_access looks up on every member request. It is created lazily on
+    first upload anyway, but a firm whose owner signs in before uploading would
+    otherwise find an empty Access page on day one and no group to tag anything
+    with. Idempotent — get_everyone returns the existing row if there is one, so
+    re-running this on an established workspace is a no-op.
+
+    Web cannot do this itself: groups is a knowledge table the engine owns."""
+    with get_conn() as conn:
+        return {"everyone_group_id": lib_groups.get_everyone(conn, workspace_id)}
+
+
 @app.get("/folders", dependencies=[Depends(require_secret)])
 def folders_list(workspace_id: str, user_id: str = "", role: str = "member"):
     with get_conn() as conn:

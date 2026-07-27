@@ -37,6 +37,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   "Board Minutes" still discloses that board minutes exist.
 
 ### Added
+- **Firm provisioning** (`web/lib/platform/firms.ts`, engine `POST /workspaces/{id}/bootstrap`).
+  `createFirm` creates the workspace, its first owner and the membership in one transaction — a
+  half-created firm is invisible in the UI and needs a database client to clean up, which is exactly
+  what this panel exists to avoid. The engine bootstrap (the Everyone group) runs *after* the
+  transaction commits, never inside it: it is a different service over HTTP and holding a
+  transaction open across a network call is the pool-starvation mistake this codebase has already
+  paid for twice. Its outcome is returned as `bootstrapped: boolean` rather than logged — a warning
+  in a server log is invisible to the operator standing in front of the panel.
 - **Password change** (`/change-password`, `lib/auth/change-password.ts`). Previously an
   admin-created account kept the password its creator generated, forever — tolerable when one
   account was seeded by hand, not when a firm's owner creates forty. Requires the current password
