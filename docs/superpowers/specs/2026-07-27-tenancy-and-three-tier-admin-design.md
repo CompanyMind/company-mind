@@ -43,6 +43,63 @@ parameter, and `POST /api/admin/users` reads it from the request body. The owner
 take the workspace from the session and ignore any body value** — that is the single cross-tenant
 hole this work could introduce, and §8 tests it directly.
 
+## 2a. Stage 0 — the control plane is open to every member. Fix this first.
+
+Tier 3 was assumed to need no change. That was wrong, and the audit that found it was prompted by a
+single question: *do members see only their faculty's files?*
+
+**The access model's evaluation is airtight. Its inputs are writable by any signed-in member.**
+`resolve_access` correctly computes the intersection of a person's groups — and then two routes let
+that person rewrite what the groups contain:
+
+| Route | Gate today | What a member can do |
+|---|---|---|
+| `PUT /api/documents/[id]/groups` | `getCurrentUser()` | retag **any** document into a group they belong to, then ask about it |
+| `PUT /api/groups/[id]/members` | `getCurrentUser()` | add **themselves** to any group, including one they can see no documents in |
+
+Either is a complete bypass in one request. Both carry comments explaining that the engine scopes
+the write to the workspace — which is true, and is cross-**tenant** protection. There is no
+cross-**role** protection anywhere on the control plane.
+
+A full gate audit of all 27 API routes: 6 owner-gated (every one of them Atlas), 3 super-admin,
+**18 reachable by any member**. Beyond the two above, that includes group create/rename/delete,
+folder CRUD, AI organise over the whole corpus, and the Telegram routes — where approving an
+identity and granting it groups hands **external** access to someone outside the company.
+
+### The read leak, which is the milder half
+
+`engine/app/library/documents.py::list_documents` takes `workspace_id` and an optional folder. It
+takes **no `group_ids` and no `all_access`** — unlike `get_source`, three files away, which takes
+both. `/dashboard/sources` is reachable by any member (`getCurrentUser()` only), so a member sees
+every filename in the firm, including documents they can never open, under a header reading
+"Everything in *your firm*'s brain."
+
+Filenames are not metadata in this product. `2026-redundancy-list.xlsx` and
+`acquisition-target-memo.docx` disclose the thing the access model exists to protect.
+`list_folders` has the same shape: its `count(d.id)` and `unfiled_count` leak volume per folder, and
+the folder names themselves leak topics.
+
+### The fix
+
+1. **Reuse the existing predicate.** `engine/app/ask/retrieve.py::_perm_sql()` already expresses
+   "owner bypass, or the document's groups intersect the caller's". `list_documents` and
+   `list_folders` take `group_ids` + `all_access` and apply it. CLAUDE.md already states the aim —
+   *one predicate, reused by every surface* — and this is where it was not.
+2. **A folder with no visible documents does not render for a member**, rather than rendering as
+   empty. An empty "Board Minutes" folder still discloses that board minutes exist.
+3. **Every control-plane route becomes `getOwner()`-gated**: document groups, group CRUD, group
+   members, folder CRUD, AI organise, and all Telegram routes.
+4. **Upload becomes owner-only.** A member upload defaults to the Everyone group
+   (`documents.py::create_document`), so letting members upload publishes to the whole firm by
+   default. Owner-only is the safe default and is one gate change to relax later if a customer wants
+   staff contribution.
+5. **Chat history needs no fix.** `listChats` already filters `eq(chats.userId, userId)`, and
+   `getChatMessages`, `renameChat` and `deleteChat` all go through `chatOwned(chatId, workspaceId,
+   userId)` and 404 otherwise. It gets a regression test to lock the behaviour, not a change.
+
+This stage ships before any tenancy work. A permission-aware product whose permissions any employee
+can rewrite is the more urgent defect, and it is independent of how many firms exist.
+
 ## 3. Deployment modes
 
 `DEPLOYMENT_MODE = 'hosted' | 'onprem'`, **default `hosted`**.
@@ -173,6 +230,21 @@ migration is a no-op for them.
    on day one. Web must not write knowledge tables, so firm creation calls a new engine
    `POST /workspaces/{id}/bootstrap` that wraps the existing `ensure_default_group`.
 8. `memberships` rejects a second workspace for the same user.
+
+**Stage 0 invariants, each a test:**
+
+9. **A member cannot widen their own access.** `PUT /api/documents/[id]/groups` and
+   `PUT /api/groups/[id]/members` return 403 for a member; asserted by *then* running the same ask
+   and getting no new documents — the escalation is tested by its effect, not only by the status
+   code.
+10. **A member's document list contains only documents their groups can open**, asserted against a
+    workspace holding at least one document they cannot see, so an empty-vs-empty pass is impossible.
+11. **Folder counts and names are scoped**: a folder holding only invisible documents does not
+    appear in a member's folder list, and no count includes a document they cannot open.
+12. **A member sees only their own chats.** A second user's chat is absent from `listChats` and
+    `GET /api/chats/[id]` 404s for it.
+13. Every route on the control plane rejects a member — enumerated route by route, so a route added
+    later without a gate fails the test rather than passing silently.
 
 ## 9. Out of scope, stated rather than discovered later
 
