@@ -170,6 +170,14 @@ export const ru: Dictionary = {
       indexed: 'Проиндексирован',
       failed: 'Ошибка',
       noGroups: 'Никто',
+      download: 'Скачать',
+      downloadAria: 'Скачать {filename}',
+      delete: 'Удалить',
+      deleteAria: 'Удалить {filename}',
+      deleteConfirm: 'Удалить безвозвратно? В прежних ответах ссылки на источник останутся.',
+      deleteYes: 'Удалить',
+      deleting: 'Удаление…',
+      deleteFailed: 'Не удалось удалить. Попробуйте ещё раз.',
     },
     access: {
       intro:

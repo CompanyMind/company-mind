@@ -22,7 +22,6 @@ export function AskWorkspace({
   userName,
   canManage,
   workspaceEmpty,
-  suggestions,
 }: {
   csrf: string
   /** The open thread, from the route — `/dashboard/c/[chatId]` — or null on
@@ -37,7 +36,6 @@ export function AskWorkspace({
    *  copy applies: for a member "empty" means "nothing in your access groups". */
   canManage: boolean
   workspaceEmpty: boolean
-  suggestions: string[]
 }) {
   const router = useRouter()
   // Anchors the tour's welcome step. It wraps whatever the chat pane is showing,
@@ -72,7 +70,6 @@ export function AskWorkspace({
         userName={userName}
         canManage={canManage}
         workspaceEmpty={workspaceEmpty}
-        suggestions={suggestions}
         emptyState={dict.emptyStates.askNoDocuments}
       />
     </div>

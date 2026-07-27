@@ -53,6 +53,76 @@ def list_documents(
     ]
 
 
+def get_document(
+    conn,
+    workspace_id: str,
+    document_id: str,
+    group_ids: list[str],
+    all_access: bool,
+) -> dict | None:
+    """One document, WITH its storage key, subject to the same predicate as
+    list_documents. Returns None when it does not exist *or* the caller may not
+    see it — the two are deliberately indistinguishable, since a 403 on an id
+    you guessed still confirms the document exists.
+
+    This is what backs download, so the access check is not cosmetic: without
+    it, an id copied out of a colleague's citation link would hand over the
+    whole file, bypassing the group the document is tagged with.
+    """
+    sql = (
+        "SELECT d.id, d.filename, d.mime, d.bytes, d.status, d.error, d.created_at, "
+        "d.folder_id, d.storage_key FROM documents d WHERE d.workspace_id=%s AND d.id=%s"
+    )
+    params: list = [workspace_id, document_id]
+    if not all_access:
+        sql += " AND " + document_perm_sql("d.id")
+        params.append(list(group_ids))
+    row = conn.execute(sql, tuple(params)).fetchone()
+    if row is None:
+        return None
+    gids = [
+        str(g[0])
+        for g in conn.execute(
+            "SELECT group_id FROM document_groups WHERE document_id=%s", (document_id,)
+        ).fetchall()
+    ]
+    return {
+        "id": str(row[0]),
+        "filename": row[1],
+        "mime": row[2],
+        "bytes": row[3],
+        "status": row[4],
+        "error": row[5],
+        "created_at": row[6].isoformat() if row[6] else None,
+        "folder_id": str(row[7]) if row[7] else None,
+        "storage_key": row[8],
+        "group_ids": gids,
+    }
+
+
+def delete_document(conn, workspace_id: str, document_id: str) -> str | None:
+    """Remove a document and everything derived from it. Returns its storage key
+    so the caller can drop the stored file too, or None if there was no such row
+    in this workspace.
+
+    One statement is enough: chunks, ingestion_jobs, document_groups and the
+    graph_* tables all cascade from documents. Citations deliberately do NOT —
+    they carry `ON DELETE SET NULL` and a frozen filename/page/snippet, so an
+    answer that was already given keeps its evidence and simply stops being
+    clickable. Rewriting history to make a deleted document look like it was
+    never cited would be the wrong repair for an audit surface.
+
+    No access predicate here, by design: deletion is owner-only, gated at the
+    web route (lib/control-plane-gates.test.ts), and an owner has all_access.
+    The workspace_id in the WHERE clause is what stops a cross-firm delete.
+    """
+    row = conn.execute(
+        "DELETE FROM documents WHERE workspace_id=%s AND id=%s RETURNING storage_key",
+        (workspace_id, document_id),
+    ).fetchone()
+    return row[0] if row else None
+
+
 def create_document(
     conn, workspace_id: str, filename: str, mime: str, bytes_: int, storage_key: str
 ) -> dict:

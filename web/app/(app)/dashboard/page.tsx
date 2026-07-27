@@ -1,7 +1,6 @@
 import { getCurrentUser } from '@/lib/auth/current-user'
 import { issueCsrf } from '@/lib/csrf'
 import { listDocuments } from '@/lib/documents'
-import { getSuggestions } from '@/lib/engine'
 import { getDictionary, isLocale } from '@/lib/i18n'
 import { AskWorkspace } from './AskWorkspace'
 
@@ -25,7 +24,6 @@ export default async function AskPage() {
         userName={null}
         canManage={false}
         workspaceEmpty
-        suggestions={[]}
       />
     )
   }
@@ -33,14 +31,15 @@ export default async function AskPage() {
   // listDocuments already applies the access predicate, so for a member this
   // counts what THEY can open — which is why the empty state's member copy says
   // "nothing shared with your groups" rather than "the workspace is empty".
+  // The one thing still on the render path, and it has to be: which empty state
+  // applies changes the whole panel, so resolving it in the browser would flash
+  // the wrong one. It is a single scoped listing.
+  //
+  // The starter questions used to be awaited here too — three sequential model
+  // calls, which is what made opening Ask from Sources feel stuck. They are now
+  // fetched by AskChat from /api/suggestions after the composer is on screen.
   const docs = await listDocuments(auth.workspace.id, { userId: auth.user.id, role: auth.role })
   const workspaceEmpty = docs.filter((d) => d.status === 'indexed').length === 0
-
-  // The role rides on the session (validateSessionToken already reads the
-  // membership row to resolve the workspace), so this no longer re-queries it.
-  const suggestions = workspaceEmpty
-    ? []
-    : await getSuggestions(auth.workspace.id, auth.user.id, auth.role)
 
   return (
     <AskWorkspace
@@ -50,7 +49,6 @@ export default async function AskPage() {
       userName={auth.user.name}
       canManage={auth.role === 'owner'}
       workspaceEmpty={workspaceEmpty}
-      suggestions={suggestions}
     />
   )
 }

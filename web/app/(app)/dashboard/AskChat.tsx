@@ -34,7 +34,6 @@ export function AskChat({
   userName,
   canManage,
   workspaceEmpty,
-  suggestions,
   emptyState,
 }: {
   csrf: string
@@ -50,7 +49,6 @@ export function AskChat({
    *  applies — see `emptyState` below. */
   canManage: boolean
   workspaceEmpty: boolean
-  suggestions: string[]
   emptyState: Dictionary['emptyStates']['askNoDocuments']
 }) {
   const router = useRouter()
@@ -58,6 +56,7 @@ export function AskChat({
   const [q, setQ] = useState('')
   const [busy, setBusy] = useState(false)
   const [open, setOpen] = useState<Record<string, number | null>>({})
+  const [suggestions, setSuggestions] = useState<string[]>([])
   const endRef = useRef<HTMLDivElement>(null)
   const timeOfDay = useTimeOfDay()
   // Mirrors `chatId` but updates synchronously the moment a new thread is
@@ -95,6 +94,29 @@ export function AskChat({
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [msgs, busy])
+
+  // Starter questions, fetched here instead of awaited in the server component.
+  // The engine writes them with the model, one call per folder and in sequence,
+  // so leaving them on the render path meant navigating to Ask sat on a blank
+  // screen for as long as the model took — for chips that vanish the moment you
+  // type. Gated on `chatId === null` rather than "no messages yet": an open
+  // thread renders empty for one frame while its history loads, and that frame
+  // must not fire a suggestions request the reader will never see.
+  useEffect(() => {
+    if (chatId !== null || workspaceEmpty) return
+    let cancelled = false
+    fetch('/api/suggestions')
+      .then((r) => (r.ok ? r.json() : { questions: [] }))
+      .then((d) => {
+        if (!cancelled) setSuggestions(d.questions ?? [])
+      })
+      // A missing suggestion is not an error worth showing anyone: the empty
+      // state without chips is still a working composer.
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [chatId, workspaceEmpty])
 
   // Takes the question as an argument rather than reading `q`, so it can be
   // driven either by the composer (current input value), by a starter question
