@@ -3,7 +3,6 @@
 import { useEffect, useRef } from 'react'
 import { SwarmEngine } from '@/lib/swarm/engine'
 import type { Telemetry } from '@/lib/swarm/types'
-import { canvasAlt } from '@/content/site'
 
 /**
  * Mounts the swarm behind the entire homepage.
@@ -21,7 +20,14 @@ import { canvasAlt } from '@/content/site'
  *
  * The canvas is decorative (aria-hidden); its story is available as text.
  */
-export function SwarmCanvas({ onTelemetry }: { onTelemetry?: (t: Telemetry) => void }) {
+export function SwarmCanvas({
+  onTelemetry,
+  alt,
+}: {
+  onTelemetry?: (t: Telemetry) => void
+  /** The story the canvas tells, as text. Required — see the note below. */
+  alt: string
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -99,7 +105,7 @@ export function SwarmCanvas({ onTelemetry }: { onTelemetry?: (t: Telemetry) => v
         className="pointer-events-none fixed left-0 top-0 z-30 rounded-sm bg-ink px-2.5 py-1.5 font-mono text-[0.6875rem] text-paper opacity-0 transition-opacity duration-200"
       />
       {/* The canvas is decorative, so its story lives here as text. */}
-      <p className="sr-only">{canvasAlt}</p>
+      <p className="sr-only">{alt}</p>
     </>
   )
 }

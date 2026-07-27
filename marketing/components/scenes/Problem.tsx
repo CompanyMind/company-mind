@@ -1,6 +1,6 @@
 'use client'
 
-import { problem } from '@/content/site'
+import type { ProblemCopy } from '@/content/types'
 import { DecodeText } from '@/components/DecodeText'
 
 /**
@@ -11,19 +11,19 @@ import { DecodeText } from '@/components/DecodeText'
  * buried, a doc greys out and goes. The canvas does the arguing; the copy just
  * names what you are watching.
  */
-export function Problem() {
+export function Problem({ copy }: { copy: ProblemCopy }) {
   return (
     <section data-scene="problem" className="relative z-10 py-[12vh] md:h-[200vh] md:py-0">
       <div className="flex items-center md:sticky md:top-0 md:h-dvh">
         <div className="shell w-full">
-          <p className="mono-label mb-6">{problem.label}</p>
+          <p className="mono-label mb-6">{copy.label}</p>
 
           <div className="wash max-w-4xl">
             <h2
               className="font-display text-display-lg text-ink"
-              aria-label={problem.headline.join(' ')}
+              aria-label={copy.headline.join(' ')}
             >
-              {problem.headline.map((line) => (
+              {copy.headline.map((line) => (
                 <span key={line} className="mask-line">
                   <DecodeText as="span" text={line} className="block" />
                 </span>
@@ -31,10 +31,10 @@ export function Problem() {
             </h2>
           </div>
 
-          <p className="mt-7 max-w-measure text-body text-ink-soft">{problem.body}</p>
+          <p className="mt-7 max-w-measure text-body text-ink-soft">{copy.body}</p>
 
           <ul className="mt-12 grid gap-px overflow-hidden rounded-sm border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
-            {problem.beats.map((beat) => (
+            {copy.beats.map((beat) => (
               <li key={beat.stat} className="bg-paper-raised/90 p-5 backdrop-blur-sm">
                 <h3 className="font-display text-display-sm text-ink">{beat.stat}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-ink-soft">{beat.line}</p>

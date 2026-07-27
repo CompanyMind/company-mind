@@ -49,7 +49,10 @@
   h1,
   h2,
   h3 {
-    font-family: var(--font-display), system-ui, sans-serif;
+    /* --font-display-cyrillic is the SECOND entry, never the first: Space
+       Grotesk ships no Cyrillic, so Russian headlines fall through to Manrope
+       one glyph at a time while Latin stays in Space Grotesk everywhere. */
+    font-family: var(--font-display), var(--font-display-cyrillic), system-ui, sans-serif;
     font-weight: 700;
     text-wrap: balance;
   }

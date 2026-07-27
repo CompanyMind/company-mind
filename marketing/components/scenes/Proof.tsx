@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { proof } from '@/content/site'
+import type { ProofCopy } from '@/content/types'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { DecodeText } from '@/components/DecodeText'
 
@@ -21,19 +21,19 @@ import { DecodeText } from '@/components/DecodeText'
  * there is a real deployment, and inventing them would poison the one thing
  * this page is for.
  */
-export function Proof() {
+export function Proof({ copy }: { copy: ProofCopy }) {
   return (
     <section data-scene="proof" className="relative z-10 py-[12vh] md:h-[170vh] md:py-0">
       <div className="flex items-center md:sticky md:top-0 md:h-dvh">
         <div className="shell w-full">
-          <p className="mono-label mb-6">{proof.label}</p>
+          <p className="mono-label mb-6">{copy.label}</p>
 
           <div className="wash max-w-3xl">
             <h2
               className="font-display text-display-md text-ink"
-              aria-label={proof.headline.join(' ')}
+              aria-label={copy.headline.join(' ')}
             >
-              {proof.headline.map((line) => (
+              {copy.headline.map((line) => (
                 <span key={line} className="mask-line">
                   <DecodeText as="span" text={line} className="block" />
                 </span>
@@ -41,10 +41,10 @@ export function Proof() {
             </h2>
           </div>
 
-          <p className="plate mt-8 max-w-measure p-5 text-body text-ink-soft">{proof.body}</p>
+          <p className="plate mt-8 max-w-measure p-5 text-body text-ink-soft">{copy.body}</p>
 
           <dl className="mt-20 grid gap-px overflow-hidden rounded-sm border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
-            {proof.metrics.map((m) => (
+            {copy.metrics.map((m) => (
               <Metric key={m.label} {...m} />
             ))}
           </dl>

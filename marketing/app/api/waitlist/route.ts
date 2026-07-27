@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { defaultLocale, isLocale, localePath, type Locale } from '@/i18n/config'
 
 /**
  * ============================================================================
@@ -42,10 +43,16 @@ import { NextResponse, type NextRequest } from 'next/server'
  *   - fetch() with Content-Type: application/json → JSON in, JSON out. This is
  *     the documented contract: { ok: true } on success, 400 on a bad payload.
  *   - A native <form> POST (JavaScript disabled or still loading) → form-encoded
- *     in, 303 redirect back to /contact?sent=1|0 out, because a browser doing a
- *     top-level navigation would otherwise render raw JSON at the user. Locked-
- *     down enterprise browsers are exactly our audience, so this path is not
- *     hypothetical.
+ *     in, 303 redirect back to /<locale>/contact?sent=1|0 out, because a browser
+ *     doing a top-level navigation would otherwise render raw JSON at the user.
+ *     Locked-down enterprise browsers are exactly our audience, so this path is
+ *     not hypothetical.
+ *
+ * THE ROUTE IS NOT UNDER [locale] AND MUST NOT BE.
+ * `/api/waitlist` is one endpoint, not three, and `proxy.ts` excludes `/api`
+ * from locale prefixing for that reason. The consequence is that it cannot read
+ * a locale from the URL, so both callers send one in the body — see
+ * `localeFrom`, which validates it before it is ever put in a redirect.
  * ============================================================================
  */
 
@@ -71,9 +78,24 @@ function isFormPost(request: NextRequest): boolean {
   return type.includes('application/x-www-form-urlencoded') || type.includes('multipart/form-data')
 }
 
+/**
+ * The language the enquiry came from. Sent as a hidden field by the form and in
+ * the JSON body by the homepage CTA, because this route is not under `[locale]`
+ * and therefore has no locale segment of its own to read.
+ *
+ * VALIDATED, NEVER TRUSTED: it lands in a redirect URL, so an unchecked value
+ * would let a crafted POST bounce a visitor to any path on the site. Anything
+ * that is not one of the three known locales falls back to the default.
+ */
+function localeFrom(raw: Record<string, unknown>): Locale {
+  const value = raw.locale
+  return typeof value === 'string' && isLocale(value) ? value : defaultLocale
+}
+
 /** No-JS path: send the browser back to the page, which renders the outcome. */
-function redirectToContact(request: NextRequest, ok: boolean) {
-  return NextResponse.redirect(new URL(`/contact?sent=${ok ? '1' : '0'}`, request.url), 303)
+function redirectToContact(request: NextRequest, locale: Locale, ok: boolean) {
+  const path = localePath(locale, '/contact')
+  return NextResponse.redirect(new URL(`${path}?sent=${ok ? '1' : '0'}`, request.url), 303)
 }
 
 export async function POST(request: NextRequest) {
@@ -92,9 +114,13 @@ export async function POST(request: NextRequest) {
       raw = parsed as Record<string, unknown>
     }
   } catch {
-    if (fromForm) return redirectToContact(request, false)
+    // The body never parsed, so there is no locale in it. The default is the
+    // only honest guess, and it is a page that exists.
+    if (fromForm) return redirectToContact(request, defaultLocale, false)
     return NextResponse.json({ ok: false, error: 'Malformed request body.' }, { status: 400 })
   }
+
+  const locale = localeFrom(raw)
 
   // ---- Validate ----------------------------------------------------------
   const lead: Lead = {
@@ -105,7 +131,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (!lead.email || !EMAIL.test(lead.email)) {
-    if (fromForm) return redirectToContact(request, false)
+    if (fromForm) return redirectToContact(request, locale, false)
     return NextResponse.json(
       { ok: false, error: 'A valid email address is required.' },
       { status: 400 },
@@ -138,7 +164,7 @@ export async function POST(request: NextRequest) {
         '[waitlist] WAITLIST_WEBHOOK_URL is not set — refusing to accept an enquiry ' +
           'we cannot deliver. Set it, or replace this block with real delivery.',
       )
-      if (fromForm) return redirectToContact(request, false)
+      if (fromForm) return redirectToContact(request, locale, false)
       return NextResponse.json({ ok: false, error: 'Delivery is not configured.' }, { status: 503 })
     }
     // Development: log and accept, so the form is testable with no setup.
@@ -146,7 +172,7 @@ export async function POST(request: NextRequest) {
       at: new Date().toISOString(),
       ...lead,
     })
-    if (fromForm) return redirectToContact(request, true)
+    if (fromForm) return redirectToContact(request, locale, true)
     return NextResponse.json({ ok: true })
   }
 
@@ -154,19 +180,26 @@ export async function POST(request: NextRequest) {
     const res = await fetch(webhook, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...lead, at: new Date().toISOString(), source: 'compbrain-site' }),
+      // `locale` rides along because it is the single most useful thing to know
+      // before replying: it is the language the person chose to read us in.
+      body: JSON.stringify({
+        ...lead,
+        locale,
+        at: new Date().toISOString(),
+        source: 'compbrain-site',
+      }),
       signal: AbortSignal.timeout(8000),
     })
     if (!res.ok) throw new Error(`webhook responded ${res.status}`)
   } catch (err) {
     console.error('[waitlist] delivery failed:', err)
-    if (fromForm) return redirectToContact(request, false)
+    if (fromForm) return redirectToContact(request, locale, false)
     // Tell the truth on the way out: the form shows its failure state and the
     // mailto fallback, so the person still reaches us.
     return NextResponse.json({ ok: false, error: 'Delivery failed.' }, { status: 502 })
   }
   // ↑↑↑ REPLACE THIS BLOCK IF YOU WANT DELIVERY OTHER THAN A WEBHOOK ↑↑↑
 
-  if (fromForm) return redirectToContact(request, true)
+  if (fromForm) return redirectToContact(request, locale, true)
   return NextResponse.json({ ok: true })
 }

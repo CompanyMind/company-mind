@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { features } from '@/content/site'
+import type { FeaturesCopy } from '@/content/types'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { DecodeText } from '@/components/DecodeText'
 
@@ -19,19 +19,19 @@ import { DecodeText } from '@/components/DecodeText'
  *
  * The cards are quiet on purpose. The assembly is the moment, not the card.
  */
-export function Features() {
+export function Features({ copy }: { copy: FeaturesCopy }) {
   return (
     <section data-scene="features" className="relative z-10 py-[12vh] md:h-[240vh] md:py-0">
       <div className="flex items-center md:sticky md:top-0 md:h-dvh">
         <div className="shell w-full">
-          <p className="mono-label mb-6">{features.label}</p>
+          <p className="mono-label mb-6">{copy.label}</p>
 
           <div className="wash max-w-4xl">
             <h2
               className="font-display text-display-md text-ink"
-              aria-label={features.headline.join(' ')}
+              aria-label={copy.headline.join(' ')}
             >
-              {features.headline.map((line) => (
+              {copy.headline.map((line) => (
                 <span key={line} className="mask-line">
                   <DecodeText as="span" text={line} className="block" />
                 </span>
@@ -40,7 +40,7 @@ export function Features() {
           </div>
 
           <ul className="mt-12 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {features.items.map((item, i) => (
+            {copy.items.map((item, i) => (
               <FeatureCard key={item.n} n={item.n} title={item.title} body={item.body} index={i} />
             ))}
           </ul>

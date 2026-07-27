@@ -1,6 +1,6 @@
 'use client'
 
-import { sovereign } from '@/content/site'
+import type { SovereignCopy } from '@/content/types'
 import { DecodeText } from '@/components/DecodeText'
 
 /**
@@ -18,20 +18,20 @@ import { DecodeText } from '@/components/DecodeText'
  * Copy discipline: "your data never leaves your infrastructure" (architectural
  * fact) — never "100% secure" (an unfalsifiable claim a CISO would discount).
  */
-export function Sovereign() {
+export function Sovereign({ copy }: { copy: SovereignCopy }) {
   return (
     <section data-scene="sovereign" className="relative z-10 py-[12vh] md:h-[260vh] md:py-0">
       <div className="flex items-center md:sticky md:top-0 md:h-dvh">
         <div className="shell w-full">
           <div className="max-w-full lg:max-w-[46%]">
-            <p className="mono-label mb-6">{sovereign.label}</p>
+            <p className="mono-label mb-6">{copy.label}</p>
 
             <div className="wash">
               <h2
                 className="font-display text-display-md text-ink"
-                aria-label={sovereign.headline.join(' ')}
+                aria-label={copy.headline.join(' ')}
               >
-                {sovereign.headline.map((line) => (
+                {copy.headline.map((line) => (
                   <span key={line} className="mask-line">
                     <DecodeText as="span" text={line} className="block" />
                   </span>
@@ -39,11 +39,11 @@ export function Sovereign() {
               </h2>
             </div>
 
-            <p className="mt-7 max-w-measure text-body text-ink-soft">{sovereign.body}</p>
+            <p className="mt-7 max-w-measure text-body text-ink-soft">{copy.body}</p>
           </div>
 
           <dl className="mt-14 grid gap-px overflow-hidden rounded-sm border border-line bg-line md:grid-cols-3">
-            {sovereign.beats.map((beat) => (
+            {copy.beats.map((beat) => (
               <div key={beat.label} className="bg-paper-raised/90 p-5 backdrop-blur-sm">
                 <dt className="mono-label">{beat.label}</dt>
                 <dd className="mt-2 text-base leading-relaxed text-ink">{beat.value}</dd>
