@@ -37,6 +37,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   "Board Minutes" still discloses that board minutes exist.
 
 ### Added
+- **Password change** (`/change-password`, `lib/auth/change-password.ts`). Previously an
+  admin-created account kept the password its creator generated, forever — tolerable when one
+  account was seeded by hand, not when a firm's owner creates forty. Requires the current password
+  even though the caller is authenticated (otherwise an unlocked screen is a permanent account
+  takeover), enforces a 12-character floor without composition rules, and deletes every OTHER
+  session for that user while keeping the caller's own — changing a password is what you do after
+  one leaks, so leaving the leaked session alive would make the act pointless.
+- Workspace suspension is enforced in `validateSessionToken`, beside user blocking and for the same
+  reason, and refused at login too — without the login check a suspended firm's user would get a
+  valid cookie and be bounced straight back, with no explanation and no way out of the loop.
+- `validateSessionUserOnly()` — resolves a session's user *without* requiring a membership, used
+  only by `getSuperAdmin()`. A platform operator in hosted mode owns no firm, and
+  `validateSessionToken` returns null with no membership row, so the operator could not previously
+  log in at all. Keeping it a separate function preserves the non-null `workspace` guarantee for all
+  38 `getCurrentUser()` call sites instead of making it nullable everywhere for one screen.
 - Schema for the three-tier admin model (migration `0016`): `workspaces.suspended_at` (a firm
   suspended by the platform operator — on the workspace, not per user), `users.must_change_password`
   (set on every admin-created account), and a unique index `memberships_one_workspace_per_user`.
