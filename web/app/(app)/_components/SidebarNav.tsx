@@ -106,7 +106,7 @@ export function SidebarNav({
           href={n.href}
           ref={tourRefByHref[n.href]}
           data-active={isActive(n.href)}
-          className="nav-link"
+          className={`nav-link ${collapsed ? 'justify-center gap-0 px-0' : ''}`}
           title={collapsed ? n.label : undefined}
         >
           <Icon label={n.icon} />

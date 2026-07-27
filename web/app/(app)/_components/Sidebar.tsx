@@ -97,9 +97,18 @@ export function Sidebar({
           drawerOpen ? 'max-md:translate-x-0' : 'max-md:-translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between gap-1 px-1.5">
+        {/* Collapsed, the rail is 56px wide and has ~36px of usable width — less
+            than two 28px buttons need. Laying both out here pushed the toggle
+            18px PAST the sidebar's own right edge, on top of the page content.
+            So collapsed shows the toggle alone, centred; the search button goes
+            with it, since it filters a Recents list that is itself hidden at
+            this width and would otherwise be a control over nothing. */}
+        <div
+          className={`flex items-center gap-1 px-1.5 ${collapsed ? 'justify-center' : 'justify-between'}`}
+        >
           {!collapsed && <Wordmark className="min-w-0 truncate text-ink" />}
           <div className="flex items-center gap-0.5">
+            {!collapsed && (
             <button
               type="button"
               onClick={() => setSearchOpen((v) => !v)}
@@ -112,6 +121,7 @@ export function Sidebar({
                 <path d="M10.5 10.5 14 14" />
               </svg>
             </button>
+            )}
             <button
               type="button"
               onClick={toggleCollapsed}
@@ -128,7 +138,9 @@ export function Sidebar({
 
         <Link
           href="/dashboard"
-          className="flex items-center gap-2 rounded-lg bg-ink px-2.5 py-2 text-body-sm text-paper hover:opacity-90"
+          className={`flex items-center rounded-lg bg-ink py-2 text-body-sm text-paper hover:opacity-90 ${
+            collapsed ? 'justify-center px-0' : 'gap-2 px-2.5'
+          }`}
           title={collapsed ? dict.nav.newChat : undefined}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true" className="shrink-0">
