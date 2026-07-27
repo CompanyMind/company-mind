@@ -123,40 +123,53 @@ export function UserMenu({
             <kbd className="font-mono text-[0.6875rem] text-ink-soft">⌘,</kbd>
           </Link>
 
-          {/* Opens on hover and on focus, not on click — pointing at "Language"
-              should show the languages, the way a desktop menu does. The click
-              handler stays for touch and for anyone driving this from the
+          {/* A flyout to the SIDE, not an inline expansion. Opening in place
+              shoved every item below it and made the menu jump under the
+              cursor. Opens on hover and on focus — pointing at "Language"
+              should show the languages, the way a desktop menu does — and the
+              click handler stays for touch and for anyone driving this from the
               keyboard, where there is no hover to give. */}
           <div
+            className="relative"
             onMouseEnter={() => setLangOpen(true)}
             onFocus={() => setLangOpen(true)}
             onMouseLeave={() => setLangOpen(false)}
+            onBlur={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node)) setLangOpen(false)
+            }}
           >
             <button
               type="button"
               role="menuitem"
               aria-expanded={langOpen}
+              aria-haspopup="menu"
               onClick={() => setLangOpen((v) => !v)}
-              className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-body-sm text-ink hover:bg-paper-sunk"
+              data-open={langOpen}
+              className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-body-sm text-ink hover:bg-paper-sunk data-[open=true]:bg-paper-sunk"
             >
               {dict.settings.general.language}
-              <span className="text-ink-soft">{langOpen ? '▾' : '›'}</span>
+              <span className="text-ink-soft">›</span>
             </button>
             {langOpen && (
-              <div className="pb-1 pl-2.5">
-                {LANGUAGES.map((l) => (
-                  <button
-                    key={l.code}
-                    type="button"
-                    role="menuitemradio"
-                    aria-checked={l.code === locale}
-                    onClick={() => pickLanguage(l.code)}
-                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-body-sm text-ink-soft hover:bg-paper-sunk hover:text-ink"
-                  >
-                    <span className="w-3 text-brain-text">{l.code === locale ? '✓' : ''}</span>
-                    {l.label}
-                  </button>
-                ))}
+              // pl-1 on the wrapper rather than a margin on the panel: the
+              // padding is still inside the hover target, so crossing the gap
+              // between the row and the flyout cannot close it mid-travel.
+              <div role="menu" className="absolute left-full top-0 z-10 w-44 pl-1">
+                <div className="rounded-xl border border-line bg-paper-raised p-1.5 shadow-lift">
+                  {LANGUAGES.map((l) => (
+                    <button
+                      key={l.code}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={l.code === locale}
+                      onClick={() => pickLanguage(l.code)}
+                      className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-body-sm text-ink-soft hover:bg-paper-sunk hover:text-ink"
+                    >
+                      <span className="w-3 text-brain-text">{l.code === locale ? '✓' : ''}</span>
+                      {l.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
