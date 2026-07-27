@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next'
-import { site } from '@/content/site'
+import { brand } from '@/content/brand'
 
 /**
  * robots.txt — Next.js serves the default export at `/robots.txt`.
@@ -15,7 +15,7 @@ import { site } from '@/content/site'
  * it is harmless and correct for the crawlers that read it — do not rely on it.
  */
 
-const BASE_URL = `https://${site.domain}`
+const BASE_URL = `https://${brand.domain}`
 
 export default function robots(): MetadataRoute.Robots {
   return {

@@ -1,6 +1,6 @@
 'use client'
 
-import { turn } from '@/content/site'
+import type { TurnCopy } from '@/content/types'
 import { DecodeText } from '@/components/DecodeText'
 
 /**
@@ -21,30 +21,30 @@ import { DecodeText } from '@/components/DecodeText'
  * CSS scroll-driven reveal further down the sticky viewport, so it lands as the
  * ingestion completes.
  */
-export function Turn() {
+export function Turn({ copy }: { copy: TurnCopy }) {
   return (
     <section data-scene="turn" className="relative z-10 py-[12vh] md:h-[320vh] md:py-0">
       <div className="grid place-items-center md:sticky md:top-0 md:h-dvh">
         <div className="shell w-full">
           <div className="wash mx-auto max-w-4xl text-center">
-            <p className="mono-label mb-6">{turn.label}</p>
+            <p className="mono-label mb-6">{copy.label}</p>
 
             <h2
               className="font-display text-display-xl text-ink"
-              aria-label={turn.headline.join(' ')}
+              aria-label={copy.headline.join(' ')}
             >
-              {turn.headline.map((line) => (
+              {copy.headline.map((line) => (
                 <span key={line} className="mask-line">
                   <DecodeText as="span" text={line} className="block" />
                 </span>
               ))}
             </h2>
 
-            <p className="mx-auto mt-8 max-w-measure text-body text-ink-soft">{turn.body}</p>
+            <p className="mx-auto mt-8 max-w-measure text-body text-ink-soft">{copy.body}</p>
 
             {/* Lands with the perimeter's --sovereign flush. -text variant
                 because this is TEXT: raw --sovereign is 4.02 and fails AA here. */}
-            <p className="mt-10 font-display text-display-sm text-sovereign-text">{turn.seal}</p>
+            <p className="mt-10 font-display text-display-sm text-sovereign-text">{copy.seal}</p>
           </div>
         </div>
       </div>

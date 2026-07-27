@@ -1,6 +1,6 @@
 'use client'
 
-import { hero } from '@/content/site'
+import type { HeroCopy } from '@/content/types'
 import { DecodeText } from '@/components/DecodeText'
 
 /**
@@ -17,7 +17,7 @@ import { DecodeText } from '@/components/DecodeText'
  * Fits in exactly one viewport (h-dvh, no overflow) — see the section audit in
  * the README. Every scene owes the reader that.
  */
-export function Hero() {
+export function Hero({ copy }: { copy: HeroCopy }) {
   return (
     <section
       data-scene="hero"
@@ -25,15 +25,15 @@ export function Hero() {
     >
       <div className="shell w-full text-center">
         <div className="wash mx-auto max-w-4xl">
-          <p className="mono-label mb-5">{hero.eyebrow}</p>
+          <p className="mono-label mb-5">{copy.eyebrow}</p>
 
           {/* aria-label carries the true headline; the DecodeText spans inside
               are aria-hidden. One source of truth, no duplicated DOM text. */}
           <h1
             className="font-display text-display-xl text-ink"
-            aria-label={hero.headline.join(' ')}
+            aria-label={copy.headline.join(' ')}
           >
-            {hero.headline.map((line, i) => (
+            {copy.headline.map((line, i) => (
               <span key={line} className="mask-line">
                 <DecodeText
                   as="span"
@@ -46,18 +46,18 @@ export function Hero() {
             ))}
           </h1>
 
-          <p className="mx-auto mt-7 max-w-measure text-body text-ink-soft">{hero.sub}</p>
+          <p className="mx-auto mt-7 max-w-measure text-body text-ink-soft">{copy.sub}</p>
         </div>
 
         {/* Telemetry boots. The site's own instrumentation coming online — the
             same readout the rail holds all the way down. */}
         <div className="mt-10 flex flex-col items-center gap-1 font-mono text-telemetry text-ink-soft">
-          <span className="animate-fade-in [animation-delay:600ms]">&gt; system online</span>
+          <span className="animate-fade-in [animation-delay:600ms]">&gt; {copy.systemOnline}</span>
           <span className="flex animate-fade-in items-center gap-2 [animation-delay:900ms]">
-            &gt; data egress:
+            &gt; {copy.egressLabel}
             <span className="flex items-center gap-1.5 text-ink">
-              <span className="inline-block h-1 w-1 rounded-full bg-brain" aria-hidden="true" />0
-              bytes
+              <span className="inline-block h-1 w-1 rounded-full bg-brain" aria-hidden="true" />
+              {copy.egressValue}
             </span>
           </span>
         </div>
@@ -66,7 +66,7 @@ export function Hero() {
       {/* Quiet scroll cue — a hairline that breathes, not a bouncing chevron. */}
       <div className="absolute inset-x-0 bottom-8 flex items-center justify-center gap-3">
         <span className="font-mono text-telemetry uppercase tracking-[0.2em] text-ink-soft">
-          {hero.scrollCue}
+          {copy.scrollCue}
         </span>
         <span className="h-px w-16 bg-line" aria-hidden="true" />
       </div>

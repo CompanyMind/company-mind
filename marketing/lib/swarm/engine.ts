@@ -49,6 +49,7 @@ function mulberry32(seed: number) {
   }
 }
 
+/** DOM order. `activeScene()` walks this list and takes the last match. */
 const SCENES: SceneId[] = [
   'hero',
   'problem',
@@ -57,6 +58,7 @@ const SCENES: SceneId[] = [
   'sovereign',
   'features',
   'proof',
+  'pricing',
   'cta',
 ]
 
@@ -141,6 +143,7 @@ export class SwarmEngine {
     sovereign: 0,
     features: 0,
     proof: 0,
+    pricing: 0,
     cta: 0,
   }
   private scene: SceneId = 'hero'
@@ -508,6 +511,16 @@ export class SwarmEngine {
           cx: this.vw < 900 ? this.vw * 0.5 : this.vw * 0.78,
           cy: this.vh * 0.44,
           r: min * 0.12,
+        }
+      case 'pricing':
+        // Three cards span the full shell, so the brain has nowhere lateral to
+        // stand. It goes HIGH and small instead — above the grid, level with
+        // the headline, holding the same right-hand column 'proof' just left it
+        // in so the transition between the two scenes is a rise, not a jump.
+        return {
+          cx: this.vw < 900 ? this.vw * 0.5 : this.vw * 0.8,
+          cy: this.vh * 0.24,
+          r: min * 0.09,
         }
       case 'cta':
         // Brain right, clear of the form. It still reads as the finale — one

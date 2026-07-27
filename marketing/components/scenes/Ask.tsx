@@ -1,6 +1,7 @@
 'use client'
 
-import { ask } from '@/content/site'
+import { fill } from '@/content/dictionaries'
+import type { AskCopy } from '@/content/types'
 import { DecodeText } from '@/components/DecodeText'
 
 /**
@@ -23,20 +24,20 @@ import { DecodeText } from '@/components/DecodeText'
  * (brainCfg), leaving the right of the frame as open paper for the lines to
  * travel across. Whitespace here is load-bearing.
  */
-export function Ask() {
+export function Ask({ copy }: { copy: AskCopy }) {
   return (
     <section data-scene="ask" className="relative z-10 py-[12vh] md:h-[280vh] md:py-0">
       <div className="flex items-center md:sticky md:top-0 md:h-dvh">
         <div className="shell w-full">
           <div className="max-w-full lg:max-w-[52%]">
-            <p className="mono-label mb-4">{ask.label}</p>
+            <p className="mono-label mb-4">{copy.label}</p>
 
             <div className="wash">
               <h2
                 className="font-display text-display-md text-ink"
-                aria-label={ask.headline.join(' ')}
+                aria-label={copy.headline.join(' ')}
               >
-                {ask.headline.map((line) => (
+                {copy.headline.map((line) => (
                   <span key={line} className="mask-line">
                     <DecodeText as="span" text={line} className="block" />
                   </span>
@@ -44,7 +45,7 @@ export function Ask() {
               </h2>
             </div>
 
-            <p className="mt-5 max-w-measure text-body text-ink-soft">{ask.body}</p>
+            <p className="mt-5 max-w-measure text-body text-ink-soft">{copy.body}</p>
 
             <div className="mt-6 rounded-sm border border-line bg-paper-raised p-5 shadow-card md:p-6">
               {/* The engine reads this rect and launches the --query packet
@@ -56,13 +57,13 @@ export function Ask() {
                 className="flex items-start gap-3 font-mono text-[13px] leading-relaxed text-query-text"
               >
                 <span aria-hidden="true">?</span>
-                <span className="leading-relaxed">{ask.question}</span>
+                <span className="leading-relaxed">{copy.question}</span>
               </p>
 
               <hr className="my-4 border-line" />
 
               <p className="text-[15px] leading-[1.9] text-ink">
-                {ask.answer.map((clause, i) => (
+                {copy.answer.map((clause, i) => (
                   <span key={clause.cite}>
                     {clause.text}
                     {/* The engine finds this by id, measures it, and draws from
@@ -71,7 +72,10 @@ export function Ask() {
                     <a
                       id={`cite-${clause.cite}`}
                       href={`#source-${clause.cite}`}
-                      aria-label={`Source ${clause.cite}: ${ask.sources[i]?.name ?? ''}`}
+                      aria-label={fill(copy.sourceAria, {
+                        n: clause.cite,
+                        name: copy.sources[i]?.name ?? '',
+                      })}
                       className="mx-1 inline-block rounded-[3px] border border-brain px-1.5 py-px align-middle font-mono text-[0.65rem] font-medium text-brain-text transition-transform hover:scale-110"
                     >
                       {clause.cite}
@@ -81,12 +85,12 @@ export function Ask() {
               </p>
 
               <p className="mt-4 border-t border-line pt-3 text-sm leading-relaxed text-ink-soft">
-                {ask.footnote}
+                {copy.footnote}
               </p>
             </div>
 
             <ul className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-              {ask.sources.map((s) => (
+              {copy.sources.map((s) => (
                 <li
                   key={s.id}
                   id={`source-${s.id}`}

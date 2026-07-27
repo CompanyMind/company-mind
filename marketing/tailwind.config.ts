@@ -43,7 +43,10 @@ const config: Config = {
         },
       },
       fontFamily: {
-        display: ['var(--font-display)', 'system-ui', 'sans-serif'],
+        // --font-display-cyrillic sits BEHIND --font-display, never in front:
+        // Space Grotesk has no Cyrillic, so the browser falls through to
+        // Manrope glyph by glyph. Latin is untouched in every locale.
+        display: ['var(--font-display)', 'var(--font-display-cyrillic)', 'system-ui', 'sans-serif'],
         body: ['var(--font-body)', 'system-ui', 'sans-serif'],
         mono: ['var(--font-mono)', 'ui-monospace', 'monospace'],
       },

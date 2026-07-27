@@ -1,12 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { homeCta } from '@/content/site'
+import type { HomeCtaCopy } from '@/content/types'
+import type { Locale } from '@/i18n/config'
 import { DecodeText } from '@/components/DecodeText'
 import { MagneticButton } from '@/components/MagneticButton'
 
 /**
- * SCENE 8 — CTA.
+ * SCENE 9 — CTA.
  * Everything converges into one calm, secured core inside the perimeter, which
  * beats slowly in --sovereign. The brain watches the cursor here (engine lean
  * is at its highest in this scene).
@@ -19,7 +20,7 @@ import { MagneticButton } from '@/components/MagneticButton'
  * allowed to exist (here and the perimeter pulse) — it carries the sovereignty
  * idea and never decorates.
  */
-export function CTA() {
+export function CTA({ locale, copy }: { locale: Locale; copy: HomeCtaCopy }) {
   const [email, setEmail] = useState('')
   const [state, setState] = useState<'idle' | 'sending' | 'ok' | 'error'>('idle')
 
@@ -31,7 +32,9 @@ export function CTA() {
       const res = await fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, source: 'home-cta' }),
+        // `locale` is carried so the no-JS sibling on /contact and this handler
+        // agree about which language to return the visitor to.
+        body: JSON.stringify({ email, source: 'home-cta', locale }),
       })
       setState(res.ok ? 'ok' : 'error')
     } catch {
@@ -43,14 +46,14 @@ export function CTA() {
     <section data-scene="cta" className="relative z-10 py-[12vh] md:h-[160vh] md:py-0">
       <div className="flex items-center md:sticky md:top-0 md:h-dvh">
         <div className="shell">
-          <p className="mono-label mb-6">{homeCta.label}</p>
+          <p className="mono-label mb-6">{copy.label}</p>
 
           <div className="wash max-w-4xl">
             <h2
               className="font-display text-display-md text-ink"
-              aria-label={homeCta.headline.join(' ')}
+              aria-label={copy.headline.join(' ')}
             >
-              {homeCta.headline.map((line) => (
+              {copy.headline.map((line) => (
                 <span key={line} className="mask-line">
                   <DecodeText as="span" text={line} className="block" />
                 </span>
@@ -58,16 +61,16 @@ export function CTA() {
             </h2>
           </div>
 
-          <p className="plate mt-8 max-w-measure p-5 text-body text-ink-soft">{homeCta.body}</p>
+          <p className="plate mt-8 max-w-measure p-5 text-body text-ink-soft">{copy.body}</p>
 
           {state === 'ok' ? (
             <p role="status" className="mt-12 font-display text-display-sm text-brain-text">
-              {homeCta.success}
+              {copy.success}
             </p>
           ) : (
             <form onSubmit={onSubmit} className="mt-12 max-w-xl">
               <label htmlFor="cta-email" className="mono-label">
-                {homeCta.formLabel}
+                {copy.formLabel}
               </label>
               <div className="mt-3 flex flex-col gap-3 sm:flex-row">
                 <input
@@ -76,7 +79,7 @@ export function CTA() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder={homeCta.formPlaceholder}
+                  placeholder={copy.formPlaceholder}
                   aria-describedby={state === 'error' ? 'cta-error' : 'cta-fineprint'}
                   aria-invalid={state === 'error'}
                   // border-line-control, not border-line: a form control's
@@ -89,17 +92,17 @@ export function CTA() {
                   disabled={state === 'sending'}
                   className="shrink-0"
                 >
-                  {state === 'sending' ? 'Sending…' : homeCta.submit}
+                  {state === 'sending' ? copy.sending : copy.submit}
                 </MagneticButton>
               </div>
 
               {state === 'error' && (
                 <p id="cta-error" role="alert" className="mt-3 text-sm text-sovereign-text">
-                  {homeCta.error}
+                  {copy.error}
                 </p>
               )}
               <p id="cta-fineprint" className="mt-4 text-sm text-ink-soft">
-                {homeCta.fineprint}
+                {copy.fineprint}
               </p>
             </form>
           )}

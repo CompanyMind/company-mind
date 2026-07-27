@@ -50,25 +50,56 @@ they are marked in-file as needing review.
 
 ---
 
-## Editing copy
+## Languages
 
-**Every word of marketing copy lives in `content/` as typed objects.** No component inlines its own
-strings, so copy can be rewritten without touching a single component.
+The site ships in **Uzbek, Russian and English**, and Uzbek is the default.
+
+```
+/            -> 307 /uz            (or the language in the NEXT_LOCALE cookie)
+/pricing     -> 307 /uz/pricing
+/ru/pricing                        served
+```
 
 | File | Owns |
 |---|---|
-| `content/site.ts` | Homepage (all 8 scenes), nav, footer, canvas alt text, **the honesty rules** |
-| `content/product.ts` | `/product` |
-| `content/security.ts` | `/security` |
-| `content/pricing.ts` | `/pricing` |
-| `content/about.ts` | `/about` |
-| `content/contact.ts` | `/contact` + the form |
-| `content/legal.ts` | `/privacy`, `/terms` |
+| `i18n/config.ts` | The locale list, the default, the cookie, `localePath()`. Imported by `proxy.ts`, so it must never import copy. |
+| `proxy.ts` | The redirect. Next 16 renamed `middleware.ts` to `proxy.ts`. |
+| `app/[locale]/layout.tsx` | **The root layout.** It lives under the dynamic segment so `<html lang>` can be the visitor's language. |
+
+Every page is prerendered in all three languages (`● SSG` in the build output) and carries a
+canonical URL plus `hreflang` alternates for the other two. `/contact` is the one dynamic route,
+because it reads `?sent=`.
+
+**The 404 is always in Uzbek**, deliberately — a not-found component gets no params, and the only
+ways to read the locale (`headers()`, a client hook) either cost the whole site its static
+rendering or ship all three dictionaries to the browser. The reasoning is written out in
+`app/[locale]/not-found.tsx`; read it before "fixing" this.
+
+Adding a language: add it to `locales` in `i18n/config.ts`, add `content/<code>.ts`, register it in
+`content/dictionaries.ts`. TypeScript will then list every string that is missing.
+
+---
+
+## Editing copy
+
+**Every word of marketing copy lives in `content/` as typed objects.** No component inlines its own
+strings, and no client component imports a dictionary — pages resolve one on the server and pass
+the slice down as props, which is what keeps two of the three languages out of the JS bundle.
+
+| File | Owns |
+|---|---|
+| `content/types.ts` | **The contract.** One `Dictionary` type; all three languages are annotated with it, so a missing or misspelled key is a compile error rather than a blank page in the language nobody on the team reads. |
+| `content/uz.ts` | Every word of the site in Uzbek — the default locale |
+| `content/ru.ts` | …in Russian |
+| `content/en.ts` | …in English, and **the honesty rules** in its header |
+| `content/routes.ts` | Internal paths, once. Not translated — labels are. |
+| `content/brand.ts` | Name, domain, mailbox. Not translated. |
 
 ### The honesty rules are load-bearing
 
-Read the header comment in `content/site.ts` before changing any claim. CompanyMind is **pre-launch**:
-no customers, no revenue, **no certifications**. Therefore:
+Read the header comment in `content/en.ts` before changing any claim, and apply it to all three
+languages — the rules are about what may be *asserted*, so they survive translation unchanged.
+CompanyMind is **pre-launch**: no customers, no revenue, **no certifications**. Therefore:
 
 - **Never** claim SOC 2 / HIPAA / ISO 27001 / FedRAMP, or render badge-shaped graphics implying
   certification. Frameworks appear only as obligations the *customer* has, which the deployment
@@ -81,6 +112,12 @@ no customers, no revenue, **no certifications**. Therefore:
 - Every number in PROOF is true **by construction** — it follows from how the system is built, not
   from traction. Do not add latency or accuracy figures; they are unverifiable until there is a real
   deployment.
+- **Prices are the one exception, added deliberately on 2026-07-27.** Individual ($15/mo) and Team
+  ($1,200/mo, up to 100 people) carry published figures; Enterprise is quoted, and the page says
+  why in one sentence rather than hiding behind "contact sales". The plans live once, in each
+  dictionary's `pricing.plans`, and are rendered by both `/pricing` and the homepage scene — do not
+  copy a price into a second place. Everything else above is unchanged and still binding: no SLAs,
+  no uptime figures, no deployment durations.
 
 These are not style preferences. A regulated buyer's procurement team verifies claims on day one,
 and being caught inflating costs more than having nothing to inflate.
@@ -90,17 +127,29 @@ and being caught inflating costs more than having nothing to inflate.
 ## Architecture
 
 ```
-app/                 routes; layout.tsx owns fonts + Nav/Footer; page.tsx is the scrollytelling home
-components/          Nav, Footer, Telemetry, SwarmCanvas, DecodeText, MagneticButton, StaticBrain
-components/scenes/   one file per homepage beat (Hero, Problem, Turn, Ask, Sovereign, …)
+proxy.ts             locale redirect; runs before every route (Next 16's middleware.ts)
+i18n/config.ts       locale list, default, cookie, localePath() — imports no copy
+app/[locale]/        THE ROOT LAYOUT lives here: html/body/fonts, so <html lang> can vary
+  (marketing)/       Nav + Footer chrome; the eight public pages
+  not-found.tsx      404, outside the chrome, always in the default locale
+app/api/waitlist/    one endpoint, NOT under [locale] — the locale rides in the body
+components/          Nav, Footer, LocaleSwitcher, Telemetry, SwarmCanvas, LegalPage, …
+components/scenes/   one file per homepage beat (Hero, Problem, Turn, Ask, …, Pricing, CTA)
 lib/swarm/           the canvas engine — see below
+lib/metadata.ts      canonical + hreflang + the complete OpenGraph block per page
 hooks/               useReducedMotion, useScrolled
-content/             all copy
+content/             all copy, one file per language + the Dictionary contract
 styles/tokens.css    design tokens — the single source of truth for color
 ```
 
 **Stack:** Next.js 16 (App Router) · React 19 · TypeScript strict · Tailwind 3 · GSAP + ScrollTrigger ·
 Lenis · `next/font` (self-hosted, no layout shift).
+
+**Fonts:** Space Grotesk (display), Inter (body), IBM Plex Mono (telemetry) — plus **Manrope**,
+which exists solely because Space Grotesk has no Cyrillic. It sits *behind* Space Grotesk in the
+display stack, so the browser falls through glyph by glyph: Russian headlines get Manrope, Latin
+stays Space Grotesk everywhere, and the Cyrillic file is never downloaded on the other two locales.
+Do not reorder that stack.
 
 > Next.js 16 has real breaking changes (e.g. `middleware` → `proxy.ts`). Read
 > `node_modules/next/dist/docs/` before writing framework code rather than working from memory.
@@ -132,6 +181,16 @@ state**, which would re-render 60×/sec.
 each section owns the viewport centre-line and hands off cleanly to the next. The intuitive ranges
 (`top bottom` → `bottom top`) keep three scenes live simultaneously, all writing `setScene` every
 frame — last writer wins and the engine thrashes.
+
+**Every tall homepage section must BE a scene.** `activeScene()` picks the section straddling the
+viewport centre and falls back to `'hero'` when none does, so a plain `<section>` dropped between
+two scenes snaps the whole composition back to the opening frame for as long as it is on screen.
+Adding one means three lines: the id in `lib/swarm/types.ts`, an entry in `SCENES` and in `prog`,
+and a `brainCfg` case. That is why Pricing is a scene.
+
+**The telemetry rail yields to content.** It is fixed in the bottom-right, which is empty in most
+scenes (features runs five cards in a three-column grid). Where a scene fills that corner it sets
+`data-hides-telemetry` and the rail fades out — see `components/Telemetry.tsx`.
 
 ### Tuning the scenes
 
@@ -178,7 +237,12 @@ sovereignty idea; it never decorates.
 - `prefers-reduced-motion` freezes the swarm into one resolved static composition — the brain
   assembled inside the perimeter. No rAF, no scrub, no scramble. Verified pixel-identical across
   900ms.
-- The canvas is `aria-hidden` decoration; the story it tells is available as text (`canvasAlt` in
-  `content/site.ts`). The animation is never the only way to receive the message.
+- The canvas is `aria-hidden` decoration; the story it tells is available as text (`home.canvasAlt`
+  in each dictionary — translated, like everything else). The animation is never the only way to
+  receive the message.
 - Headlines decode visually, but the real text is always in the DOM for assistive tech and crawlers.
+- `<html lang>` is the visitor's actual language, which is why the root layout sits under
+  `[locale]`. A screen reader switches pronunciation on it.
+- The language switcher is three real links, not a `<select>`: it works before hydration, opens in
+  a new tab on middle-click, and points at the *same page* in the other language.
 - WCAG AA throughout; semantic landmarks; visible focus rings; a skip link.

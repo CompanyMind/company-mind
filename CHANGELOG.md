@@ -37,6 +37,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   "Board Minutes" still discloses that board minutes exist.
 
 ### Added
+- **The marketing site is trilingual — Uzbek, Russian and English, with Uzbek as the default.**
+  URLs are always prefixed (`/uz`, `/ru/pricing`, `/en/security`); `proxy.ts` redirects anything
+  unprefixed to the default locale, or to the one in the visitor's `NEXT_LOCALE` cookie if they
+  picked one. **No `Accept-Language` negotiation**, deliberately: "Uzbek is the default" is a
+  product decision and a browser header is not, and serving different content at the same URL
+  breaks CDN caching and makes what a crawler indexed depend on which header it sent. All eight
+  pages prerender in all three languages with canonical + `hreflang` alternates and a per-locale
+  OpenGraph card. The switcher is three real links to *the same page* in the other languages, not
+  a `<select>` that pushes you to the homepage.
+  - **The root layout moved to `app/[locale]/layout.tsx`.** `<html lang>` has to be the visitor's
+    language — a screen reader switches pronunciation on it — and a layout at `app/layout.tsx`
+    receives no params, so it could only hard-code one. Consequence: every renderable route now
+    lives under `[locale]`, which `proxy.ts` guarantees.
+  - **Copy is one file per language against one `Dictionary` type** (`content/types.ts`). All three
+    are annotated with it, so a dropped or misspelled key is a compile error rather than a blank
+    page in the language nobody on the team reads. Routes (`content/routes.ts`) and the brand name
+    (`content/brand.ts`) are not translated and live once — a triplicated href is a broken link in
+    exactly one language, which is the kind of bug nobody finds.
+  - No client component imports a dictionary: pages resolve one on the server and pass the slice
+    down as props, so two of the three languages never reach the browser.
+  - **The Uzbek copy is written, not translated.** The first pass followed the English sentence
+    structure word by word and read like machine output — "nothing calls home", "behind your own
+    walls" and "data egress" have no Uzbek equivalent, and rendering them literally produces
+    grammatical nonsense. `content/uz.ts` was rewritten so each idea is said the way an Uzbek
+    speaker would say it, with a fixed glossary at the top of the file (egress → *tashqariga
+    chiqqan maʼlumot*, cited answer → *manbali javob*, on-prem → *oʻz serveringizda*, design
+    partner → *hamkor*, never the calque *dizayn hamkor*).
+  - **Manrope was added purely for Cyrillic.** Space Grotesk ships none, so every Russian headline
+    was silently falling back to system-ui — the one element that *is* the design. It sits *behind*
+    Space Grotesk in the display stack, so the browser falls through glyph by glyph and the
+    Cyrillic file is never downloaded on the other two locales.
+  - **The 404 is always in Uzbek, and that is a measured trade.** A not-found component gets no
+    params; reading the locale from a proxy-set header works and re-classified all eight routes
+    from prerendered to render-on-demand, because every page references that boundary. A 404 in the
+    wrong language is a small annoyance on a page nobody should reach; server-rendering the whole
+    site for every visitor is a cost everyone pays.
+- **Published pricing on the marketing site — a reversal of the earlier "no figures anywhere"
+  position, which existed because there was no price book.** Individual is $15/month for one
+  person; Team is $1,200/month for up to 100 ($12 a head — cheaper per person than a single
+  seat, with nobody counting them);
+  Enterprise is quoted, because an air-gapped rack in a hospital genuinely is a different
+  engagement from a VPC — and the page says that in one sentence instead of hiding behind "contact
+  sales". The plans are defined once per language and rendered by both `/pricing` and a new
+  homepage scene, so the two cannot drift. Everything else in the honesty rules is unchanged and
+  still binding: no certifications, no SLAs, no uptime figures, no deployment durations, no social
+  proof — the emphasized plan is badged "up to 100 people", a statement about size, not about
+  customers we do not have.
+  - Pricing is a real **scene** in the scroll screenplay, not an ordinary section. `activeScene()`
+    falls back to `'hero'` when no section owns the viewport centre-line, so a plain `<section>`
+    would have snapped the entire composition back to the opening frame for a full viewport of
+    scroll.
+  - The telemetry rail now retires over any section marked `data-hides-telemetry`, the same way it
+    already retires over the footer. Three price cards fill the bottom-right corner it lives in;
+    every other scene leaves that corner empty.
 - **`DEPLOYMENT_MODE`** (`hosted` default, or `onprem`). The same codebase serves a hosted
   multi-firm deployment and a single-firm on-prem install; only the egress claim and the Platform
   nav entry differ. It gates **presentation only** — authorization stays `getSuperAdmin()` /
@@ -115,6 +169,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   were where it had not been applied.
 
 ### Fixed
+- **Marketing: `og:image` had silently disappeared from every page.** Moving the root layout under
+  `[locale]` also detached `app/opengraph-image.tsx`, because a metadata image attaches to the
+  segment tree it sits in — the generated HTML simply had no card and no error anywhere. And once
+  each page defined its own `openGraph` block, the automatic injection stopped for a second reason:
+  **`openGraph` does not deep-merge across segments**, so a page setting `openGraph: { url }` and
+  expecting to inherit `siteName`, `locale`, `type` and the image lost all four. `lib/metadata.ts`
+  now returns the complete block, image included, and the image lives at
+  `app/[locale]/opengraph-image.tsx` with its own `generateStaticParams` (without one the build
+  emits a single on-demand `ƒ /-/opengraph-image` instead of three prerendered cards). Both found
+  by grepping the built HTML, which is now the way to check this after any routing change — the
+  failure is invisible until someone pastes a link into Slack.
+- **Marketing: `og:url` on every subpage pointed at the homepage**, inherited from the layout, so a
+  share of `/pricing` resolved to `/`. Each page now emits its own.
 - `Sources.tsx`'s upload input used `className="hidden"` — the same WCAG 2.1 SC 2.1.1 (Level A)
   keyboard trap fixed in the tour's `UploadStep.tsx` last week and recorded then as still present
   here. `display:none` removes an element from the tab order entirely, so a keyboard-only user
