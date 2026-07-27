@@ -36,10 +36,14 @@ export function AskWorkspace({
   onboarding,
   initialSuggestions,
   dict,
+  canManage,
 }: {
   csrf: string
   onboarding: OnboardingState | null
   initialSuggestions: string[]
+  /** Owner. Forwarded to GetStarted, whose empty state otherwise tells a member
+   *  to upload documents they have no permission to upload. */
+  canManage: boolean
   /** Resolved once, server-side, for the caller's locale. Forwarded in
    * slices to whichever child actually needs copy — GetStarted's empty
    * state, AskChat's just-in-time citation hint — rather than each child
@@ -110,6 +114,7 @@ export function AskWorkspace({
         <div ref={askPaneRef} className="h-full min-w-0 flex-1">
           {onboarding && showGetStarted(onboarding, initialSuggestions, selectedChatId, pending) ? (
             <GetStarted
+              canManage={canManage}
               workspaceEmpty={onboarding.workspaceEmpty}
               suggestions={initialSuggestions}
               onPick={(q) => setPending(q)}

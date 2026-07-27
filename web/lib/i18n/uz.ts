@@ -57,10 +57,14 @@ export const uz: Dictionary = {
     askNoDocuments: {
       body: 'Birinchi hujjatlaringizni yuklang — CompanyMind ular haqida savollarga javob beradi va har bir javobni aniq manbagacha kuzatish mumkin boʻladi.',
       cta: 'Hujjat qoʻshish',
+      memberBody:
+        'Sizning ruxsat guruhlaringizga hozircha hech qanday hujjat ochilmagan. Ega ularni ochgach, shu yerda savol berishingiz mumkin — har bir javob oʻz manbasini koʻrsatadi.',
     },
     sourcesEmpty: {
       body: 'Hozircha hujjat yoʻq. PDF, Word, matn yoki markdown fayllarni yuklang — CompanyMind ularni papkalarga tartiblab beradi.',
       cta: 'Hujjatlarni yuklash',
+      memberBody:
+        'Bu yerda siz ocha oladigan hujjat hozircha yoʻq. Javoblar siz aʻzo boʻlgan ruxsat guruhlaridan tuziladi — egadan sizni guruhga qoʻshishni yoki hujjatlarni siz turgan guruhga ochishni soʻrang.',
     },
     access: {
       body: 'Javoblaringiz faqat siz aʻzo boʻlgan ruxsat guruhlarining kesishmasidan tuziladi — shu guruhlarning birortasiga kirmagan hujjat hech qachon koʻrinmaydi, hatto toʻgʻridan-toʻgʻri soʻrasangiz ham. Ishchi makon egalari esa barcha hujjatlarni koʻra oladi.',

@@ -3,7 +3,18 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
-export function FolderHeader({ id, name, csrf }: { id: string; name: string; csrf: string }) {
+export function FolderHeader({
+  id,
+  name,
+  csrf,
+  canManage,
+}: {
+  id: string
+  name: string
+  csrf: string
+  /** Owner. Renaming and deleting a folder are owner-only at the API. */
+  canManage: boolean
+}) {
   const router = useRouter()
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(name)
@@ -61,14 +72,16 @@ export function FolderHeader({ id, name, csrf }: { id: string; name: string; csr
       ) : (
         <h1 className="font-display text-2xl text-ink">{name}</h1>
       )}
-      <div className="flex shrink-0 gap-3 text-body-sm text-ink-soft">
-        <button onClick={() => setEditing((v) => !v)} className="underline underline-offset-2 hover:text-ink">
-          {editing ? 'Cancel' : 'Rename'}
-        </button>
-        <button onClick={remove} className="underline underline-offset-2 hover:text-sovereign-text">
-          Delete
-        </button>
-      </div>
+      {canManage && (
+        <div className="flex shrink-0 gap-3 text-body-sm text-ink-soft">
+          <button onClick={() => setEditing((v) => !v)} className="underline underline-offset-2 hover:text-ink">
+            {editing ? 'Cancel' : 'Rename'}
+          </button>
+          <button onClick={remove} className="underline underline-offset-2 hover:text-sovereign-text">
+            Delete
+          </button>
+        </div>
+      )}
       {error && <p className="text-body-sm text-sovereign-text">{error}</p>}
     </div>
   )

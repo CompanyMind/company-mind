@@ -57,10 +57,20 @@ export const en = {
     askNoDocuments: {
       body: 'Upload your first documents and CompanyMind will answer questions about them, every claim traced back to its source.',
       cta: 'Add documents',
+      // Members cannot upload, and for them an empty Ask pane means "nothing in
+      // your access groups yet", not "the workspace is empty".
+      memberBody:
+        'No documents have been shared with your access groups yet. Once an owner shares some, you can ask questions here and every answer will cite its source.',
     },
     sourcesEmpty: {
       body: 'No documents yet. Upload PDFs, Word, text or markdown and CompanyMind will sort them into folders for you.',
       cta: 'Upload documents',
+      // Shown to members instead of `body`. A member cannot upload, so the
+      // owner copy would be an instruction they are unable to follow — and it
+      // would also imply the workspace is empty when it may be full of
+      // documents outside their access groups.
+      memberBody:
+        'Nothing here you can open yet. Your answers are built from the access groups you belong to — ask an owner to add you to a group, or to share documents with one you are already in.',
     },
     // Permanent page prose, not a dismissible hint — the spec requires this
     // to exist outside the tour card, since it must still be re-readable in

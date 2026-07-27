@@ -26,7 +26,12 @@ export default async function AccessPage() {
       <div className="mt-4 rounded-md border border-line bg-paper-sunk px-4 py-3 text-body-sm text-ink-soft">
         {dict.emptyStates.access.body}
       </div>
-      <AccessManager csrf={csrf} />
+      {/* The manager is owner-only — it creates and deletes groups and assigns
+          people to them, all owner-gated at the API, and it lists every
+          colleague's email. Members keep the page for the explanation above:
+          understanding why an answer was scoped does not require the controls
+          that do the scoping. */}
+      {auth?.role === 'owner' && <AccessManager csrf={csrf} />}
     </div>
   )
 }

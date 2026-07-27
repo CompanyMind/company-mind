@@ -1,19 +1,19 @@
 import { NextResponse } from 'next/server'
-import { getCurrentUser } from '@/lib/auth/current-user'
+import { getOwner } from '@/lib/auth/require-owner'
 import { verifyCsrf } from '@/lib/csrf'
 import { renameFolder, deleteFolder } from '@/lib/folders'
 
 export const runtime = 'nodejs'
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await getCurrentUser()
-  if (!auth) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  const owner = await getOwner()
+  if (!owner) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   if (!(await verifyCsrf(req))) return NextResponse.json({ error: 'bad csrf' }, { status: 403 })
   const { id } = await params
   const { name } = (await req.json().catch(() => ({}))) as { name?: string }
   const clean = (name ?? '').trim()
   if (!clean) return NextResponse.json({ error: 'name is required' }, { status: 400 })
-  const res = await renameFolder(auth.workspace.id, id, clean)
+  const res = await renameFolder(owner.workspaceId, id, clean)
   if (res === 'notfound') return NextResponse.json({ error: 'not found' }, { status: 404 })
   if (res === 'conflict') {
     return NextResponse.json({ error: 'a folder with that name already exists' }, { status: 409 })
@@ -22,11 +22,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await getCurrentUser()
-  if (!auth) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  const owner = await getOwner()
+  if (!owner) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   if (!(await verifyCsrf(req))) return NextResponse.json({ error: 'bad csrf' }, { status: 403 })
   const { id } = await params
-  const ok = await deleteFolder(auth.workspace.id, id)
+  const ok = await deleteFolder(owner.workspaceId, id)
   if (!ok) return NextResponse.json({ error: 'not found' }, { status: 404 })
   return NextResponse.json({ ok: true })
 }

@@ -20,6 +20,7 @@ export function FolderGrid({
   onChanged,
   emptyState,
   onUploadClick,
+  canManage,
 }: {
   folders: FolderCard[]
   unfiledCount: number
@@ -33,6 +34,8 @@ export function FolderGrid({
    * purely descriptive — one upload implementation (`useDocumentUpload`),
    * two entry points into it. */
   onUploadClick: () => void
+  /** Owner. Folder create and AI organise are owner-only at the API. */
+  canManage: boolean
 }) {
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
@@ -88,7 +91,7 @@ export function FolderGrid({
       <div className="flex items-center justify-between">
         <h2 className="font-display text-lg text-ink">Folders</h2>
         <div className="flex items-center">
-          {unfiledCount > 0 && (
+          {canManage && unfiledCount > 0 && (
             <button
               type="button"
               ref={organiseRef}
@@ -99,13 +102,15 @@ export function FolderGrid({
               {organizing ? 'Organising…' : 'Organise with AI'}
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => setCreating((c) => !c)}
-            className="text-body-sm text-ink-soft underline underline-offset-2 hover:text-ink"
-          >
-            {creating ? 'Cancel' : 'New folder'}
-          </button>
+          {canManage && (
+            <button
+              type="button"
+              onClick={() => setCreating((c) => !c)}
+              className="text-body-sm text-ink-soft underline underline-offset-2 hover:text-ink"
+            >
+              {creating ? 'Cancel' : 'New folder'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -127,14 +132,21 @@ export function FolderGrid({
 
       {folders.length === 0 && unfiledCount === 0 && (
         <div className="mt-4 rounded-md border border-line px-4 py-6 text-center">
-          <p className="text-body-sm text-ink-soft">{emptyState.body}</p>
-          <button
-            type="button"
-            onClick={onUploadClick}
-            className="mt-3 rounded-md bg-ink px-4 py-2 text-body-sm text-paper"
-          >
-            {emptyState.cta}
-          </button>
+          {/* For a member this state means "nothing you have access to yet",
+              not "nothing exists" — so it must not read as an instruction to
+              upload, which they cannot do. */}
+          <p className="text-body-sm text-ink-soft">
+            {canManage ? emptyState.body : emptyState.memberBody}
+          </p>
+          {canManage && (
+            <button
+              type="button"
+              onClick={onUploadClick}
+              className="mt-3 rounded-md bg-ink px-4 py-2 text-body-sm text-paper"
+            >
+              {emptyState.cta}
+            </button>
+          )}
         </div>
       )}
 

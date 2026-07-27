@@ -2,7 +2,7 @@ import { and, eq } from 'drizzle-orm'
 import { getCurrentUser } from '@/lib/auth/current-user'
 import { issueCsrf } from '@/lib/csrf'
 import { db } from '@/lib/db/client'
-import { chats, memberships, messages, users } from '@/lib/db/schema'
+import { chats, messages, users } from '@/lib/db/schema'
 import { listDocuments } from '@/lib/documents'
 import { getSuggestions } from '@/lib/engine'
 import { getDictionary, isLocale } from '@/lib/i18n'
@@ -21,7 +21,15 @@ export default async function AskPage() {
   // recognise.
   const dict = getDictionary(auth && isLocale(auth.user.locale) ? auth.user.locale : 'en')
   if (!auth) {
-    return <AskWorkspace csrf={csrf} onboarding={null} initialSuggestions={[]} dict={dict} />
+    return (
+      <AskWorkspace
+        csrf={csrf}
+        onboarding={null}
+        initialSuggestions={[]}
+        dict={dict}
+        canManage={false}
+      />
+    )
   }
 
   const docs = await listDocuments(auth.workspace.id, { userId: auth.user.id, role: auth.role })
@@ -47,21 +55,18 @@ export default async function AskPage() {
     dismissed: !!me?.onboardingDismissedAt,
   })
 
-  const mem = await db.query.memberships.findFirst({
-    where: and(
-      eq(memberships.userId, auth.user.id),
-      eq(memberships.workspaceId, auth.workspace.id),
-    ),
-  })
+  // The role rides on the session now (validateSessionToken already reads the
+  // membership row to resolve the workspace), so this no longer re-queries it.
   const initialSuggestions = onboarding.workspaceEmpty
     ? []
-    : await getSuggestions(auth.workspace.id, auth.user.id, mem?.role ?? 'member')
+    : await getSuggestions(auth.workspace.id, auth.user.id, auth.role)
 
   return (
     <AskWorkspace
       csrf={csrf}
       onboarding={onboarding}
       initialSuggestions={initialSuggestions}
+      canManage={auth.role === 'owner'}
       dict={dict}
     />
   )

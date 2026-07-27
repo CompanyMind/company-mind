@@ -8,6 +8,7 @@ export function GetStarted({
   suggestions,
   onPick,
   emptyState,
+  canManage,
 }: {
   workspaceEmpty: boolean
   suggestions: string[]
@@ -24,22 +25,37 @@ export function GetStarted({
    * its own and was never part of what got rejected.
    */
   emptyState: Dictionary['emptyStates']['askNoDocuments']
+  /**
+   * Owner. For a member, `workspaceEmpty` means "no documents YOU can open" —
+   * the workspace may be full of documents outside their access groups. So the
+   * owner copy ("Upload your first documents") would be both an instruction
+   * they cannot follow and a false statement about the workspace.
+   */
+  canManage: boolean
 }) {
   return (
     <div className="mx-auto flex max-w-xl flex-col justify-center px-6 py-16">
       <h2 className="font-display text-2xl text-ink">
-        {workspaceEmpty ? 'Let’s build your brain' : 'Ask anything about your documents'}
+        {workspaceEmpty
+          ? canManage
+            ? 'Let’s build your brain'
+            : 'Nothing you can open yet'
+          : 'Ask anything about your documents'}
       </h2>
 
       {workspaceEmpty ? (
         <>
-          <p className="mt-2 text-body text-ink-soft">{emptyState.body}</p>
-          <Link
-            href="/dashboard/sources"
-            className="mt-6 self-start rounded-md bg-ink px-4 py-2 text-body-sm text-paper"
-          >
-            {emptyState.cta}
-          </Link>
+          <p className="mt-2 text-body text-ink-soft">
+            {canManage ? emptyState.body : emptyState.memberBody}
+          </p>
+          {canManage && (
+            <Link
+              href="/dashboard/sources"
+              className="mt-6 self-start rounded-md bg-ink px-4 py-2 text-body-sm text-paper"
+            >
+              {emptyState.cta}
+            </Link>
+          )}
         </>
       ) : (
         <>

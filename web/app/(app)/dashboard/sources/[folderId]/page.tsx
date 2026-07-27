@@ -37,11 +37,21 @@ export default async function FolderPage({
         ← Sources
       </Link>
       {folder ? (
-        <FolderHeader id={folder.id} name={folder.name} csrf={csrf} />
+        <FolderHeader
+          id={folder.id}
+          name={folder.name}
+          csrf={csrf}
+          canManage={auth.role === 'owner'}
+        />
       ) : (
         <h1 className="mt-3 font-display text-2xl text-ink">Unfiled</h1>
       )}
-      <DocumentList csrf={csrf} folder={folderId} initialDoc={doc} />
+      <DocumentList
+        csrf={csrf}
+        folder={folderId}
+        initialDoc={doc}
+        canManage={auth.role === 'owner'}
+      />
     </div>
   )
 }

@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Security
+- **The control plane was open to every member.** Sixteen mutating API routes were gated by
+  `getCurrentUser()` alone, so any signed-in member could `PUT /api/documents/<id>/groups` to retag
+  a document they could not open into a group they belonged to, or `PUT /api/groups/<id>/members`
+  to add themselves to any group — and `resolve_access` would then faithfully honour it. The access
+  model's evaluation was airtight; its inputs were world-writable. Every one is now `getOwner()`-
+  gated (403): document groups, group create/rename/delete, group members, folder CRUD, AI organise,
+  document upload, and all four Telegram routes — the last of which could grant an identity outside
+  the company access to a group. `GET /api/groups` is owner-only too: it returns the group structure
+  **and** every colleague's email and name, which is a staff directory whether or not anything is
+  written. Covered by `web/lib/control-plane-gates.test.ts`, where the route table *is* the test and
+  each case also asserts the underlying mutation was never invoked — a 403 returned after the write
+  landed would look fixed without being fixed.
+- Upload is now owner-only. `create_document` tags every upload to the Everyone group so a new file
+  is never accidentally hidden, which means a member upload would have published to the entire firm
+  by default. Relaxing this needs a group choice at upload time first.
 - The library listings ignored the access model. `engine/app/library/documents.py::list_documents`
   and `folders.py::list_folders` took only a workspace id — no `group_ids`, no `all_access` —
   while `get_source` three files away took both. Since `/dashboard/sources` is reachable by any
@@ -37,6 +52,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   were where it had not been applied.
 
 ### Fixed
+- `Sources.tsx`'s upload input used `className="hidden"` — the same WCAG 2.1 SC 2.1.1 (Level A)
+  keyboard trap fixed in the tour's `UploadStep.tsx` last week and recorded then as still present
+  here. `display:none` removes an element from the tab order entirely, so a keyboard-only user
+  could never reach the file chooser. Now `sr-only` plus a `has-[:focus-visible]` ring on the
+  label. This was the last instance of the bug.
 - Guided tour: `UploadStep.tsx`'s dropzone file input used `className="hidden"` (`display:none`),
   which removes an element from the tab order entirely — a keyboard-only user could never reach or
   open the native file chooser at the tour's upload step, confirmed live (`Tab` skipped straight

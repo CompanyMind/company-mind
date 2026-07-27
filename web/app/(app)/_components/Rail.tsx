@@ -33,8 +33,13 @@ export function Rail({
   const NAV = [
     { href: '/dashboard', label: 'Ask' },
     { href: '/dashboard/sources', label: 'Sources' },
+    // Access stays for members: it is where the permanent explanation of the
+    // access model lives, and a member needs to be able to read why an answer
+    // was scoped. The page itself is read-only for them.
     { href: '/dashboard/access', label: 'Access' },
-    { href: '/dashboard/integrations', label: 'Integrations' },
+    // Integrations is owner-only — the page notFound()s for members, so the
+    // link would be a dead end.
+    ...(isOwner ? [{ href: '/dashboard/integrations', label: 'Integrations' }] : []),
     ...(isOwner ? [{ href: '/dashboard/atlas', label: 'Atlas' }] : []),
     ...(isSuperAdmin ? [{ href: '/dashboard/admin', label: 'Admin' }] : []),
   ]

@@ -169,6 +169,42 @@ def test_unfiled_count_excludes_invisible_documents():
         _cleanup(ws, [member])
 
 
+def test_retagging_a_document_grants_access_which_is_why_the_route_is_owner_only():
+    """The escalation this defends against, demonstrated end to end.
+
+    document_groups IS the lever that decides visibility, so whoever can write it
+    can read anything. Before the fix, `PUT /api/documents/<id>/groups` was gated
+    by getCurrentUser() alone, so any member could perform exactly this write on a
+    document they could not open. The gate lives in web/lib/control-plane-gates
+    .test.ts; this test exists to keep the stakes visible from the engine side —
+    if it ever stops passing, visibility has silently stopped depending on groups,
+    and the gate is guarding the wrong thing."""
+    with psycopg.connect(DB) as conn:
+        with conn.transaction():
+            ws = _ws(conn)
+            member = _user(conn)
+            hr = _group(conn, ws, "HR")
+            execs = _group(conn, ws, "Exec")
+            _join(conn, ws, hr, member)
+            secret = _doc(conn, ws, "salaries.xlsx", execs)
+
+        gids, all_access = resolve_access(conn, ws, member, "member")
+        before = {r["filename"] for r in lib_docs.list_documents(conn, ws, None, gids, all_access)}
+
+        # The write the gate now forbids.
+        conn.execute(
+            "INSERT INTO document_groups (workspace_id, document_id, group_id) VALUES (%s,%s,%s)",
+            (ws, secret, hr),
+        )
+        gids, all_access = resolve_access(conn, ws, member, "member")
+        after = {r["filename"] for r in lib_docs.list_documents(conn, ws, None, gids, all_access)}
+    try:
+        assert before == set(), "the member could already see it; the test proves nothing"
+        assert after == {"salaries.xlsx"}, "retagging must be what grants access"
+    finally:
+        _cleanup(ws, [member])
+
+
 def test_folder_filtered_document_list_is_also_scoped():
     """Scoping the top-level list but not the per-folder list would leave the
     leak one click away."""

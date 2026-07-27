@@ -32,7 +32,11 @@ export default async function SourcesPage({
           never leave your infrastructure.
         </p>
       </header>
-      <Sources csrf={csrf} locale={auth?.user.locale ?? 'en'} />
+      <Sources
+        csrf={csrf}
+        locale={auth?.user.locale ?? 'en'}
+        canManage={auth?.role === 'owner'}
+      />
     </div>
   )
 }

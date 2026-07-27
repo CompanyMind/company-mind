@@ -1,11 +1,16 @@
-import { getCurrentUser } from '@/lib/auth/current-user'
+import { notFound } from 'next/navigation'
+import { getOwner } from '@/lib/auth/require-owner'
 import { issueCsrf } from '@/lib/csrf'
 import { Integrations } from './Integrations'
 
 export const runtime = 'nodejs'
 
+// Owner-only. Every Telegram route is now owner-gated: connecting a bot,
+// approving an outside Telegram identity, and granting that identity access
+// groups all hand access to someone who is not even a workspace user.
 export default async function IntegrationsPage() {
-  await getCurrentUser()
+  const owner = await getOwner()
+  if (!owner) notFound()
   const csrf = await issueCsrf()
   return (
     <div className="mx-auto max-w-3xl px-6 py-6">
