@@ -36,6 +36,13 @@ export const users = pgTable('users', {
   // 'en' | 'ru' | 'uz'. Per-user rather than per-workspace: a bank's Russian-speaking
   // analyst and its English-speaking admin share one workspace.
   locale: text('locale').notNull().default('en'),
+  // Appearance, per user for the same reason locale is per user: one firm, many
+  // people, one shared workspace row. 'system' means "follow the OS" and is a
+  // real stored choice, not an absence — see lib/theme.ts. Mirrored into a
+  // cookie on write so the root layout can pick a palette before the session is
+  // resolved (it also wraps /login, where there is no session at all).
+  theme: text('theme').notNull().default('system'),
+  motion: text('motion').notNull().default('system'),
   // Set on every admin-created account. Without it, the admin who generated the
   // temp password knows that person's password forever, which destroys any
   // claim about per-user attribution. Enforced by a redirect in the (app)
