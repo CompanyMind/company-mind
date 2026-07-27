@@ -36,6 +36,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   documents is omitted entirely for a non-owner rather than rendered as empty, since an empty
   "Board Minutes" still discloses that board minutes exist.
 
+### Added
+- `web/lib/chat-isolation.test.ts` — a regression test locking chat history to the signed-in person.
+  No production change: `listChats` already filtered on `userId` and `getChatMessages`/`renameChat`/
+  `deleteChat` already went through `chatOwned(chatId, workspaceId, userId)`. The tests exist so a
+  later refactor cannot quietly widen it to "everyone in the workspace" — which is exactly what the
+  document listing had done unnoticed. The load-bearing case asserts a client-supplied `userId` is
+  ignored, and it was verified to fail when the route was temporarily made to honour one.
+
 ### Changed
 - The session now carries the caller's `role`. `validateSessionToken` already fetched the
   `memberships` row to resolve the workspace and then discarded the role, so every surface needing
