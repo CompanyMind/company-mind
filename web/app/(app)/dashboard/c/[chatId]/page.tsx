@@ -23,14 +23,14 @@ export default async function ThreadPage({ params }: { params: Promise<{ chatId:
     <AskWorkspace
       csrf={csrf}
       chatId={chatId}
-      // An open thread is never the first-run empty state — the person
-      // demonstrably has a conversation. Passing null skips that branch
-      // entirely rather than re-deriving an onboarding snapshot that cannot
-      // apply.
-      onboarding={null}
-      initialSuggestions={[]}
-      canManage={auth.role === 'owner'}
       dict={dict}
+      userName={auth.user.name}
+      canManage={auth.role === 'owner'}
+      // An open thread renders messages, not the empty state, so neither of
+      // these is reachable — and deriving them would cost a document listing
+      // and a suggestions round-trip on every thread open for nothing.
+      workspaceEmpty={false}
+      suggestions={[]}
     />
   )
 }

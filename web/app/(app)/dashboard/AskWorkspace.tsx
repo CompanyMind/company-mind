@@ -1,74 +1,47 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import type { OnboardingState } from '@/lib/onboarding'
 import type { Dictionary } from '@/lib/i18n'
 import { useTourTarget } from '@/lib/tour/targets'
 import { AskChat } from './AskChat'
-import { GetStarted } from './GetStarted'
 
-// Whether to show the Get Started empty state instead of the real chat pane.
-// Once step 3 (ask) is done, or a chat/starter-question is already active,
-// this is always false — the normal chat UI wins permanently. The
-// `suggestions` check matters because GetStarted's only way to ask a
-// question, once documents exist, is a starter question — and the engine
-// only derives those from folders (engine/app/library/suggest.py). A
-// workspace with indexed but not-yet-organised documents would otherwise
-// render a panel with nothing clickable in it, so fall through to the real
-// chat box in that window instead.
-function showGetStarted(
-  onboarding: OnboardingState,
-  suggestions: string[],
-  chatId: string | null,
-  pending: string | null,
-): boolean {
-  return (
-    !onboarding.steps[2].done &&
-    chatId === null &&
-    pending === null &&
-    (onboarding.workspaceEmpty || suggestions.length > 0)
-  )
-}
-
+/**
+ * The client shell around the chat pane. It exists for exactly two things the
+ * server pages cannot do: hold the router callback that turns the first message
+ * of a new conversation into a real URL, and anchor the tour's welcome step.
+ *
+ * It used to also own chat selection, the chat-list sidebar and the Get Started
+ * panel. Selection is the URL's job now, the list moved into the one sidebar,
+ * and the empty state lives inside AskChat beside the composer it belongs to.
+ */
 export function AskWorkspace({
   csrf,
   chatId,
-  onboarding,
-  initialSuggestions,
   dict,
+  userName,
   canManage,
+  workspaceEmpty,
+  suggestions,
 }: {
   csrf: string
   /** The open thread, from the route — `/dashboard/c/[chatId]` — or null on
-   *  `/dashboard`, which is the new-chat surface. This used to be component
-   *  state with the chat list as a sibling; it lives in the URL now so a
-   *  single layout-level sidebar can link to threads, and so a thread
-   *  survives a reload and can be shared. */
+   *  `/dashboard`, the new-chat surface. */
   chatId: string | null
-  onboarding: OnboardingState | null
-  initialSuggestions: string[]
-  /** Owner. Forwarded to GetStarted, whose empty state otherwise tells a member
-   *  to upload documents they have no permission to upload. */
-  canManage: boolean
-  /** Resolved once, server-side, for the caller's locale. Forwarded in
-   * slices to whichever child actually needs copy — GetStarted's empty
-   * state, AskChat's just-in-time citation hint — rather than each child
-   * re-resolving its own dictionary. */
+  /** Resolved once, server-side, for the caller's locale. Forwarded in slices
+   *  to whichever child actually needs copy rather than each child re-resolving
+   *  its own dictionary. */
   dict: Dictionary
+  userName: string | null
+  /** Owner. Gates the composer's upload control, and decides which empty-state
+   *  copy applies: for a member "empty" means "nothing in your access groups". */
+  canManage: boolean
+  workspaceEmpty: boolean
+  suggestions: string[]
 }) {
   const router = useRouter()
-  // A starter question picked off the Get Started empty state. It is fed into
-  // AskChat as `initialQuestion` so a click produces a real send, not just a
-  // prefilled input. It also stands in for "the user has asked something
-  // this session": the server-derived `onboarding` prop is a snapshot from
-  // the last page load and won't flip `steps[2].done` until the next
-  // navigation, so without this, picking a suggestion would immediately
-  // re-render Get Started instead of the chat thread that's now sending it.
-  const [pending, setPending] = useState<string | null>(null)
-  // The Ask pane wrapper — anchors the tour's welcome step. It exists
-  // whether GetStarted or the real chat is showing inside it, so it's a
-  // durable anchor even before a user has asked anything.
+  // Anchors the tour's welcome step. It wraps whatever the chat pane is showing,
+  // so it is a durable anchor even before a user has asked anything.
   const askPaneRef = useTourTarget('ask-pane')
 
   const handleFirstMessage = useCallback(
@@ -86,24 +59,19 @@ export function AskWorkspace({
   )
 
   return (
-    <div ref={askPaneRef} className="flex h-dvh min-w-0 flex-col max-md:h-[calc(100dvh-3.5rem)]">
-      {onboarding && showGetStarted(onboarding, initialSuggestions, chatId, pending) ? (
-        <GetStarted
-          canManage={canManage}
-          workspaceEmpty={onboarding.workspaceEmpty}
-          suggestions={initialSuggestions}
-          onPick={(q) => setPending(q)}
-          emptyState={dict.emptyStates.askNoDocuments}
-        />
-      ) : (
-        <AskChat
-          csrf={csrf}
-          chatId={chatId}
-          onFirstMessage={handleFirstMessage}
-          initialQuestion={pending}
-          citationHint={dict.tour.citationHint}
-        />
-      )}
+    <div ref={askPaneRef} className="h-dvh min-w-0 max-md:h-[calc(100dvh-3.5rem)]">
+      <AskChat
+        csrf={csrf}
+        chatId={chatId}
+        onFirstMessage={handleFirstMessage}
+        citationHint={dict.tour.citationHint}
+        dict={dict.chat}
+        userName={userName}
+        canManage={canManage}
+        workspaceEmpty={workspaceEmpty}
+        suggestions={suggestions}
+        emptyState={dict.emptyStates.askNoDocuments}
+      />
     </div>
   )
 }

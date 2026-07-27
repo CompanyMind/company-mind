@@ -24,8 +24,13 @@ export const users = pgTable('users', {
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
   name: text('name'),
-  // Set when the user dismisses the first-run strip. Onboarding PROGRESS is
-  // derived from real data every render; only the dismissal is stored.
+  // VESTIGIAL. Written by the first-run strip, which the guided tour replaced
+  // and the chat-pane redesign finished removing — nothing reads it now. Kept
+  // rather than dropped because a destructive migration to delete a nullable
+  // timestamp buys nothing, and because `tourDismissedAt` below was
+  // deliberately kept separate from it precisely so this column could die
+  // without taking the tour's dismissal with it. Do not start reading it again;
+  // add a new column instead.
   onboardingDismissedAt: timestamp('onboarding_dismissed_at', { withTimezone: true }),
   // Platform-level, above workspaces — NOT a membership role. Seed-only on
   // purpose: a panel that can mint its own super-admins has no floor.
