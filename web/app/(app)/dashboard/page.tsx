@@ -24,6 +24,7 @@ export default async function AskPage() {
     return (
       <AskWorkspace
         csrf={csrf}
+        chatId={null}
         onboarding={null}
         initialSuggestions={[]}
         dict={dict}
@@ -64,6 +65,7 @@ export default async function AskPage() {
   return (
     <AskWorkspace
       csrf={csrf}
+      chatId={null}
       onboarding={onboarding}
       initialSuggestions={initialSuggestions}
       canManage={auth.role === 'owner'}

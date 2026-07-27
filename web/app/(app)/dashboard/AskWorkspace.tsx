@@ -1,10 +1,10 @@
 'use client'
 
 import { useCallback, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import type { OnboardingState } from '@/lib/onboarding'
 import type { Dictionary } from '@/lib/i18n'
 import { useTourTarget } from '@/lib/tour/targets'
-import { Conversations } from './Conversations'
 import { AskChat } from './AskChat'
 import { GetStarted } from './GetStarted'
 
@@ -20,12 +20,12 @@ import { GetStarted } from './GetStarted'
 function showGetStarted(
   onboarding: OnboardingState,
   suggestions: string[],
-  selectedChatId: string | null,
+  chatId: string | null,
   pending: string | null,
 ): boolean {
   return (
     !onboarding.steps[2].done &&
-    selectedChatId === null &&
+    chatId === null &&
     pending === null &&
     (onboarding.workspaceEmpty || suggestions.length > 0)
   )
@@ -33,12 +33,19 @@ function showGetStarted(
 
 export function AskWorkspace({
   csrf,
+  chatId,
   onboarding,
   initialSuggestions,
   dict,
   canManage,
 }: {
   csrf: string
+  /** The open thread, from the route — `/dashboard/c/[chatId]` — or null on
+   *  `/dashboard`, which is the new-chat surface. This used to be component
+   *  state with the chat list as a sibling; it lives in the URL now so a
+   *  single layout-level sidebar can link to threads, and so a thread
+   *  survives a reload and can be shared. */
+  chatId: string | null
   onboarding: OnboardingState | null
   initialSuggestions: string[]
   /** Owner. Forwarded to GetStarted, whose empty state otherwise tells a member
@@ -50,11 +57,7 @@ export function AskWorkspace({
    * re-resolving its own dictionary. */
   dict: Dictionary
 }) {
-  const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
-  // Bumped whenever the sidebar list needs to refetch out-of-band — right now
-  // that's only "a brand-new thread was just created by the first message".
-  const [reloadSignal, setReloadSignal] = useState(0)
-  const [mobileOpen, setMobileOpen] = useState(false)
+  const router = useRouter()
   // A starter question picked off the Get Started empty state. It is fed into
   // AskChat as `initialQuestion` so a click produces a real send, not just a
   // prefilled input. It also stands in for "the user has asked something
@@ -68,69 +71,39 @@ export function AskWorkspace({
   // durable anchor even before a user has asked anything.
   const askPaneRef = useTourTarget('ask-pane')
 
-  const handleFirstMessage = useCallback((newChatId: string) => {
-    setSelectedChatId(newChatId)
-    setReloadSignal((n) => n + 1)
-  }, [])
-
-  const handleSelect = useCallback((id: string | null) => {
-    setSelectedChatId(id)
-    setMobileOpen(false)
-  }, [])
+  const handleFirstMessage = useCallback(
+    (newChatId: string) => {
+      // replace, not push: the empty /dashboard state is not a place worth
+      // going back to, and pushing it would make Back re-open a blank composer
+      // above a thread that already exists.
+      router.replace(`/dashboard/c/${newChatId}`)
+      // The sidebar's chat list is a server-rendered sibling in the (app)
+      // layout, so it has no idea a thread was just created. This is what puts
+      // the new thread in Recents.
+      router.refresh()
+    },
+    [router],
+  )
 
   return (
-    <div className="flex h-dvh flex-col max-md:h-[calc(100dvh-3.5rem)]">
-      <div className="hidden items-center justify-end border-b border-line px-4 py-2 max-md:flex">
-        <button
-          type="button"
-          onClick={() => setMobileOpen((o) => !o)}
-          className="rounded-md border border-line px-3 py-1 text-body-sm text-ink-soft"
-        >
-          {mobileOpen ? 'Close' : 'Chats'}
-        </button>
-      </div>
-
-      <div className="relative flex min-h-0 flex-1">
-        {mobileOpen && (
-          <div
-            onClick={() => setMobileOpen(false)}
-            className="fixed inset-0 z-20 hidden bg-[color-mix(in_srgb,var(--ink)_30%,transparent)] max-md:block"
-          />
-        )}
-
-        <div
-          className={`z-30 h-full shrink-0 border-r border-line bg-paper-sunk max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:w-72 max-md:transition-transform max-md:duration-200 ${
-            mobileOpen ? 'max-md:translate-x-0' : 'max-md:-translate-x-full'
-          }`}
-        >
-          <Conversations
-            csrf={csrf}
-            selectedChatId={selectedChatId}
-            onSelectChat={handleSelect}
-            reloadSignal={reloadSignal}
-          />
-        </div>
-
-        <div ref={askPaneRef} className="h-full min-w-0 flex-1">
-          {onboarding && showGetStarted(onboarding, initialSuggestions, selectedChatId, pending) ? (
-            <GetStarted
-              canManage={canManage}
-              workspaceEmpty={onboarding.workspaceEmpty}
-              suggestions={initialSuggestions}
-              onPick={(q) => setPending(q)}
-              emptyState={dict.emptyStates.askNoDocuments}
-            />
-          ) : (
-            <AskChat
-              csrf={csrf}
-              chatId={selectedChatId}
-              onFirstMessage={handleFirstMessage}
-              initialQuestion={pending}
-              citationHint={dict.tour.citationHint}
-            />
-          )}
-        </div>
-      </div>
+    <div ref={askPaneRef} className="flex h-dvh min-w-0 flex-col max-md:h-[calc(100dvh-3.5rem)]">
+      {onboarding && showGetStarted(onboarding, initialSuggestions, chatId, pending) ? (
+        <GetStarted
+          canManage={canManage}
+          workspaceEmpty={onboarding.workspaceEmpty}
+          suggestions={initialSuggestions}
+          onPick={(q) => setPending(q)}
+          emptyState={dict.emptyStates.askNoDocuments}
+        />
+      ) : (
+        <AskChat
+          csrf={csrf}
+          chatId={chatId}
+          onFirstMessage={handleFirstMessage}
+          initialQuestion={pending}
+          citationHint={dict.tour.citationHint}
+        />
+      )}
     </div>
   )
 }
