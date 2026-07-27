@@ -8,7 +8,7 @@ export const runtime = 'nodejs'
 export async function GET() {
   const auth = await getCurrentUser()
   if (!auth) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-  return NextResponse.json(await listFolders(auth.workspace.id))
+  return NextResponse.json(await listFolders(auth.workspace.id, { userId: auth.user.id, role: auth.role }))
 }
 
 export async function POST(req: Request) {

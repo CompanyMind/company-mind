@@ -22,6 +22,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   "Board Minutes" still discloses that board minutes exist.
 
 ### Changed
+- The session now carries the caller's `role`. `validateSessionToken` already fetched the
+  `memberships` row to resolve the workspace and then discarded the role, so every surface needing
+  it re-queried. Adding it is additive (no call site broke) and costs no extra query;
+  `getOwner()` drops its own lookup as a result. An unrecognised role string falls to `'member'` —
+  least privilege, never widened.
+- `listDocuments` / `listFolders` (web BFF) now take a **required** `Caller` and forward
+  `user_id` + `role` to the engine. Required rather than optional for the same reason as the engine
+  side: an optional caller is how the listings came to ignore the access model at all.
 - The document-level permission predicate now lives once, in
   `engine/app/access.py::document_perm_sql(doc_expr)`, and is used by retrieval
   (`ask/retrieve.py::_perm_sql`, via `c.document_id`) and by both library listings (via `d.id`).

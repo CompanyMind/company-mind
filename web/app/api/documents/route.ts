@@ -19,7 +19,7 @@ export async function GET(req: Request) {
   const auth = await getCurrentUser()
   if (!auth) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   const folder = new URL(req.url).searchParams.get('folder') ?? undefined
-  return NextResponse.json({ documents: await listDocuments(auth.workspace.id, folder) })
+  return NextResponse.json({ documents: await listDocuments(auth.workspace.id, { userId: auth.user.id, role: auth.role }, folder) })
 }
 
 export async function POST(req: Request) {

@@ -21,7 +21,10 @@ export default async function FolderPage({
   const { doc } = await searchParams
   const csrf = await issueCsrf()
 
-  const { folders } = await listFolders(auth.workspace.id)
+  const { folders } = await listFolders(auth.workspace.id, {
+    userId: auth.user.id,
+    role: auth.role,
+  })
   const folder = folders.find((f) => f.id === folderId)
   if (folderId !== 'unfiled' && !folder) notFound()
 

@@ -6,6 +6,12 @@ import { generateToken, hashToken, SESSION_TTL_MS } from './session'
 
 export type User = typeof users.$inferSelect
 export type Workspace = typeof workspaces.$inferSelect
+export type Role = 'owner' | 'member'
+
+/** What every authenticated request resolves to. `role` is carried here because
+ *  the membership row is already fetched to find the workspace — every surface
+ *  that needs the role would otherwise re-query for it. */
+export type Session = { user: User; workspace: Workspace; role: Role }
 
 export async function createSession(
   userId: string,
@@ -23,9 +29,7 @@ export async function createSession(
   return { token, expires }
 }
 
-export async function validateSessionToken(
-  token: string,
-): Promise<{ user: User; workspace: Workspace } | null> {
+export async function validateSessionToken(token: string): Promise<Session | null> {
   const row = await db.query.sessions.findFirst({
     where: eq(sessions.tokenHash, hashToken(token)),
   })
@@ -51,7 +55,9 @@ export async function validateSessionToken(
     where: eq(workspaces.id, membership.workspaceId),
   })
   if (!workspace) return null
-  return { user, workspace }
+  // Anything that is not exactly 'owner' is a member. Never widen here: an
+  // unrecognised role string must fall to the least privilege, not the most.
+  return { user, workspace, role: membership.role === 'owner' ? 'owner' : 'member' }
 }
 
 export async function revokeSessionToken(token: string): Promise<void> {

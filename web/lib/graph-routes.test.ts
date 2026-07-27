@@ -30,7 +30,10 @@ const mockListFindings = vi.mocked(listFindings)
 const mockRebuildGraph = vi.mocked(rebuildGraph)
 const mockDismissFinding = vi.mocked(dismissFinding)
 
-const AUTHED = { user: { id: 'u1' } as never, workspace: { id: 'w1' } as never }
+// role is 'member' deliberately: these routes gate on getOwner(), which is mocked
+// per-test below. Defaulting the session's own role to the least privilege means
+// a route that starts reading auth.role directly cannot silently pass as owner.
+const AUTHED = { user: { id: 'u1' } as never, workspace: { id: 'w1' } as never, role: 'member' as const }
 const OWNER = { userId: 'u1', workspaceId: 'w1' }
 
 beforeEach(() => {

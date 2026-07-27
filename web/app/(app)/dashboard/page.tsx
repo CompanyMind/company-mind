@@ -24,7 +24,7 @@ export default async function AskPage() {
     return <AskWorkspace csrf={csrf} onboarding={null} initialSuggestions={[]} dict={dict} />
   }
 
-  const docs = await listDocuments(auth.workspace.id)
+  const docs = await listDocuments(auth.workspace.id, { userId: auth.user.id, role: auth.role })
   const indexedCount = docs.filter((d) => d.status === 'indexed').length
   const foldered = docs.some((d) => d.folderId !== null)
 

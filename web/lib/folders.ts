@@ -1,5 +1,6 @@
 import 'server-only'
 import { env } from '@/lib/env'
+import type { Caller } from '@/lib/documents'
 
 // The engine owns the knowledge tables. These are thin clients over its internal API.
 
@@ -42,8 +43,14 @@ function mapFolder(f: EngineFolder): FolderRow {
 
 export async function listFolders(
   workspaceId: string,
+  caller: Caller,
 ): Promise<{ folders: FolderRow[]; unfiledCount: number }> {
-  const res = await engineFetch(`/folders?workspace_id=${workspaceId}`)
+  const qs = new URLSearchParams({
+    workspace_id: workspaceId,
+    user_id: caller.userId,
+    role: caller.role,
+  })
+  const res = await engineFetch(`/folders?${qs}`)
   if (!res.ok) throw new Error(`engine /folders responded ${res.status}`)
   const data = (await res.json()) as { folders: EngineFolder[]; unfiled_count: number }
   return { folders: data.folders.map(mapFolder), unfiledCount: data.unfiled_count }

@@ -17,7 +17,9 @@ export default async function SourcesPage({
 
   // Deep link from Atlas: send the caller to wherever that document actually lives.
   if (doc && auth) {
-    const target = (await listDocuments(auth.workspace.id)).find((d) => d.id === doc)
+    const target = (
+      await listDocuments(auth.workspace.id, { userId: auth.user.id, role: auth.role })
+    ).find((d) => d.id === doc)
     if (target) redirect(`/dashboard/sources/${target.folderId ?? 'unfiled'}?doc=${doc}`)
   }
 

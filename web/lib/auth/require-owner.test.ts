@@ -1,15 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { getCurrentUser } from '@/lib/auth/current-user'
-import { db } from '@/lib/db/client'
 import { getOwner } from './require-owner'
 
+// getOwner no longer queries `memberships` itself: validateSessionToken already
+// fetches that row to resolve the workspace, so the role now rides along on the
+// session. There is nothing left here to mock but the session.
 vi.mock('@/lib/auth/current-user', () => ({ getCurrentUser: vi.fn() }))
-vi.mock('@/lib/db/client', () => ({
-  db: { query: { memberships: { findFirst: vi.fn() } } },
-}))
 
 const mockGetCurrentUser = vi.mocked(getCurrentUser)
-const mockFindFirst = vi.mocked(db.query.memberships.findFirst)
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -18,41 +16,32 @@ beforeEach(() => {
 describe('getOwner', () => {
   it('returns null when there is no session', async () => {
     mockGetCurrentUser.mockResolvedValue(null)
-    const result = await getOwner()
-    expect(result).toBeNull()
-    expect(mockFindFirst).not.toHaveBeenCalled()
+    expect(await getOwner()).toBeNull()
   })
 
   it('returns null when the caller is a member, not an owner', async () => {
     mockGetCurrentUser.mockResolvedValue({
       user: { id: 'u1' } as never,
       workspace: { id: 'w1' } as never,
+      role: 'member',
     })
-    mockFindFirst.mockResolvedValue({ userId: 'u1', workspaceId: 'w1', role: 'member' } as never)
-
-    const result = await getOwner()
-    expect(result).toBeNull()
-  })
-
-  it('returns null when there is no membership row at all', async () => {
-    mockGetCurrentUser.mockResolvedValue({
-      user: { id: 'u1' } as never,
-      workspace: { id: 'w1' } as never,
-    })
-    mockFindFirst.mockResolvedValue(undefined)
-
-    const result = await getOwner()
-    expect(result).toBeNull()
+    expect(await getOwner()).toBeNull()
   })
 
   it('returns userId + workspaceId when the caller is an owner', async () => {
     mockGetCurrentUser.mockResolvedValue({
       user: { id: 'u1' } as never,
       workspace: { id: 'w1' } as never,
+      role: 'owner',
     })
-    mockFindFirst.mockResolvedValue({ userId: 'u1', workspaceId: 'w1', role: 'owner' } as never)
+    expect(await getOwner()).toEqual({ userId: 'u1', workspaceId: 'w1' })
+  })
 
-    const result = await getOwner()
-    expect(result).toEqual({ userId: 'u1', workspaceId: 'w1' })
+  // A session with no membership row can no longer reach getOwner at all —
+  // validateSessionToken returns null for it, so the caller is unauthenticated
+  // rather than un-owned. Asserted here so that guarantee is not quietly lost.
+  it('treats a session-less caller as not-owner regardless of workspace', async () => {
+    mockGetCurrentUser.mockResolvedValue(null)
+    expect(await getOwner()).toBeNull()
   })
 })
