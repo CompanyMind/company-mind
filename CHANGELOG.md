@@ -57,6 +57,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     exactly one language, which is the kind of bug nobody finds.
   - No client component imports a dictionary: pages resolve one on the server and pass the slice
     down as props, so two of the three languages never reach the browser.
+  - **The Uzbek copy is written, not translated.** The first pass followed the English sentence
+    structure word by word and read like machine output — "nothing calls home", "behind your own
+    walls" and "data egress" have no Uzbek equivalent, and rendering them literally produces
+    grammatical nonsense. `content/uz.ts` was rewritten so each idea is said the way an Uzbek
+    speaker would say it, with a fixed glossary at the top of the file (egress → *tashqariga
+    chiqqan maʼlumot*, cited answer → *manbali javob*, on-prem → *oʻz serveringizda*, design
+    partner → *hamkor*, never the calque *dizayn hamkor*).
   - **Manrope was added purely for Cyrillic.** Space Grotesk ships none, so every Russian headline
     was silently falling back to system-ui — the one element that *is* the design. It sits *behind*
     Space Grotesk in the display stack, so the browser falls through glyph by glyph and the
@@ -68,7 +75,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     site for every visitor is a cost everyone pays.
 - **Published pricing on the marketing site — a reversal of the earlier "no figures anywhere"
   position, which existed because there was no price book.** Individual is $15/month for one
-  person; Team is $1,500/month for up to 100 (the same $15 a head, with nobody counting seats);
+  person; Team is $1,200/month for up to 100 ($12 a head — cheaper per person than a single
+  seat, with nobody counting them);
   Enterprise is quoted, because an air-gapped rack in a hospital genuinely is a different
   engagement from a VPC — and the page says that in one sentence instead of hiding behind "contact
   sales". The plans are defined once per language and rendered by both `/pricing` and a new

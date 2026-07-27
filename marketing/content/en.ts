@@ -152,7 +152,12 @@ export const en: Dictionary = {
         { text: 'after Legal flagged the original 36-month term.', cite: 3 },
       ],
       sources: [
-        { id: 1, kind: 'pdf', name: 'meridian_msa_executed.pdf', detail: 'Schedule 2 · §4.1 · p.14' },
+        {
+          id: 1,
+          kind: 'pdf',
+          name: 'meridian_msa_executed.pdf',
+          detail: 'Schedule 2 · §4.1 · p.14',
+        },
         {
           id: 2,
           kind: 'sheet',
@@ -170,9 +175,18 @@ export const en: Dictionary = {
       headline: ['Nothing leaves.', 'Nothing foreign enters.'],
       body: 'CompanyMind runs where your data already lives — your datacenter, your VPC, or a machine with no route to the internet at all. There is no vendor cloud to trust, because there is no vendor cloud.',
       beats: [
-        { label: 'Outbound', value: 'Nothing calls home. No telemetry, no phone-home, no model API.' },
-        { label: 'Inbound', value: 'No inbound path from us. We have no access to your deployment.' },
-        { label: 'Air-gap', value: 'Runs fully offline. Models and index ship with the deployment.' },
+        {
+          label: 'Outbound',
+          value: 'Nothing calls home. No telemetry, no phone-home, no model API.',
+        },
+        {
+          label: 'Inbound',
+          value: 'No inbound path from us. We have no access to your deployment.',
+        },
+        {
+          label: 'Air-gap',
+          value: 'Runs fully offline. Models and index ship with the deployment.',
+        },
       ],
     },
 
@@ -427,7 +441,12 @@ export const en: Dictionary = {
         sourcesLabel: 'Sources',
         sourcesCount: '{n} artifacts',
         sources: [
-          { id: 1, kind: 'pdf', name: 'meridian_msa_executed.pdf', detail: 'Schedule 2 · §4.1 · p.14' },
+          {
+            id: 1,
+            kind: 'pdf',
+            name: 'meridian_msa_executed.pdf',
+            detail: 'Schedule 2 · §4.1 · p.14',
+          },
           {
             id: 2,
             kind: 'sheet',
@@ -435,7 +454,12 @@ export const en: Dictionary = {
             detail: 'Row 87 · "Retention (mo)"',
           },
           { id: 3, kind: 'email', name: 're: Meridian redlines', detail: 'Legal · 12 Mar · 09:41' },
-          { id: 4, kind: 'audio', name: 'meridian_call_14mar.m4a', detail: 'Transcript · 00:41:12' },
+          {
+            id: 4,
+            kind: 'audio',
+            name: 'meridian_call_14mar.m4a',
+            detail: 'Transcript · 00:41:12',
+          },
         ],
         backLabel: 'Back to the claim',
         sourceAria: 'Source {n}',
@@ -749,7 +773,7 @@ export const en: Dictionary = {
     meta: {
       title: 'Pricing',
       description:
-        'Three ways to run CompanyMind: $15 a month for one person, $1,500 a month for a team of up to 100, and a quoted Enterprise install for air-gapped and on-premise estates.',
+        'Three ways to run CompanyMind: $15 a month for one person, $1,200 a month for a team of up to 100, and a quoted Enterprise install for air-gapped and on-premise estates.',
     },
 
     hero: {
@@ -785,10 +809,10 @@ export const en: Dictionary = {
         name: 'Team',
         badge: 'Up to 100 people',
         who: 'For a company ready to put the brain in front of everyone who needs to ask it something.',
-        price: '$1,500',
+        price: '$1,200',
         period: '/ month',
         priceNote:
-          'Up to 100 people — the same $15 a head, without anybody counting seats. Beyond 100, you are in Enterprise.',
+          'Up to 100 people — $12 a head, less than a single seat costs on its own, and nobody counting them. Beyond 100, you are in Enterprise.',
         features: [
           'Everything in Individual, opened to the whole company.',
           'Access groups: each person is answered only from what they were already cleared to see.',
@@ -850,7 +874,8 @@ export const en: Dictionary = {
         },
         {
           label: 'Audit trail',
-          value: 'Questions, answers and sources logged in your systems, on your retention schedule.',
+          value:
+            'Questions, answers and sources logged in your systems, on your retention schedule.',
         },
       ],
     },
@@ -865,7 +890,7 @@ export const en: Dictionary = {
         },
         {
           q: 'Is Team really just Individual times a hundred?',
-          a: 'The price is: $15 a head, a hundred heads. The software is not — a hundred people need access groups, an owner who can assign them, and an audit trail, and those only exist above one person. What you are not paying for is a per-seat meter. Add somebody on a Tuesday and nothing changes on the invoice.',
+          a: 'It is less than that. A hundred times would be $1,500; Team is $1,200, which is $12 a head — cheaper per person than a single seat. The software is not a multiple either: a hundred people need access groups, an owner who can assign them, and an audit trail, and those only exist above one person. What you are not paying for is a per-seat meter. Add somebody on a Tuesday and nothing changes on the invoice.',
         },
         {
           q: 'What does "on-prem" mean here, exactly?',
@@ -1100,7 +1125,10 @@ export const en: Dictionary = {
       title: 'What happens next',
       steps: [
         { n: '01', line: 'A person reads it. Not a scoring model, not an SDR queue.' },
-        { n: '02', line: 'You get one reply. If it is not a fit we say so, instead of going quiet.' },
+        {
+          n: '02',
+          line: 'You get one reply. If it is not a fit we say so, instead of going quiet.',
+        },
         { n: '03', line: 'If it is, we propose a call and show you the system running.' },
       ],
       promise:

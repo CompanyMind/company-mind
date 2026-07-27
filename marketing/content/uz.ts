@@ -1,20 +1,38 @@
 /**
  * ============================================================================
- * OʻZBEKCHA — the default locale. Every word of the site in Uzbek (Latin).
+ * OʻZBEKCHA — asosiy til. Saytning har bir soʻzi (lotin yozuvida).
  * ============================================================================
- * Matches `Dictionary` in content/types.ts, exactly like content/en.ts. Read
- * the honesty rules at the top of en.ts before changing any claim here: they
- * are about what may be ASSERTED, so they survive translation unchanged.
+ * `Dictionary` tipiga toʻliq mos keladi, xuddi content/en.ts kabi. Bu yerdagi
+ * biror daʼvoni oʻzgartirishdan oldin en.ts boshidagi halollik qoidalarini
+ * oʻqing: ular NIMA DEYISH MUMKINLIGI haqida, shuning uchun tarjimada ham
+ * oʻzgarmaydi.
  *
- * ORTHOGRAPHY: `ʻ` is U+02BB (oʻ, gʻ) and `ʼ` is U+02BC (maʼlumot). Both sit
- * inside the Google Fonts `latin` unicode-range, so they render in Space
- * Grotesk and IBM Plex Mono without a fallback face. Do not "fix" them to
- * ASCII apostrophes — that is a different character and reads as a typo.
+ * BU MATN TARJIMA EMAS, QAYTA YOZILGAN. Inglizchadagi jumlani soʻzma-soʻz
+ * oʻgirish oʻzbekchada gʻalati chiqadi: «nothing calls home», «behind your own
+ * walls», «data egress» kabi iboralarning oʻzbekcha ekvivalenti yoʻq. Shuning
+ * uchun bu yerda fikr saqlangan, jumla esa oʻzbekcha yozilgan. Yangi matn
+ * qoʻshsangiz ham shunday qiling — inglizcha jumlaning tuzilishini ergashtirib
+ * yurmang. (Asoschi qarori, 2026-07-27: birinchi versiya soʻzma-soʻz edi va
+ * rad etildi.)
  *
- * WHAT IS DELIBERATELY LEFT IN ENGLISH: illustrative file names
- * (`meridian_msa_executed.pdf`), the brand name, the mailbox, and the industry
- * terms a CISO reads in English anyway — VPC, SSO, SIEM, air-gap. Translating
- * those would make the page harder to read for exactly the person it is for.
+ * ATAMALAR (butun sayt boʻylab bir xil ishlatilsin):
+ *   egress            → «tashqariga chiqqan maʼlumot», qisqasi «tashqariga»
+ *   cited answer      → «manbali javob» / «manbasi koʻrsatilgan javob»
+ *   on-premise        → «ichki oʻrnatma», «oʻz serveringizda»
+ *   design partner    → «hamkor» (dizayn bilan aloqasi yoʻq — kalka qilinmaydi)
+ *   audit trail       → «audit jurnali»
+ *   vendor cloud      → «tashqi bulut» / «birovning buluti»
+ *
+ * IMLO: `ʻ` — U+02BB (oʻ, gʻ), `ʼ` — U+02BC (maʼlumot). Ikkalasi ham Google
+ * Fonts’ning `latin` unicode-range’i ichida, shuning uchun Space Grotesk va
+ * IBM Plex Mono’da fallback shriftsiz chiziladi. Ularni ASCII apostrofga
+ * «tuzatmang» — bu boshqa belgi va xato boʻlib koʻrinadi.
+ *
+ * ATAYLAB INGLIZCHA QOLDIRILGANI: misol fayl nomlari
+ * (`meridian_msa_executed.pdf`), brend nomi, pochta manzili va axborot
+ * xavfsizligi rahbari baribir inglizcha oʻqiydigan atamalar — VPC, SSO, SIEM,
+ * air-gap. Ularni tarjima qilish sahifani aynan oʻqiydigan odam uchun
+ * qiyinlashtiradi.
  */
 
 import { brand } from './brand'
@@ -23,15 +41,15 @@ import type { Dictionary } from './types'
 
 export const uz: Dictionary = {
   site: {
-    tagline: 'Kompaniyangiz bilgan hamma narsa. Oʻz devorlaringiz ichida.',
+    tagline: 'Kompaniyangizdagi barcha bilim — oʻz serveringizda.',
     description:
-      'CompanyMind kompaniyangizdagi har bir fayl, suhbat, rasm va qoʻngʻiroqni siz soʻrov bera oladigan yagona miyaga aylantiradi — butunlay oʻz infratuzilmangiz ichida ishlaydi va har bir javob oʻz manbasiga ulanadi.',
+      'CompanyMind kompaniyangizdagi har bir faylni, yozishmani, rasmni va qoʻngʻiroqni oʻqib chiqib, savol berish mumkin boʻlgan yagona bilim markaziga aylantiradi. Hammasi oʻz serverlaringizda ishlaydi, har bir javob esa manbasini koʻrsatadi.',
   },
 
   localeSwitcher: { label: 'Til' },
-  skipToContent: 'Asosiy qismga oʻtish',
+  skipToContent: 'Asosiy mazmunga oʻtish',
   navA11y: {
-    primary: 'Asosiy',
+    primary: 'Asosiy menyu',
     home: `${brand.name} — bosh sahifa`,
     openMenu: 'Menyuni ochish',
     closeMenu: 'Menyuni yopish',
@@ -44,12 +62,12 @@ export const uz: Dictionary = {
     { href: ROUTES.about, label: 'Biz haqimizda' },
   ],
 
-  cta: { label: 'Dizayn hamkor boʻling', href: ROUTES.contact },
+  cta: { label: 'Hamkor boʻling', href: ROUTES.contact },
 
   footer: {
     blurb:
-      'Kompaniyangiz bilgan hamma narsa uchun bitta miya. Sizning infratuzilmangizda, manbaga iqtibos bilan.',
-    status: 'maʼlumot chiqishi: 0 bayt',
+      'Kompaniyangizdagi barcha bilim uchun bitta miya. Oʻz serverlaringizda ishlaydi, har bir javob manbasini koʻrsatadi.',
+    status: 'tashqariga chiqqan maʼlumot: 0 bayt',
     groups: [
       {
         title: 'Mahsulot',
@@ -70,7 +88,7 @@ export const uz: Dictionary = {
         title: 'Huquqiy',
         links: [
           { href: ROUTES.privacy, label: 'Maxfiylik' },
-          { href: ROUTES.terms, label: 'Shartlar' },
+          { href: ROUTES.terms, label: 'Foydalanish shartlari' },
         ],
       },
     ],
@@ -81,289 +99,299 @@ export const uz: Dictionary = {
    * ----------------------------------------------------------------------- */
   home: {
     hero: {
-      eyebrow: 'Ichki bilim infratuzilmasi',
-      headline: ['Kompaniyangiz', 'bilgan hamma narsa.', 'Oʻz devorlaringiz ichida.'],
-      sub: 'Har bir fayl, suhbat, rasm va qoʻngʻiroq uchun bitta miya — butunlay oʻz infratuzilmangiz ichida joylashtiriladi.',
+      eyebrow: 'Kompaniya ichidagi bilim tizimi',
+      headline: ['Kompaniyangizdagi', 'barcha bilim —', 'oʻz serveringizda.'],
+      sub: 'Har bir fayl, yozishma, rasm va qoʻngʻiroq bitta miyaga yigʻiladi. Bu miya toʻliq sizning serverlaringizda ishlaydi.',
       scrollCue: 'Pastga',
-      systemOnline: 'tizim ishga tushdi',
-      egressLabel: 'maʼlumot chiqishi:',
+      systemOnline: 'tizim ishlayapti',
+      egressLabel: 'tashqariga chiqdi:',
       egressValue: '0 bayt',
     },
 
     problem: {
       label: 'Muammo',
-      headline: ['Kompaniyangiz javobni', 'allaqachon biladi.', 'Uni hech kim topolmaydi.'],
-      body: 'U mart oyidagi yozishmada. Kimdir nomini oʻzgartirgan PDF ichida. Hech kim matnga oʻgirmagan ovozli xabarda. «final» deb nomlangan faylning toʻrtinchi versiyasida.',
+      headline: ['Javob kompaniyangizda', 'allaqachon bor.', 'Faqat uni topib boʻlmaydi.'],
+      body: 'U martdagi yozishmada qolib ketgan. Kimdir nomini oʻzgartirgan PDF ichida. Hech kim matnga oʻgirmagan ovozli xabarda. Nomi «final» boʻlgan faylning toʻrtinchi nusxasida.',
       beats: [
         {
           stat: 'Koʻmilgan',
-          line: 'Javob bor. Lekin u kerak boʻlgan odamdan toʻqqizta tizim va ikkita boʻlim naridadir.',
+          line: 'Javob bor. Lekin u kerakli odamdan toʻqqizta tizim va ikkita boʻlim narida yotibdi.',
         },
         {
           stat: 'Takrorlangan',
-          line: 'Bitta hujjatning toʻrtta versiyasi. Uchtasi notoʻgʻri. Qaysi biri ekanini hech narsa aytmaydi.',
+          line: 'Bitta hujjatning toʻrtta nusxasi. Uchtasi eskirgan. Qaysi biri haqiqiyligini hech narsa aytmaydi.',
         },
         {
           stat: 'Yoʻqolgan',
-          line: 'Buni bilgan odam aprelda ishdan ketdi. Bilim ham u bilan ketdi.',
+          line: 'Buni biladigan odam aprelda ishdan boʻshadi. Bilim ham u bilan ketdi.',
         },
         {
-          stat: 'Qidirib boʻlmaydi',
-          line: 'Qidiruv maʼnoni emas, fayl nomini topadi. U rasmni ham, ovozni ham, skanni ham oʻqiy olmaydi.',
+          stat: 'Topilmaydigan',
+          line: 'Qidiruv maʼnoni emas, fayl nomini qidiradi. Rasmni ham, ovozni ham, skanni ham oʻqiy olmaydi.',
         },
       ],
     },
 
     turn: {
-      label: 'Burilish',
-      headline: ['Bitta miya.', 'Ichida hamma narsa.'],
-      body: 'CompanyMind kompaniyangizdagi har bir manbani oʻqiydi va ularni yagona bogʻlangan indeksga joylaydi. Nusxalar birlashadi. Format ahamiyatini yoʻqotadi. Sochilgan narsa siz soʻrov bera oladigan bitta narsaga aylanadi.',
-      seal: 'Va ularning hech biri devorlaringizdan chiqmadi.',
+      label: 'Yechim',
+      headline: ['Bitta miya.', 'Ichida — hammasi.'],
+      body: 'CompanyMind kompaniyangizdagi har bir manbani oʻqib chiqadi va bittayu bitta bogʻlangan indeksga yigʻadi. Nusxalar birlashadi, format ahamiyatsiz boʻlib qoladi. Sochilib yotgan narsa savol berish mumkin boʻlgan yagona manbaga aylanadi.',
+      seal: 'Bularning birortasi ham serveringizdan chiqmadi.',
     },
 
     ask: {
-      label: 'Ishonchli',
-      headline: ['Istaganingizni soʻrang.', 'Har bir soʻzni kuzating.'],
-      body: 'Javoblar maʼlumotlaringiz aslida nima deyayotganidan quriladi. Har bir jumla oʻzi olingan hujjatga iqtibos olib yuradi — ustiga bosing va manbaning oʻzini koʻrasiz.',
-      question: 'Meridian shartnomasida maʼlumot rezidentligi boʻyicha nimaga rozi boʻlgan edik?',
+      label: 'Ishonch',
+      headline: ['Xohlaganingizni soʻrang.', 'Har bir soʻzni tekshiring.'],
+      body: 'Javob modelning xotirasidan emas, sizning maʼlumotingizdan olinadi. Har bir jumla oʻzi olingan hujjatga havola qiladi — ustiga bosing, manbaning oʻzi ochiladi.',
+      question: 'Meridian shartnomasida maʼlumotlarni saqlash joyi boʻyicha nimaga kelishgan edik?',
       answer: [
-        { text: 'Barcha mijoz maʼlumotlari mintaqa ichida qoladi, chegara ortiga uzatilmaydi', cite: 1 },
-        { text: 'va saqlash muddati muzokaralarda 18 oyga tushirildi', cite: 2 },
-        { text: 'huquq boʻlimi dastlabki 36 oylik shartga eʼtiroz bildirgach.', cite: 3 },
+        { text: 'Mijoz maʼlumotlari mintaqadan chiqmaydi, chegara ortiga uzatilmaydi', cite: 1 },
+        { text: 'saqlash muddati muzokara chogʻida 18 oyga tushirildi', cite: 2 },
+        { text: 'chunki huquq boʻlimi dastlabki 36 oylik shartga eʼtiroz bildirgan edi.', cite: 3 },
       ],
       sources: [
-        { id: 1, kind: 'pdf', name: 'meridian_msa_executed.pdf', detail: 'Ilova 2 · §4.1 · 14-bet' },
+        {
+          id: 1,
+          kind: 'pdf',
+          name: 'meridian_msa_executed.pdf',
+          detail: 'Ilova 2 · §4.1 · 14-bet',
+        },
         {
           id: 2,
           kind: 'sheet',
           name: 'contract_terms_tracker.xlsx',
           detail: '87-qator · «Saqlash (oy)»',
         },
-        { id: 3, kind: 'email', name: 're: Meridian redlines', detail: 'Huquq · 12-mart · 09:41' },
+        {
+          id: 3,
+          kind: 'email',
+          name: 're: Meridian redlines',
+          detail: 'Huquq boʻlimi · 12-mart · 09:41',
+        },
       ],
       sourceAria: '{n}-manba: {name}',
       footnote:
-        'Manba yoʻq — daʼvo ham yoʻq. Agar maʼlumot buni aytmasa, CompanyMind ham aytmaydi.',
+        'Manbasi yoʻq javob ham yoʻq. Maʼlumotingizda yozilmagan gapni CompanyMind ham aytmaydi.',
     },
 
     sovereign: {
-      label: 'Suveren',
-      headline: ['Hech narsa chiqmaydi.', 'Begona hech narsa kirmaydi.'],
-      body: 'CompanyMind maʼlumotlaringiz allaqachon turgan joyda ishlaydi — oʻz serverxonangizda, oʻz VPC’ingizda yoki internetga umuman yoʻli yoʻq mashinada. Ishonish kerak boʻlgan vendor buluti yoʻq, chunki umuman vendor buluti yoʻq.',
+      label: 'Nazorat sizda',
+      headline: ['Tashqariga hech narsa chiqmaydi.', 'Ichkariga hech kim kirmaydi.'],
+      body: 'CompanyMind maʼlumotlaringiz turgan joyda ishlaydi: oʻz serveringizda, oʻz VPC’ingizda yoki internetga umuman ulanmagan mashinada. Ishonish kerak boʻlgan tashqi bulut yoʻq — chunki bulutning oʻzi yoʻq.',
       beats: [
         {
           label: 'Tashqariga',
-          value: 'Hech narsa uyga qoʻngʻiroq qilmaydi. Telemetriya yoʻq, model API’si yoʻq.',
+          value:
+            'Hech narsa tashqariga xabar yubormaydi: telemetriya ham, tashqi model API’si ham yoʻq.',
         },
         {
           label: 'Ichkariga',
-          value: 'Bizdan ichkariga yoʻl yoʻq. Sizning oʻrnatmangizga kirish huquqimiz yoʻq.',
+          value: 'Bizda sizning oʻrnatmangizga kirish imkoni yoʻq. Umuman.',
         },
         {
           label: 'Air-gap',
-          value: 'Toʻliq oflayn ishlaydi. Modellar va indeks oʻrnatma bilan birga keladi.',
+          value: 'Internetsiz ham toʻliq ishlaydi. Modellar va indeks oʻrnatma bilan birga keladi.',
         },
       ],
     },
 
     features: {
-      label: 'Imkoniyat',
-      headline: ['Bulutdan foydalana olmaydigan', 'kompaniyalar uchun qurilgan.'],
+      label: 'Imkoniyatlar',
+      headline: ['Bulutdan foydalana olmaydigan', 'kompaniyalar uchun.'],
       items: [
         {
           n: '01',
-          title: 'Hamma narsani oʻqiydi',
-          body: 'Hujjatlar, jadvallar, PDF, elektron pochta, suhbatlar, rasmlar va audio. Skanlar oʻqiladi. Qoʻngʻiroqlar matnga oʻgiriladi. Format endi narsalar yoʻqolishiga sabab boʻlmaydi.',
+          title: 'Hammasini oʻqiydi',
+          body: 'Hujjat, jadval, PDF, xat, yozishma, rasm va audio. Skanlar oʻqiladi, qoʻngʻiroqlar matnga oʻgiriladi. Endi format tufayli hech narsa yoʻqolmaydi.',
         },
         {
           n: '02',
-          title: 'Iqtibosli javoblar',
-          body: 'Har bir jumla oʻzi olingan hujjatga ulanadi. Asl nusxani bir bosishda oching va oʻzingiz tekshiring. Modelning esida qolganiga emas, sizning maʼlumotingizga asoslangan.',
+          title: 'Manbali javoblar',
+          body: 'Har bir jumla oʻzi olingan hujjatga bogʻlanadi. Bir bosishda asl nusxa ochiladi va siz oʻzingiz tekshirasiz. Javob modelning xotirasiga emas, sizning maʼlumotingizga tayanadi.',
         },
         {
           n: '03',
-          title: 'Ruxsatni biladi',
-          body: 'Miya sizda allaqachon bor kirish nazoratini hurmat qiladi. Odamlar faqat oʻzlariga ruxsat berilgan narsalardan javob oladi. Hech narsa hamma oʻqiy oladigan yagona uyumga tekislanmaydi.',
+          title: 'Ruxsatlarni biladi',
+          body: 'Miya sizda allaqachon bor kirish tartibiga boʻysunadi. Har kim faqat oʻziga ruxsat berilgan hujjatlardan javob oladi. Hech narsa hamma oʻqiy oladigan umumiy uyumga aylanmaydi.',
         },
         {
           n: '04',
-          title: 'Air-gap’ga qodir',
-          body: 'Internetga yoʻli yoʻq tarmoqda joylashtiring. Modellar, indeks va interfeys — hammasi lokal ishlaydi. Tizimdagi hech narsa tashqi ulanishni talab qilmaydi.',
+          title: 'Air-gap rejimi',
+          body: 'Internetga ulanmagan tarmoqqa ham oʻrnatiladi. Modellar, indeks va interfeys — hammasi lokal ishlaydi. Tizimning birorta qismi tashqi ulanishni talab qilmaydi.',
         },
         {
           n: '05',
-          title: 'Audit izi',
-          body: 'Har bir savol, har bir javob, koʻrilgan har bir manba — sizning tizimlaringizda qayd etiladi, auditorlaringiz soʻrov bera oladi, oʻz jadvalingiz boʻyicha saqlanadi.',
+          title: 'Audit jurnali',
+          body: 'Har bir savol, har bir javob va koʻrilgan har bir manba oʻz tizimlaringizda qayd etiladi. Auditorlaringiz istagan paytda tekshiradi, saqlash muddatini oʻzingiz belgilaysiz.',
         },
       ],
     },
 
     /**
-     * ISBOT — kompaniya hali ishga tushmagan, shuning uchun bu yerda mijoz
-     * raqamlari YOʻQ. Har bir raqam TUZILISHI BOʻYICHA rost: u tizim qanday
-     * qurilganidan kelib chiqadi. Kechikish yoki aniqlik raqamlarini qoʻshmang.
+     * DALIL — kompaniya hali bozorga chiqmagan, shuning uchun bu yerda mijoz
+     * raqamlari YOʻQ. Har bir raqam tizim qanday qurilganidan kelib chiqadi.
+     * Kechikish yoki aniqlik raqamlarini qoʻshmang.
      */
     proof: {
-      label: 'Isbot',
-      headline: ['Tuzilishi boʻyicha rost.'],
-      body: 'Biz hali ishga tushmaganmiz, shuning uchun bular mijoz raqamlari emas. Bular arxitekturaning xossalari — har qanday oʻrnatmaning birinchi kunidan rost, chunki ular tizim qanday qurilganidan kelib chiqadi.',
+      label: 'Dalil',
+      headline: ['Birinchi kundan shunday.'],
+      body: 'Biz hali bozorga chiqmaganmiz, shuning uchun bular mijoz statistikasi emas. Bular — arxitekturaning xossalari: tizim shunday qurilgani uchun har qanday oʻrnatmada birinchi kunidanoq shunday boʻladi.',
       metrics: [
         {
           value: 0,
           suffix: ' bayt',
-          label: 'Maʼlumot chiqishi',
-          note: 'Hech narsa tashqariga chiqmaydi. Noldan katta raqam berish uchun chiquvchi yoʻlning oʻzi yoʻq.',
+          label: 'Tashqariga chiqqan maʼlumot',
+          note: 'Tashqariga hech narsa chiqmaydi. Noldan katta raqam chiqishi uchun yoʻlning oʻzi yoʻq.',
         },
         {
           value: 12,
           suffix: '',
-          label: 'Manba formatlari',
-          note: 'Bugun ishlab chiqilgan oʻqish adapterlari: .docx’dan .m4a’gacha va skanlangan .tiff’gacha.',
+          label: 'Manba formati',
+          note: 'Bugun oʻqiladigan formatlar soni: .docx’dan .m4a va skanlangan .tiff’gacha.',
         },
         {
           value: 100,
           suffix: '%',
-          label: 'Iqtibosli javoblar',
-          note: 'Javoblar topilgan parchalardan yigʻiladi. Manbasiz daʼvoni qurib boʻlmaydi.',
+          label: 'Manbali javoblar',
+          note: 'Javob topilgan parchalardan yigʻiladi. Manbasiz jumla umuman paydo boʻlmaydi.',
         },
         {
           value: 1,
           suffix: '',
-          label: 'Oʻrnatma — sizniki',
-          note: 'Dizayni boʻyicha bitta ijarachi. Umumiy indeks yoʻq, umumiy infratuzilma yoʻq, qoʻshni yoʻq.',
+          label: 'Oʻrnatma — faqat sizniki',
+          note: 'Bitta mijoz, bitta oʻrnatma. Umumiy indeks ham, qoʻshni ham yoʻq.',
         },
       ],
     },
 
     pricing: {
       label: 'Narxlar',
-      headline: ['Ikki narx.', 'Bitta suhbat.'],
-      body: 'Individual va Jamoa narxlari ochiq koʻrsatilgan, chunki bu bitta dasturning ikki oʻlchami. Korxona tarifi esa oʻz devorlaringiz ichida, oʻz uskunangizda ishlaydi — shuning uchun u sahifada bosilmaydi, balki infratuzilmangizga qarab hisoblanadi.',
-      more: 'Har bir tarifda nima borligini koʻring',
+      headline: ['Ikkita narx.', 'Bitta suhbat.'],
+      body: 'Individual va Jamoa tariflarining narxi ochiq — bu bitta dasturning ikki oʻlchami. Korxona tarifi esa oʻz uskunangizda ishlaydi, shuning uchun uning narxi sahifada turmaydi: infratuzilmangizga qarab hisoblanadi.',
+      more: 'Tariflarning toʻliq roʻyxati',
     },
 
     cta: {
-      label: 'Dizayn hamkorlar',
-      headline: ['Biz bir nechta', 'dizayn hamkor tanlayapmiz.'],
-      body: 'CompanyMind bu muammoni yechishga yordam beradigan darajada uni chuqur his qiladigan bir nechta tartibga solinadigan jamoa bilan birga qurilmoqda. Agar bilimingiz sochilgan boʻlsa va maʼlumotingiz tashqariga chiqa olmasa — gaplashishimiz kerak.',
+      label: 'Hamkorlik',
+      headline: ['Bir nechta hamkor', 'tanlayapmiz.'],
+      body: 'CompanyMind’ni shu muammoni yaxshi biladigan bir nechta jamoa bilan birga quryapmiz. Bilimingiz sochilib yotgan boʻlsa va maʼlumotingiz tashqariga chiqa olmasa — gaplashaylik.',
       formLabel: 'Ish pochtangiz',
       formPlaceholder: 'siz@kompaniya.uz',
       submit: 'Suhbatni boshlash',
-      sending: 'Yuborilmoqda…',
-      fineprint: 'Bitta odamdan bitta javob. Ketma-ketlik yoʻq, axborotnoma yoʻq.',
+      sending: 'Yuborilyapti…',
+      fineprint: 'Bitta odam oʻqiydi, bitta odam javob yozadi. Reklama xatlari yoʻq.',
       success: 'Qabul qilindi. Tez orada bogʻlanamiz.',
       error: `Yuborilmadi. Toʻgʻridan-toʻgʻri ${brand.email} manziliga yozing.`,
     },
 
     telemetry: {
       artifacts: 'hujjatlar',
-      sourcesCited: 'iqtibos manbalari',
+      sourcesCited: 'koʻrsatilgan manbalar',
       queries: 'soʻrovlar',
-      dataEgress: 'maʼlumot chiqishi',
+      dataEgress: 'tashqariga chiqdi',
       egressValue: '0 bayt',
       state: 'holat',
       scenes: {
         hero: 'sochilgan',
         problem: 'indekssiz',
-        turn: 'oʻqilmoqda',
-        ask: 'javob bermoqda',
-        sovereign: 'muhrlangan',
-        features: 'yigʻilmoqda',
-        proof: 'tinch',
-        pricing: 'narxlangan',
-        cta: 'himoyalangan',
+        turn: 'oʻqilyapti',
+        ask: 'javob berilyapti',
+        sovereign: 'yopiq',
+        features: 'yigʻilyapti',
+        proof: 'barqaror',
+        pricing: 'narxlar',
+        cta: 'himoyada',
       },
     },
 
     canvasAlt:
-      'Iliq qogʻoz ustidagi jonli diagramma. Chizilgan chegara infratuzilmangizning qirrasini belgilaydi. Uning ichida sochilgan hujjatlar, suhbat xabarlari, PDF fayllar, rasmlar, xatlar, jadvallar va ovozli xabarlar tartibsiz suzib yuradi — baʼzilari takrorlangan, baʼzilari xiralashib yoʻqolgan. Sahifa pastga surilgani sari ular ichkariga oqib, yagona bogʻlangan toʻrga — bitta miyaga uyushadi. Savol shu toʻr orqali oʻtib javob qaytaradi va javobning har bir qismidan u olingan aniq manbagacha chiziqlar tortiladi. Hech narsa hech qachon chegaradan oʻtmaydi.',
+      'Iliq qogʻoz ustidagi jonli chizma. Chizilgan chegara — infratuzilmangizning qirrasi. Uning ichida hujjatlar, yozishmalar, PDF fayllar, rasmlar, xatlar, jadvallar va ovozli xabarlar tartibsiz suzib yuradi; baʼzilari takrorlangan, baʼzilari xiralashib yoʻqolgan. Sahifa pastga surilgani sari ular ichkariga tortilib, yagona bogʻlangan toʻrga — bitta miyaga aylanadi. Savol shu toʻrdan oʻtib javob qaytaradi, javobning har bir qismidan esa oʻzi olingan aniq manbaga chiziq tortiladi. Hech narsa chegaradan tashqariga chiqmaydi.',
   },
 
   /* -------------------------------------------------------------------------
    * /product — «qanday ishlaydi» sahifasi.
-   * Fayl nomlari — MISOL uchun, mijoz oʻz oʻrnatmasida koʻradigan fayllar. Bu
-   * keys tadqiqot emas. Demo ostidagi `caption` shuni sahifada aytadi —
+   * Fayl nomlari — MISOL uchun; mijoz oʻz oʻrnatmasida oʻz fayllarini koʻradi.
+   * Bu keys tadqiqot emas. Demo ostidagi `caption` shuni sahifada aytadi —
    * uni oʻchirmang.
    * ----------------------------------------------------------------------- */
   product: {
     meta: {
       title: 'Mahsulot',
       description:
-        'CompanyMind qanday ishlaydi: kompaniyangizdagi har bir manba oʻqiladi va siz soʻrov bera oladigan bitta indeksga uyushtiriladi — har bir jumla oʻzi olingan hujjatga iqtibos bilan.',
+        'CompanyMind qanday ishlaydi: kompaniyangizdagi har bir manba oʻqiladi va savol berish mumkin boʻlgan yagona indeksga yigʻiladi. Javobdagi har bir jumla oʻzi olingan hujjatni koʻrsatadi.',
     },
     chapterLabel: 'Bob',
 
     hero: {
       eyebrow: 'Qanday ishlaydi',
-      headline: ['Hammasi kiradi.', 'Bitta javob chiqadi.', 'Iqtibossiz hech narsa.'],
-      sub: 'CompanyMind kompaniyangizda allaqachon bor har bir manbani oʻqiydi, ularni yagona bogʻlangan indeksga uyushtiradi va shu indeksdan javob beradi. Javobdagi har bir jumla oʻzi olingan hujjatga koʻrsatkich saqlaydi. Bularning bari sizning uskunangizda ishlaydi.',
-      pipeline: ['oʻqish', 'uyushtirish', 'soʻrash', 'iqtibos'],
+      headline: ['Hammasi kiradi.', 'Bitta javob chiqadi.', 'Manbasiz — hech narsa.'],
+      sub: 'CompanyMind kompaniyangizda allaqachon bor har bir manbani oʻqiydi, ularni yagona bogʻlangan indeksga yigʻadi va javobni oʻsha indeksdan quradi. Javobdagi har bir jumla oʻzi olingan hujjatni koʻrsatadi. Bularning bari sizning uskunangizda bajariladi.',
+      pipeline: ['oʻqish', 'yigʻish', 'soʻrash', 'manba'],
     },
 
     ingest: {
       chapter: '01',
       label: 'Oʻqish',
-      headline: ['Sizdagi hamma narsa.', 'Faqat tartiblisi emas.'],
-      body: 'CompanyMind’ni umumiy papkaga, pochta qutisiga, suhbat eksportiga yoki skanlar papkasiga yoʻnaltiring. U topganini oʻqiydi. Shartnoma, unutilgan jadval varagʻi, suratga olingan doska va bir soatlik qoʻngʻiroq — hammasi bir xil narsa boʻlib keladi: miya fikr yurita oladigan matn, asl nusxaga qaytish yoʻli bilan.',
+      headline: ['Bor narsangizning hammasi.', 'Faqat tartiblisi emas.'],
+      body: 'CompanyMind’ni umumiy papkaga, pochta qutisiga, yozishmalar eksportiga yoki skanlar jildiga ulang — u topganini oʻqiydi. Shartnoma ham, unutilgan jadval ham, suratga olingan doska ham, bir soatlik qoʻngʻiroq ham bir xil koʻrinishda keladi: miya tushunadigan matn va asl nusxaga qaytadigan havola.',
       sources: [
         {
           kind: 'doc',
           name: 'q3_risk_review.docx',
-          note: 'Tuzilishi buzilmagan holda oʻqiladi. Sarlavhalar, jadvallar va izohlar oʻzi tashiydigan maʼnoga bogʻlangan qoladi.',
+          note: 'Tuzilishi buzilmasdan oʻqiladi: sarlavhalar, jadvallar va izohlar oʻz maʼnosi bilan bogʻliq qoladi.',
         },
         {
           kind: 'sheet',
           name: 'contract_terms_tracker.xlsx',
-          note: 'Har bir varaq, har bir qator, har bir katak. Uni yaratgan odam ketganidan beri hech kim ochmagan varaq ham.',
+          note: 'Har bir varaq, har bir qator, har bir katak. Uni yaratgan odam ishdan ketganidan beri hech kim ochmagan varaq ham.',
         },
         {
           kind: 'pdf',
           name: 'meridian_msa_executed.pdf',
-          note: 'Band-band tahlil qilinadi, shuning uchun iqtibos «14-bet, qayerdadir» emas, «Ilova 2 §4.1» ga koʻrsata oladi.',
+          note: 'Band-band ajratiladi, shuning uchun havola «14-betning bir yerida» emas, «Ilova 2 §4.1» ga olib boradi.',
         },
         {
           kind: 'scan',
           name: 'scan_0042.tiff',
-          note: 'Suratga olingan sahifa — kimdir oʻqimaguncha shunchaki rasm. OCR uni qidiriladigan va iqtibos qilinadigan matnga aylantiradi.',
+          note: 'Suratga olingan sahifa — kimdir oʻqimaguncha oddiy rasm. OCR uni qidiriladigan va havola qilinadigan matnga aylantiradi.',
         },
         {
           kind: 'email',
           name: 're_meridian_redlines.eml',
-          note: 'Yozishma tartibi bilan, biriktirmalar qoʻshib, qaror aslida qachon qabul qilingani sanasi bilan.',
+          note: 'Yozishma zanjiri tartibi bilan, ilovalari qoʻshib, qaror aslida qachon qabul qilingani bilan.',
         },
         {
           kind: 'chat',
           name: 'deal_desk_export.json',
-          note: 'Xabarlar ketma-ketligi, kim va qachon yozgani bilan. Martdagi yozishma endi rivoyat boʻlib qolmaydi.',
+          note: 'Xabarlar ketma-ketligi, kim va qachon yozgani bilan. Martdagi suhbat endi eslab qolingan gap emas, hujjat.',
         },
         {
           kind: 'image',
           name: 'whiteboard_2026-03-12.jpg',
-          note: 'Skrinshotlar, diagrammalar, doska suratlari. Ulardagi matn oʻqiladi va rasm shu matn yonida indekslanadi.',
+          note: 'Skrinshot, chizma, doska surati. Ulardagi matn oʻqiladi va rasm oʻsha matn bilan birga indekslanadi.',
         },
         {
           kind: 'audio',
           name: 'meridian_call_14mar.m4a',
-          note: 'Bir soatlik qoʻngʻiroq vaqt belgili transkriptga aylanadi. 00:41 da nima kelishilgani endi ikki kishining yarim esida qolgan narsa emas.',
+          note: 'Bir soatlik qoʻngʻiroq vaqt belgili transkriptga aylanadi. 00:41 da nima kelishilgani endi ikki kishining yarim esidagi gap emas.',
         },
       ],
-      footnote:
-        'Bugun 12 ta oʻqish adapteri ishlab chiqilgan: .docx’dan .m4a’gacha va skanlangan .tiff’gacha.',
+      footnote: 'Bugun 12 xil format oʻqiladi: .docx’dan .m4a va skanlangan .tiff’gacha.',
     },
 
     organize: {
       chapter: '02',
-      label: 'Uyushtirish',
+      label: 'Yigʻish',
       headline: ['Sochilgan holda kiradi.', 'Bogʻlangan holda chiqadi.'],
-      body: 'Fayllarni oʻqish — oson yarmi. Uni miyaga aylantiradigan narsa keyin sodir boʻladi: nusxalar qisqaradi, formatlar yoʻqoladi va bir xil narsa haqida gapiradigan hamma narsa yonma-yon turadi.',
+      body: 'Fayllarni oʻqish — ishning oson qismi. Miya keyin paydo boʻladi: nusxalar birlashadi, formatlar ahamiyatini yoʻqotadi va bitta narsa haqidagi hamma maʼlumot yonma-yon turadi.',
       beats: [
         {
-          title: 'Nusxalar qisqaradi',
-          body: '«final» deb nomlangan toʻrtta fayl tarixi bor bitta hujjatga aylanadi. Javob beradigani — aslida imzolangani.',
+          title: 'Nusxalar birlashadi',
+          body: '«final» nomli toʻrtta fayl tarixi bor bitta hujjatga aylanadi. Javob esa haqiqatan imzolangan nusxadan olinadi.',
         },
         {
           title: 'Yagona bogʻlangan indeks',
-          body: 'Shartnoma, uni umumlashtirgan jadval qatori va u haqda bahs boʻlgan qoʻngʻiroq endi uchta tizim emas. Ular uchta qoʻshniga aylanadi.',
+          body: 'Shartnoma, uni qisqacha yozib qoʻyilgan jadval qatori va u haqda bahs boʻlgan qoʻngʻiroq endi uchta alohida tizim emas — yonma-yon turgan uchta manba.',
         },
         {
           title: 'Format ahamiyatini yoʻqotadi',
@@ -371,235 +399,250 @@ export const uz: Dictionary = {
         },
       ],
       permission: {
-        label: 'Hal qiluvchi qism',
-        title: 'Boshidanoq ruxsatni biladi',
-        body: 'Kirish nazorati maʼlumot bilan birga keladi va unga bogʻlangan qoladi. Faylni hech qachon ocha olmagan odam undan bitta jumlani ham ololmaydi va uni javobdagi iqtibosda koʻrmaydi.',
+        label: 'Eng muhimi',
+        title: 'Ruxsatlar boshidanoq hisobga olinadi',
+        body: 'Kirish huquqi maʼlumot bilan birga keladi va undan ajralmaydi. Faylni ocha olmagan odam undan bitta jumla ham ololmaydi va uni javobdagi manbalar orasida ham koʻrmaydi.',
         emphasis:
-          'Ruxsatlar oxirida ustiga qoʻyilgan filtr emas. Ular indeksning xossasi. Hech narsa hamma oʻqiy oladigan bitta uyumga tekislanmaydi.',
+          'Ruxsatlar oxirida ustiga qoʻyilgan filtr emas — ular indeksning bir qismi. Hech narsa hamma oʻqiy oladigan umumiy uyumga aylanmaydi.',
       },
     },
 
     ask: {
       chapter: '03',
       label: 'Soʻrash',
-      headline: ['Savol kiradi.', 'Tekshira oladigan javob chiqadi.'],
-      body: 'Javoblar model boshqa joyda oʻqiganini eslab qolganidan emas, sizning maʼlumotingiz nima deyayotganidan quriladi. Har bir jumla oʻzi yasalgan parchaga koʻrsatkich saqlaydi va bu koʻrsatkich javobning oʻzida — sizdan ishonish soʻraladigan izohda emas.',
+      headline: ['Savol kiradi.', 'Tekshirsa boʻladigan javob chiqadi.'],
+      body: 'Javob model boshqa joyda oʻqib eslab qolganidan emas, sizning maʼlumotingizdan quriladi. Har bir jumla oʻzi yasalgan parchani koʻrsatadi va bu koʻrsatkich javobning ichida turadi — «ishoning» degan izohda emas.',
       demo: {
-        label: 'Ishlangan misol',
-        question: 'Meridian shartnomasida maʼlumot rezidentligi boʻyicha nimaga rozi boʻlgan edik?',
+        label: 'Namuna',
+        question:
+          'Meridian shartnomasida maʼlumotlarni saqlash joyi boʻyicha nimaga kelishgan edik?',
         answerLabel: 'Javob',
         answer: [
           {
-            text: 'Barcha mijoz maʼlumotlari mintaqa ichida qoladi: chegara ortiga uzatish ham, xorijiy nusxa ham yoʻq.',
+            text: 'Mijoz maʼlumotlari mintaqadan chiqmaydi: chegara ortiga uzatish ham, xorijdagi nusxa ham yoʻq.',
             cite: 1,
           },
           { text: 'Saqlash muddati dastlabki 36 oydan 18 oyga tushirildi.', cite: 2 },
           {
-            text: 'Bu oʻzgarishni huquq boʻlimi 36 oylik shartni siyosatdan tashqari deb belgilagach olib bordi.',
+            text: 'Bu oʻzgarishni huquq boʻlimi 36 oylik shartni siyosatga zid deb topgach kiritdi.',
             cite: 3,
           },
           {
-            text: 'Mijoz 14-mart qoʻngʻirogʻida, oʻchirish har chorakda hujjatlashtirilishi sharti bilan rozi boʻldi.',
+            text: '14-mart qoʻngʻirogʻida mijoz oʻchirish har chorakda hujjatlashtirilishi sharti bilan rozi boʻldi.',
             cite: 4,
           },
         ],
-        telemetry: ['topildi: 4 parcha', 'iqtibos: 4 hujjat', 'chiqish: 0 bayt'],
+        telemetry: ['topildi: 4 parcha', 'manba: 4 hujjat', 'tashqariga: 0 bayt'],
         sourcesLabel: 'Manbalar',
         sourcesCount: '{n} ta hujjat',
         sources: [
-          { id: 1, kind: 'pdf', name: 'meridian_msa_executed.pdf', detail: 'Ilova 2 · §4.1 · 14-bet' },
+          {
+            id: 1,
+            kind: 'pdf',
+            name: 'meridian_msa_executed.pdf',
+            detail: 'Ilova 2 · §4.1 · 14-bet',
+          },
           {
             id: 2,
             kind: 'sheet',
             name: 'contract_terms_tracker.xlsx',
             detail: '87-qator · «Saqlash (oy)»',
           },
-          { id: 3, kind: 'email', name: 're: Meridian redlines', detail: 'Huquq · 12-mart · 09:41' },
-          { id: 4, kind: 'audio', name: 'meridian_call_14mar.m4a', detail: 'Transkript · 00:41:12' },
+          {
+            id: 3,
+            kind: 'email',
+            name: 're: Meridian redlines',
+            detail: 'Huquq boʻlimi · 12-mart · 09:41',
+          },
+          {
+            id: 4,
+            kind: 'audio',
+            name: 'meridian_call_14mar.m4a',
+            detail: 'Transkript · 00:41:12',
+          },
         ],
-        backLabel: 'Daʼvoga qaytish',
+        backLabel: 'Javobga qaytish',
         sourceAria: '{n}-manba',
         caption:
-          'Misol uchun. Hujjatlar — mijozning oʻz fayllari va javob faqat ulardan yigʻiladi. Har bir belgi aniq hujjat ichidagi joyga — betga, qatorga, vaqt belgisiga — olib boradi va asl nusxani oʻsha joydan ochadi.',
+          'Namuna uchun. Hujjatlar — mijozning oʻz fayllari, javob esa faqat oʻshalardan yigʻilgan. Har bir belgi hujjatning aniq joyiga — betiga, qatoriga, vaqt belgisiga — olib boradi va asl nusxani oʻsha yerdan ochadi.',
       },
       pipelineLabel: 'Bu qanday sodir boʻldi',
       pipeline: [
         {
           title: 'Oʻqiydi',
-          body: 'Savol sizning uskunangizda ishlayotgan model tomonidan indeksingizga qarab talqin qilinadi. Tushunilishi uchun u binodan chiqmaydi.',
+          body: 'Savolni sizning uskunangizda ishlayotgan model indeksingizga qarab tushunadi. Savol binodan chiqmaydi.',
         },
         {
-          title: 'Topadi',
-          body: 'Nomzod parchalar faqat shu odamga allaqachon ruxsat berilgan hujjatlardan olinadi. Boshqa hech narsa nomzod emas.',
+          title: 'Qidiradi',
+          body: 'Nomzod parchalar faqat shu odam koʻrishga haqli hujjatlardan olinadi. Qolgani umuman koʻrib chiqilmaydi.',
         },
         {
           title: 'Yigʻadi',
-          body: 'Javob oʻsha parchalardan yoziladi. Har bir jumla oʻzini keltirib chiqargan parchaga koʻrsatkich olib yuradi.',
+          body: 'Javob oʻsha parchalardan yoziladi. Har bir jumla oʻzi kelib chiqqan parchani koʻrsatadi.',
         },
         {
-          title: 'Iqtibos qiladi',
-          body: 'Koʻrsatkichlar hujjatlarga va ular ichidagi joylarga olib boradi. Asl nusxani oching va oʻzingiz oʻqing. Butun gap shunda.',
+          title: 'Manbani koʻrsatadi',
+          body: 'Koʻrsatkichlar hujjatlarga va ular ichidagi aniq joyga olib boradi. Asl nusxani ochib, oʻzingiz oʻqiysiz. Gap shunda.',
         },
         {
           title: 'Qayd etadi',
-          body: 'Savol, javob va koʻrilgan har bir manba sizning audit izingizga, sizning tizimlaringizga, oʻz saqlash jadvalingiz boʻyicha tushadi.',
+          body: 'Savol, javob va koʻrilgan har bir manba sizning audit jurnalingizga, sizning tizimlaringizga tushadi.',
         },
       ],
       construction:
-        'Har bir javob iqtibos olib yuradi, chunki uni boshqacha qurishning iloji yoʻq. Javob topilgan parchalardan yigʻiladi, demak manbasiz jumlaning yasaladigan narsasi yoʻq.',
+        'Har bir javob manbasini koʻrsatadi, chunki uni boshqacha qurishning imkoni yoʻq: javob topilgan parchalardan yigʻiladi, demak manbasiz jumlaning yasaladigan joyi yoʻq.',
       empty: {
-        title: 'Javob yoʻq boʻlsa',
-        body: 'CompanyMind shuni aytadi va qayerlarga qaraganini koʻrsatadi. Tartibga solinadigan hujjatda ishonchli taxmin sukutdan battar.',
+        title: 'Javob topilmasa',
+        body: 'CompanyMind shuni ochiq aytadi va qayerlarni qidirganini koʻrsatadi. Tartibga solinadigan sohada ishonch bilan aytilgan taxmin sukutdan ham yomon.',
       },
       footnote:
-        'Manba yoʻq — daʼvo ham yoʻq. Agar maʼlumotingiz buni aytmasa, CompanyMind ham aytmaydi.',
+        'Manbasi yoʻq javob ham yoʻq. Maʼlumotingizda yozilmagan gapni CompanyMind ham aytmaydi.',
     },
 
     close: {
       label: 'Keyingisi',
-      headline: ['Bularning hech biri', 'hech qachon chiqmaydi.'],
-      body: 'Bu sahifadagi har bir qadam — oʻqish, indeks, model, javob, audit jurnali — siz nazorat qiladigan uskunada ishlaydi. Yoʻlda vendor buluti yoʻq, chunki umuman vendor buluti yoʻq. Bu qanday qurilgani va sizdagi mavjud majburiyatlar uchun nimani anglatishi — alohida sahifa.',
+      headline: ['Bularning hech biri', 'tashqariga chiqmaydi.'],
+      body: 'Bu sahifadagi har bir qadam — oʻqish, indeks, model, javob, audit jurnali — siz nazorat qiladigan uskunada bajariladi. Yoʻlda birovning buluti yoʻq, chunki umuman bulut yoʻq. Bu qanday qurilgani va mavjud majburiyatlaringiz uchun nimani anglatishi — alohida sahifada.',
       primary: { label: 'Arxitekturani koʻrish', href: ROUTES.security },
-      secondary: { label: 'Dizayn hamkor boʻling', href: ROUTES.contact },
+      secondary: { label: 'Hamkor boʻling', href: ROUTES.contact },
     },
   },
 
   /* -------------------------------------------------------------------------
    * /security — auditoriya: bank yoki shifoxonaning axborot xavfsizligi rahbari.
-   * Argument — arxitektura. Bizda sertifikat yoʻq, shuning uchun hech qanday
-   * sertifikatga ishora qilmaymiz. `verify` qatorlari sahifaning umurtqasi:
+   * Butun dalil — arxitektura. Bizda sertifikat yoʻq, shuning uchun hech qanday
+   * sertifikatga ishora ham qilmaymiz. `verify` qatorlari sahifaning umurtqasi:
    * oʻquvchi oʻzi tekshira olmaydigan daʼvoni bu yerga qoʻshmang.
    * ----------------------------------------------------------------------- */
   security: {
     meta: {
       title: 'Xavfsizlik',
       description:
-        'CompanyMind butunlay sizning perimetringiz ichida ishlaydi. Chiquvchi yoʻl yoʻq, vendor kirishi yoʻq, umumiy ijara yoʻq — va biz qoʻlga kiritmagan sertifikat daʼvolari ham yoʻq. Argument — arxitekturaning oʻzi.',
+        'CompanyMind butunlay sizning perimetringiz ichida ishlaydi: tashqariga yoʻl yoʻq, bizga kirish yoʻli yoʻq, umumiy oʻrnatma yoʻq. Qoʻlga kiritmagan sertifikatlar haqida daʼvo ham yoʻq — butun dalil arxitekturaning oʻzida.',
     },
 
     hero: {
       label: 'Xavfsizlik',
-      headline: ['Bizga hech qachon ishonish', 'shart boʻlmasin deb qurdik.'],
-      sub: 'CompanyMind — sizning perimetringiz ichida ishlaydigan dastur. Vendor buluti yoʻq, telemetriya kanali yoʻq, texnik yordam tunneli yoʻq. Bu sahifadagi har bir xossa dastur qayerda ishlashidan kelib chiqadi — demak, bir soʻziga ishonishdan oldin uni oʻz tarmogʻingizda sinab koʻrishingiz mumkin.',
+      headline: ['Bizga ishonish shart', 'boʻlmasin deb qurdik.'],
+      sub: 'CompanyMind — sizning perimetringiz ichida ishlaydigan dastur. Tashqi bulut ham, telemetriya kanali ham, texnik yordam tunneli ham yoʻq. Bu sahifadagi har bir xossa dastur qayerda ishlashidan kelib chiqadi, demak bir soʻzimizga ishonishdan oldin hammasini oʻz tarmogʻingizda sinab koʻra olasiz.',
     },
 
     rail: [
-      { label: 'chiqish', value: '0 bayt' },
-      { label: 'vendor kirishi', value: 'yoʻq' },
-      { label: 'ijara', value: 'yakka — sizniki' },
+      { label: 'tashqariga', value: '0 bayt' },
+      { label: 'bizning kirishimiz', value: 'yoʻq' },
+      { label: 'oʻrnatma', value: 'faqat sizniki' },
     ],
 
     perimeter: {
       label: 'Perimetr',
-      headline: ['Xavfsizlik chegarasi —', 'sizning devorlaringiz.'],
-      body: 'CompanyMind siz baholashingiz kerak boʻlgan oʻz xavfsizlik chegarasini olib kelmaydi. U sizningkini meros qilib oladi. Qayerda ishlashini tanlang; bu sahifadagi qolgan hamma narsa oʻsha bitta tanlovning natijasi.',
+      headline: ['Xavfsizlik chegarasi —', 'sizning chegarangiz.'],
+      body: 'CompanyMind siz baholab chiqishingiz kerak boʻlgan yangi xavfsizlik chegarasi olib kelmaydi — u sizningkini oladi. Qayerda ishlashini tanlaysiz; bu sahifadagi qolgan hamma narsa oʻsha bitta tanlovdan kelib chiqadi.',
       modes: [
         {
           n: '01',
-          name: 'Sizning serverxonangiz',
-          line: 'Toza temir yoki oʻz virtualizatsiyangiz — siz allaqachon egalik qiladigan, joylashtiradigan va tekshiradigan uskunada.',
+          name: 'Oʻz serveringiz',
+          line: 'Toza temirda yoki oʻz virtualizatsiyangizda — siz egalik qiladigan, oʻzingiz joylashtirgan va tekshirib turadigan uskunada.',
         },
         {
           n: '02',
-          name: 'Sizning VPC’ingiz',
-          line: 'Sizning bulut hisobingiz, tarmoqchalaringiz, xavfsizlik guruhlaringiz, kalitlaringiz. Bizga ularning hech biriga kirish maʼlumoti berilmaydi.',
+          name: 'Oʻz VPC’ingiz',
+          line: 'Sizning bulut hisobingiz, tarmoqchalaringiz, xavfsizlik guruhlaringiz, kalitlaringiz. Bizga bularning birortasidan kirish maʼlumoti berilmaydi.',
         },
         {
           n: '03',
           name: 'Air-gap',
-          line: 'Internetga umuman yoʻli yoʻq tarmoq. Modellar va indeks oʻrnatma bilan birga keladi va oflayn ishlaydi.',
+          line: 'Internetga umuman ulanmagan tarmoq. Modellar va indeks oʻrnatma bilan birga keladi, hammasi oflayn ishlaydi.',
         },
       ],
     },
 
     dataflow: {
       label: 'Maʼlumot oqimi',
-      headline: ['Hamma narsa devor', 'ichida sodir boʻladi.'],
-      body: 'Oʻqish, indekslash va javob berish — hammasi lokal jarayonlar. Bu diagrammadagi hech bir qadam paketning tarmogʻingizdan chiqishini talab qilmaydi va uni yuboradigan kod yoʻlining oʻzi mavjud emas.',
+      headline: ['Hammasi chegara', 'ichida boʻlib oʻtadi.'],
+      body: 'Oʻqish, indekslash va javob berish — hammasi lokal jarayonlar. Bu chizmadagi birorta qadam paketning tarmogʻingizdan chiqishini talab qilmaydi, uni yuboradigan kodning oʻzi esa yozilmagan.',
       wallLabel: 'Sizning infratuzilmangiz',
       stages: [
         {
           label: 'Oʻqish',
-          title: 'Sizning manbalaringiz',
-          line: 'Fayllar, suhbatlar, xatlar, rasmlar, audio, jadvallar — allaqachon turgan joyidan oʻqiladi.',
+          title: 'Manbalaringiz',
+          line: 'Fayllar, yozishmalar, xatlar, rasmlar, audio, jadvallar — turgan joyidan oʻqiladi.',
         },
         {
           label: 'Indeks',
           title: 'Bitta miya',
-          line: 'Lokal tahlil qilinadi, vektorlanadi va bogʻlanadi. Har bir manbaning kirish nazorati u bilan birga yuradi.',
+          line: 'Lokal tahlil qilinadi, vektorga aylanadi va bogʻlanadi. Har bir manbaning kirish huquqi u bilan birga yuradi.',
         },
         {
           label: 'Javob',
-          title: 'Iqtibos bilan',
+          title: 'Manbasi bilan',
           line: 'Topilgan parchalardan yigʻiladi, har biri oʻzi olingan hujjatgacha kuzatiladi.',
         },
       ],
       audit: {
         label: 'Audit',
-        line: 'Har bir savol, har bir javob, koʻrilgan har bir manba — sodir boʻlgani zahoti sizning jurnal tizimingizga yoziladi.',
+        line: 'Har bir savol, har bir javob va koʻrilgan har bir manba oʻsha zahoti sizning jurnal tizimingizga yoziladi.',
       },
       barriers: [
         {
           dir: 'outbound',
-          label: 'Chiquvchi yoʻl yoʻq',
-          target: 'Model API’lari · vendor buluti · telemetriya',
-          note: 'Bu oʻchirib qoʻyilgan sozlama emas. Tashqariga qoʻngʻiroq qiladigan kodning oʻzi yoʻq.',
+          label: 'Tashqariga yoʻl yoʻq',
+          target: 'Model API’lari · tashqi bulut · telemetriya',
+          note: 'Bu oʻchirib qoʻyilgan sozlama emas. Tashqariga murojaat qiladigan kodning oʻzi yozilmagan.',
         },
         {
           dir: 'inbound',
-          label: 'Kiruvchi yoʻl yoʻq',
+          label: 'Ichkariga yoʻl yoʻq',
           target: 'CompanyMind',
-          note: 'Tunnel yoʻq, orqa eshik yoʻq, masofaviy yordam seansi yoʻq. Biz sizning oʻrnatmangizga yeta olmaymiz.',
+          note: 'Tunnel ham, orqa eshik ham, masofaviy yordam seansi ham yoʻq. Biz sizning oʻrnatmangizga yeta olmaymiz.',
         },
       ],
       caption:
-        'Barcha oʻqish, indekslash va javob berish sizning perimetringiz ichida sodir boʻladi. Uni kesib oʻtadigan ikki yoʻl — vendorga tashqariga va bizdan ichkariga — konfiguratsiyada oʻchirilgan emas, umuman qurilmagan.',
+        'Oʻqish, indekslash va javob berish — hammasi perimetringiz ichida. Uni kesib oʻtishi mumkin boʻlgan ikki yoʻl — tashqariga va bizdan ichkariga — sozlamada oʻchirilgan emas, umuman qurilmagan.',
     },
 
     directions: {
       label: 'Uch yoʻnalish',
-      headline: ['Chiqish tuzilishi', 'boʻyicha nolga teng.'],
-      body: 'Nol — biz erishgan maqsad yoki qoʻygan sozlama emas. Bu arxitektura chiqara oladigan yagona raqam, chunki uni kattalashtiradigan narsa hech qachon qurilmagan.',
+      headline: ['Tashqariga chiqish —', 'tuzilishiga koʻra nol.'],
+      body: 'Nol — biz erishgan koʻrsatkich ham, qoʻyib qoʻyilgan sozlama ham emas. Bu arxitektura chiqara oladigan yagona raqam, chunki uni kattalashtiradigan yoʻl umuman qurilmagan.',
       verifyLabel: 'Tekshiring',
       items: [
         {
           label: 'Tashqariga',
-          title: 'Hech narsa uyga qoʻngʻiroq qilmaydi.',
-          body: 'Telemetriya yoʻq, foydalanish analitikasi yoʻq, litsenziya tekshiruvi yoʻq, xato hisobotlari yoʻq, tashqi model API’si yoʻq. Bu kelgusi versiya jimgina qaytarib yoqib qoʻyishi mumkin boʻlgan katakcha emas. Oʻchiriladigan chiquvchi kod yoʻlining oʻzi yoʻq — demak, tasodifan yoqib qoldiriladigan narsa ham, toʻrtinchi versiyada buziladigan narsa ham yoʻq.',
+          title: 'Hech narsa tashqariga xabar yubormaydi.',
+          body: 'Telemetriya yoʻq, foydalanish statistikasi yoʻq, litsenziya tekshiruvi yoʻq, xatolar hisoboti yoʻq, tashqi model API’si yoʻq. Bu keyingi versiya jimgina qaytarib yoqadigan katakcha emas: oʻchiriladigan chiquvchi kod yoʻlining oʻzi yoʻq. Demak, tasodifan yoqib qoʻyiladigan ham, toʻrtinchi versiyada buziladigan ham narsa yoʻq.',
           verify:
             'Uni «hammasini taqiqla» qoidasi ortiga qoʻying va hech narsa buzilmasligini koʻring.',
         },
         {
           label: 'Ichkariga',
           title: 'Bizda ichkariga yoʻl yoʻq.',
-          body: 'Sizning oʻrnatmangizga kirish maʼlumotlarimiz yoʻq. Yordam tunneli yoʻq, bizga qaratilgan tinglovchi xizmat yoʻq, oʻrnatishda yaratiladigan vendor hisobi yoʻq. Hodisa paytida bizni xonada koʻrmoqchi boʻlsangiz, boshqa har qanday pudratchi kabi oʻz kirish jarayoningiz orqali kiritasiz — va bizdan hamkorlik soʻramasdan, xuddi shu yoʻl bilan bekor qilasiz.',
-          verify:
-            'Oʻrnatishdan keyin katalogingizni tekshiring. Unda bizning hisobimiz yoʻq.',
+          body: 'Sizning oʻrnatmangizdan kirish maʼlumotlarimiz yoʻq. Yordam tunneli yoʻq, bizga qaragan xizmat yoʻq, oʻrnatishda yaratiladigan vendor hisobi yoʻq. Hodisa paytida bizni xonada koʻrmoqchi boʻlsangiz, boshqa har qanday pudratchi kabi oʻz tartibingiz boʻyicha kiritasiz — va bizdan rozilik soʻramasdan, xuddi shu yoʻl bilan chiqarasiz.',
+          verify: 'Oʻrnatishdan keyin katalogingizni tekshiring: unda bizning hisobimiz yoʻq.',
         },
         {
           label: 'Air-gap',
-          title: 'Oflayn — xuddi shu dastur.',
-          body: 'Modellar, indeks va interfeys birga keladi va internetga umuman yoʻlsiz ishlaydi. Air-gap oʻrnatmasi qiziqarli qismlari jimgina olib tashlangan qisqartirilgan nashr emas — bu aynan oʻsha dastur, chunki undagi hech narsa boshidan internetni istamagan. Yangilanishlar oʻsha tarmoqqa hamma narsa keladigan yoʻl bilan keladi: siz olib kiradigan, tekshiradigan va oʻrnatishni oʻzingiz tanlaydigan imzolangan paket sifatida.',
-          verify: 'Kabelni sugʻurib oling. Savol bering. U javob beradi.',
+          title: 'Oflayn ham — oʻsha dastur.',
+          body: 'Modellar, indeks va interfeys birga keladi hamda internetga umuman ulanmasdan ishlaydi. Air-gap oʻrnatmasi qiziqarli qismlari olib tashlangan qisqartirilgan nashr emas — bu aynan oʻsha dastur, chunki undagi hech narsa boshidan internetni talab qilmagan. Yangilanish ham oʻsha tarmoqqa hamma narsa kiradigan yoʻl bilan keladi: siz olib kiradigan, tekshiradigan va oʻrnatishni oʻzingiz hal qiladigan imzolangan paket sifatida.',
+          verify: 'Kabelni sugʻurib oling, savol bering — javob beradi.',
         },
       ],
     },
 
     permissions: {
-      label: 'Kirish nazorati',
-      headline: ['Sizning ruxsatlaringiz,', 'bizning yangilarimiz emas.'],
-      body: 'Har qanday bilim vositasining buzilish holati — tekislangan indeks: hamma narsa bitta qidiriladigan hovuzga soʻriladi va endi notoʻgʻri stoldan berilgan savol kengash taqdimotini qaytaradi. CompanyMind bunday hovuzni qurmaydi.',
+      label: 'Kirish huquqlari',
+      headline: ['Sizning ruxsatlaringiz —', 'bizning yangilarimiz emas.'],
+      body: 'Har qanday bilim tizimining eng jiddiy nosozligi — tekislangan indeks: hamma narsa bitta qidiriladigan uyumga soʻriladi va endi notoʻgʻri stoldan berilgan savol kengash taqdimotini qaytaradi. CompanyMind bunday uyum yasamaydi.',
       points: [
-        'Indekslangan har bir parcha oʻzi olingan hujjatning kirish nazoratini olib yuradi.',
-        'Qidiruv modelga bitta parcha yetib borishidan oldin soʻrovchining shaxsiga qarab filtrlaydi.',
-        'Shaxs sizning katalogingizdan keladi — guruhlaringiz, rollaringiz, bekor qilishlaringiz oʻrnatishda nusxalanmaydi, soʻrov paytida hal qilinadi.',
-        'Faylni ocha olmagan odam undan qurilgan javobni ololmaydi. U iqtiboslarda ham koʻrinmaydi, chunki umuman topilmagan.',
+        'Indeksga tushgan har bir parcha oʻzi olingan hujjatning kirish huquqini saqlaydi.',
+        'Qidiruv modelga bitta parcha yetib borishidan oldin soʻrayotgan odamga qarab filtrlaydi.',
+        'Kim kimligi sizning katalogingizdan olinadi: guruhlar, rollar va bekor qilishlar oʻrnatishda nusxa koʻchirilmaydi, har bir soʻrovda qaytadan tekshiriladi.',
+        'Faylni ocha olmagan odam undan qurilgan javobni ham ololmaydi. U manbalar roʻyxatida ham koʻrinmaydi, chunki umuman topilmagan.',
       ],
-      close: 'Hech narsa kengaytirilmaydi. Hech narsa tekislanmaydi.',
+      close: 'Hech kimning huquqi kengaymaydi. Hech narsa tekislanmaydi.',
       closeNote:
-        'Foydalanuvchining miyaga koʻrinishi — u asosiy tizimlarda allaqachon koʻrgan koʻrinishining oʻzi. Juma kuni katalogingizda kimningdir huquqini bekor qiling va keyingi savolgacha miya uni unutgan boʻladi.',
+        'Foydalanuvchi miyada aynan asosiy tizimlarda koʻradigan narsani koʻradi. Juma kuni katalogingizda kimningdir huquqini bekor qiling — keyingi savolgayoq miya buni biladi.',
       trace: {
-        label: 'Qidiruv · soʻrovchi boʻyicha filtrlangan',
+        label: 'Qidiruv · soʻrovchiga qarab filtrlangan',
         asker: 'soʻrovchi: j.reyes · guruh: tahlilchilar',
         rows: [
           { ok: true, file: 'q3_pricing_memo.docx', state: 'topildi' },
@@ -612,95 +655,95 @@ export const uz: Dictionary = {
     audit: {
       label: 'Audit',
       headline: ['Har bir savol —', 'qayd etilgan hodisa.'],
-      body: 'Savol, javob, manbalar, shaxs, vaqt belgisi. Sizning jurnal tizimingizga, sizning formatingizda, sizning jadvalingiz boʻyicha yoziladi — auditorlaringiz bizga soʻrov yubormasdan soʻrov bera oladi.',
+      body: 'Savol, javob, manbalar, kim soʻragani va qachon. Hammasi sizning jurnal tizimingizga, sizning formatingizda, sizning muddatingiz boʻyicha yoziladi — auditorlaringiz bizdan soʻramasdan tekshiradi.',
       rows: [
         {
-          k: 'Nima qayd etiladi',
-          v: 'Berilgan savol, qaytarilgan javob, uni qurish uchun topilgan har bir manba parchasi, soʻragan shaxs va qachonligi.',
+          k: 'Nima yoziladi',
+          v: 'Berilgan savol, qaytarilgan javob, uni qurish uchun topilgan har bir parcha, kim soʻragani va qachon.',
         },
         {
           k: 'Qayerga tushadi',
-          v: 'Sizning SIEM’ingizga, jurnal quvuringizga, saqlagichingizga. Yozilgan lahzadan boshlab bu sizning diskingizdagi sizning maʼlumotingiz.',
+          v: 'Sizning SIEM’ingizga, jurnal tizimingizga, saqlagichingizga. Yozilgan lahzadan boshlab bu sizning diskingizdagi sizning maʼlumotingiz.',
         },
         {
-          k: 'Qancha yashaydi',
-          v: 'Sizning saqlash jadvalingiz boʻyicha. Bu haqda bizning fikrimiz ham, uni majburlash mexanizmimiz ham yoʻq.',
+          k: 'Qancha saqlanadi',
+          v: 'Siz belgilagan muddat boʻyicha. Bizda bu haqda na fikr bor, na uni majburlash imkoni.',
         },
         {
           k: 'Kim oʻqiy oladi',
-          v: 'Siyosatingiz kimni aytsa. Biz u roʻyxatda emasmiz va oʻzimizni qoʻsha oladigan yoʻl ham yoʻq.',
+          v: 'Siyosatingiz kimga ruxsat bersa. Biz u roʻyxatda yoʻqmiz va oʻzimizni qoʻsha oladigan yoʻl ham yoʻq.',
         },
       ],
     },
 
     inheritance: {
       label: 'Meros',
-      headline: ['Sizning nazoratlaringiz', 'buni allaqachon qamrab olgan.'],
-      body: 'Sizning muhitingiz ichida ishlaydigan dastur oʻsha muhitni boshqarish uchun allaqachon qoʻllayotgan nazoratlaringiz ostiga tushadi. Bu yerda baholanadigan yangi narsa juda kam — buni shunday qurishning butun maqsadi shu.',
+      headline: ['Nazoratlaringiz buni', 'allaqachon qamrab olgan.'],
+      body: 'Sizning muhitingizda ishlaydigan dastur oʻsha muhitni boshqarish uchun allaqachon qoʻllayotgan nazoratlaringiz ostiga tushadi. Bu yerda alohida baholanadigan yangi narsa deyarli yoʻq — buni shunday qurishdan maqsad ham shu.',
       rows: [
         {
           control: 'Shaxs va kirish',
-          line: 'Sizning IdP, SSO, guruhlaringiz va xodim kelishi-koʻchishi-ketishi jarayoningiz. CompanyMind yonida oʻz foydalanuvchi bazasini qurmaydi, siz allaqachon ishlatayotgan tizimga autentifikatsiya qiladi.',
+          line: 'Sizning IdP, SSO, guruhlaringiz va xodim qabul qilish-oʻzgartirish-boʻshatish tartibingiz. CompanyMind yonida oʻz foydalanuvchi bazasini yasamaydi, siz allaqachon ishlatadigan tizimga ulanadi.',
         },
         {
           control: 'Tarmoq siyosati',
-          line: 'Sizning segmentatsiyangiz, brandmauer qoidalaringiz, «hammasini taqiqla» chiqish siyosatingiz. U boshqa har qanday ichki xizmat kabi ular ichida turadi va istisno soʻramaydi.',
+          line: 'Sizning segmentatsiyangiz, brandmauer qoidalaringiz, «hammasini taqiqla» chiqish siyosatingiz. U boshqa ichki xizmatlar qatorida turadi va oʻziga istisno soʻramaydi.',
         },
         {
           control: 'Kalitlarni boshqarish',
-          line: 'Sizning KMS yoki HSM. Saqlanayotgan maʼlumot siz saqlaydigan va oʻz ritmingizda almashtiradigan kalitlar bilan shifrlanadi. Biz ularni hech qachon koʻrmaymiz va koʻrsak ham ishlata olmaymiz.',
+          line: 'Sizning KMS yoki HSM. Saqlanayotgan maʼlumot siz saqlaydigan va oʻz muddatingizda almashtiradigan kalitlar bilan shifrlanadi. Biz ularni koʻrmaymiz, koʻrsak ham ishlata olmaymiz.',
         },
         {
           control: 'Jurnal va monitoring',
-          line: 'Sizning SIEM uning jurnallarini qabul qiladi. Sizning ogohlantirishlaringiz uni qamrab oladi. Navbatchingiz uni siz boshqaradigan hamma narsa bilan bitta ekranda koʻradi.',
+          line: 'Sizning SIEM uning jurnallarini oladi, ogohlantirishlaringiz uni qamrab oladi. Navbatchingiz uni oʻzi boshqaradigan hamma narsa bilan bitta ekranda koʻradi.',
         },
         {
           control: 'Zaxira va tiklash',
-          line: 'Bu sizning VM va disklaringiz. Mavjud zaxira, tiklash va falokat rejalaringiz unga oʻzgarishsiz tegishli.',
+          line: 'Bu sizning virtual mashinangiz va disklaringiz. Mavjud zaxira, tiklash va favqulodda rejalaringiz unga ham oʻzgarishsiz taalluqli.',
         },
         {
           control: 'Oʻzgarishlarni boshqarish',
-          line: 'Relizlar — siz qabul qiladigan, sinovdan oʻtkazadigan va oʻz jadvalingiz boʻyicha tarqatadigan paketlar. Hech narsa oʻzini yangilamaydi, chunki hech narsa yangilanishni izlash uchun tashqariga chiqa olmaydi.',
+          line: 'Yangilanish — siz qabul qiladigan, sinab koʻradigan va oʻz muddatingizda tarqatadigan paket. Hech narsa oʻzini oʻzi yangilamaydi, chunki yangilanish izlab tashqariga chiqadigan yoʻl yoʻq.',
         },
       ],
       frameworks: {
-        label: 'Sizning majburiyatlaringiz haqida',
-        body: 'Agar majburiyatlaringiz HIPAA, GLBA, DORA, PCI DSS yoki regulyatorning rezidentlik qoidalari orqali oʻtsa, ular siz allaqachon boshqaradigan va hujjatlashtiradigan muhitga bogʻlanadi. CompanyMind’ni oʻsha muhit ichida ishlatish uni oʻsha majburiyatlar allaqachon qamrab olgan chegara ichida qoldiradi — oʻz javobini, oʻz vendor soʻrovnomasini va oʻz istisnosini talab qiladigan ikkinchi chegarani ochish oʻrniga. Majburiyat sizniki boʻlib qoladi. Joylashtirish modeli shunday qurilganki, uni bajarish uchun biz uchun alohida istisno qilishingiz shart emas.',
+        label: 'Majburiyatlaringiz haqida',
+        body: 'Majburiyatlaringiz HIPAA, GLBA, DORA, PCI DSS yoki regulyatorning maʼlumot saqlash joyi boʻyicha qoidalari orqali oʻtsa, ular siz allaqachon boshqaradigan va hujjatlashtiradigan muhitga bogʻlanadi. CompanyMind’ni oʻsha muhitda ishlatish uni oʻsha majburiyatlar qamrab olgan chegara ichida qoldiradi: alohida javob, alohida vendor soʻrovnomasi va alohida istisno talab qiladigan ikkinchi chegara ochilmaydi. Majburiyat sizniki boʻlib qolaveradi, joylashtirish modeli esa uni bajarishni qiyinlashtirmaydi.',
       },
     },
 
     notClaiming: {
-      label: 'Ochiq aytamiz',
-      headline: ['Biz nimani', 'daʼvo qilmayapmiz.'],
-      body: 'Baribir soʻraysiz. Shuning uchun mana, birinchi boʻlib, oʻz soʻzlarimiz bilan — qoʻngʻiroqda bizdan sugʻurib olishingizga hojat qolmasin.',
+      label: 'Ochigʻini aytamiz',
+      headline: ['Nimalarni daʼvo', 'qilmayapmiz.'],
+      body: 'Baribir soʻraysiz. Shuning uchun oʻzimiz aytamiz — qoʻngʻiroqda bizdan sugʻurib olishingizga hojat qolmasin.',
       items: [
         {
           claim: 'Bizda sertifikat yoʻq.',
-          line: 'SOC 2 yoʻq, ISO 27001 yoʻq, HIPAA tasdigʻi yoʻq, FedRAMP ruxsati yoʻq. CompanyMind hali ishga tushmagan. Bu bosqichda boshqacha taassurot qoldiruvchi vendor sahifasi sizga vendor haqida nimadir aytyapti.',
+          line: 'SOC 2 ham, ISO 27001 ham, HIPAA tasdigʻi ham, FedRAMP ruxsati ham yoʻq. CompanyMind hali bozorga chiqmagan. Shu bosqichda boshqacha taassurot qoldirayotgan vendor sahifasi sizga vendor haqida koʻp narsa aytadi.',
         },
         {
           claim: 'Koʻrsatadigan mijozimiz yoʻq.',
-          line: 'Logotiplar yoʻq, keys tadqiqotlar yoʻq, tavsiyalar yoʻq, anonim «yetakchi global bank» yoʻq. Biz hozir birinchi dizayn hamkorlarimizni tanlayapmiz. Referenslar paydo boʻlganda, ular haqiqiy boʻladi va ruxsat bilan nomlanadi.',
+          line: 'Logotiplar ham, keys tadqiqotlar ham, tavsiyalar ham, nomsiz «yirik global bank» ham yoʻq. Biz hozir birinchi hamkorlarimizni tanlayapmiz. Referenslar paydo boʻlganda, ular haqiqiy boʻladi va ruxsat bilan nomlanadi.',
         },
         {
           claim: 'Uni buzib boʻlmaydi demaymiz.',
-          line: 'Dasturda xatolar boʻladi, bizniki ham istisno emas. Halol daʼvo torroq va foydaliroq: chiquvchi yoʻl yoʻq, vendor kirishi yoʻq, umumiy ijara yoʻq — demak, xatolarimizning taʼsir doirasi sizning perimetringizda, nazoratlaringiz allaqachon turgan joyda toʻxtaydi.',
+          line: 'Har qanday dasturda xato boʻladi, bizniki ham istisno emas. Halol daʼvo torroq va foydaliroq: tashqariga yoʻl yoʻq, bizga kirish yoʻli yoʻq, umumiy oʻrnatma yoʻq — demak, xatolarimizning taʼsiri sizning perimetringizda, nazoratlaringiz allaqachon turgan joyda toʻxtaydi.',
         },
         {
-          claim: 'Bularning hech biri benchmark emas.',
-          line: 'Aniqlik foizi yoʻq, kechikish raqami yoʻq, qidiruv bahosi yoʻq. Biz bu raqamlarni qoʻlga kiritmaganmiz, birinchi oʻrnatmadan oldin eʼlon qilinganlari esa marketing arifmetikasi.',
+          claim: 'Bular benchmark emas.',
+          line: 'Aniqlik foizi ham, kechikish raqami ham, qidiruv bahosi ham yoʻq. Biz bu raqamlarni oʻlchab olmaganmiz, birinchi oʻrnatmadan oldin eʼlon qilinganlari esa marketing arifmetikasi.',
         },
       ],
-      close: 'Sertifikat — kompaniya haqidagi bayonot. Arxitektura — tizim haqidagi bayonot.',
+      close: 'Sertifikat — kompaniya haqidagi gap. Arxitektura — tizim haqidagi gap.',
       closeNote:
-        'Biz ikkinchisini berib, uni oʻzingiz tekshirishingizni afzal koʻramiz — auditlar kelganda esa ular allaqachon shunday ishlagan tizimni taʼriflaydi.',
+        'Biz ikkinchisini beramiz va uni oʻzingiz tekshirishingizni istaymiz. Audit kelganda esa u allaqachon shunday ishlab turgan tizimni koʻradi.',
     },
 
     cta: {
-      label: 'Dizayn hamkorlar',
+      label: 'Hamkorlik',
       headline: ['Xavfsizlik soʻrovnomangizni', 'bizga yuboring.'],
-      body: 'Qiyin variantiga erta javob berishni afzal koʻramiz. Agar bu sizning tekshiruvingizdan oʻta oladimi deb hisoblayotgan boʻlsangiz, tekshiruvni olib keling — topologiya, tahdid modeli, auditorlaringiz toʻqqizinchi oyda beradigan savollar. Biz tartibga solinadigan muhitlarda ozgina dizayn hamkor tanlayapmiz va aynan shu suhbatda boʻlishni istaymiz.',
-      fineprint: 'Sotuv ketma-ketligi emas, muhandisdan javob.',
+      body: 'Qiyin savollarga erta javob berishni afzal koʻramiz. Bu tekshiruvimizdan oʻtadimi deb oʻylayotgan boʻlsangiz — tekshiruvni olib keling: topologiya, tahdid modeli, auditorlaringiz toʻqqizinchi oyda beradigan savollar. Biz tartibga solinadigan muhitlardan bir nechta hamkor tanlayapmiz va aynan shunday suhbatda boʻlishni istaymiz.',
+      fineprint: 'Sotuv boʻlimi emas, muhandis javob beradi.',
     },
   },
 
@@ -715,13 +758,13 @@ export const uz: Dictionary = {
     meta: {
       title: 'Narxlar',
       description:
-        'CompanyMind’ni ishlatishning uch yoʻli: bir kishi uchun oyiga $15, 100 kishigacha jamoa uchun oyiga $1 500 va air-gap hamda ichki oʻrnatmalar uchun alohida hisoblanadigan Korxona tarifi.',
+        'CompanyMind’dan foydalanishning uch yoʻli: bir kishi uchun oyiga $15, 100 kishigacha jamoa uchun oyiga $1 200 va air-gap hamda ichki oʻrnatmalar uchun alohida hisoblanadigan Korxona tarifi.',
     },
 
     hero: {
       label: 'Narxlar',
-      headline: ['Ikki narx', 'va bitta suhbat.'],
-      sub: 'Individual va Jamoa — bitta dasturning ikki oʻlchami, shuning uchun ikkalasi ham raqam bilan chiqadi. Korxona tarifi oʻz devorlaringiz ichida, oʻz uskunangizda ishlaydi — bu qancha turishi infratuzilmaga bogʻliq, shuning uchun uni bosmaymiz, hisoblab beramiz.',
+      headline: ['Ikkita narx', 'va bitta suhbat.'],
+      sub: 'Individual va Jamoa — bitta dasturning ikki oʻlchami, shuning uchun ikkalasining ham narxi ochiq. Korxona tarifi esa oʻz uskunangizda, oʻz chegarangiz ichida ishlaydi: bu qancha turishi infratuzilmaga bogʻliq, shuning uchun uni bosib qoʻymaymiz, hisoblab beramiz.',
     },
 
     plans: [
@@ -729,15 +772,16 @@ export const uz: Dictionary = {
         id: '01',
         name: 'Individual',
         badge: null,
-        who: 'Oʻz ishi qidiruv imkoniyatidan oshib ketgan bir kishi uchun — maslahatchi, tahlilchi, sherik, asoschi.',
+        who: 'Oʻz ishi oddiy qidiruv imkoniyatidan oshib ketgan bir kishi uchun: maslahatchi, tahlilchi, sherik, asoschi.',
         price: '$15',
         period: '/ oyiga',
-        priceNote: 'Bir kishi, bitta shaxsiy ish maydoni. Oylik, istagan paytda bekor qilasiz.',
+        priceNote:
+          'Bir kishi, bitta shaxsiy ish maydoni. Oylik toʻlov, istagan paytda bekor qilasiz.',
         features: [
-          'Hech kim yeta olmaydigan bitta shaxsiy ish maydoni.',
-          '2 000 tagacha hujjat va 20 GB manba materiali.',
-          'Barcha formatlar: hujjatlar, jadvallar, PDF, pochta, suhbatlar, rasmlar va audio.',
-          'Iqtibosli javoblar. Har bir daʼvo oʻzi olingan hujjatni ochadi.',
+          'Hech kim yeta olmaydigan shaxsiy ish maydoni.',
+          '2 000 tagacha hujjat va 20 GB manba.',
+          'Barcha formatlar: hujjat, jadval, PDF, xat, yozishma, rasm va audio.',
+          'Manbali javoblar: har bir jumla oʻzi olingan hujjatni ochadi.',
           'Brauzerdan ham, Telegram’dan ham soʻrash.',
           'Pochta orqali qoʻllab-quvvatlash.',
         ],
@@ -745,21 +789,24 @@ export const uz: Dictionary = {
       },
       {
         id: '02',
+        // Ajratib koʻrsatiladigan tarif. Urgʻu --brain va toʻq siyoh tugma
+        // orqali beriladi, hech qachon --sovereign orqali emas (u perimetr
+        // pulsi va bosh sahifadagi CTA uchun saqlangan).
         name: 'Jamoa',
         badge: '100 kishigacha',
-        who: 'Miyani savol bermoqchi boʻlgan har bir xodim oldiga qoʻyishga tayyor kompaniya uchun.',
-        price: '$1 500',
+        who: 'Miyani savoli bor har bir xodim oldiga qoʻyishga tayyor kompaniya uchun.',
+        price: '$1 200',
         period: '/ oyiga',
         priceNote:
-          '100 kishigacha — oʻsha $15, faqat hech kim oʻrindiqlarni sanamaydi. 100 dan oshsa, Korxona tarifi.',
+          '100 kishigacha — bir kishiga $12, yaʼni yakka tarifdan ham arzon. Oʻrindiqlarni hech kim sanamaydi. 100 dan oshsa — Korxona tarifi.',
         features: [
           'Individualdagi hamma narsa, butun kompaniyaga ochilgan.',
-          'Kirish guruhlari: har bir odam faqat oʻziga ruxsat berilgan narsalardan javob oladi.',
-          'Egalik paneli — xodim qoʻshish, guruh berish, ortiqcha ochilganini koʻrish.',
-          'Ish maydoni uchun bitta Telegram bot: tasdiqlash va har bir kishiga guruh.',
+          'Kirish guruhlari: har kim faqat oʻziga ruxsat berilgan hujjatlardan javob oladi.',
+          'Egalik paneli: xodim qoʻshish, guruh berish, ortiqcha ochilganini koʻrish.',
+          'Ish maydoni uchun bitta Telegram bot: odamlarni tasdiqlash va har biriga guruh.',
           'Audit eksporti: har bir savol, javob va manba jurnal tizimingizga.',
-          'Biznikida joylashtiriladi yoki oʻz VPC’ingizda — narx bir xil.',
-          '100 000 tagacha hujjat va 1 TB manba materiali.',
+          'Bizda joylashtiriladi yoki oʻz VPC’ingizga oʻrnatiladi — narx bir xil.',
+          '100 000 tagacha hujjat va 1 TB manba.',
         ],
         cta: 'Jamoa uchun hisoblatish',
       },
@@ -767,89 +814,95 @@ export const uz: Dictionary = {
         id: '03',
         name: 'Korxona',
         badge: null,
-        who: 'Bank, shifoxona tarmogʻi, yuridik firma yoki mudofaa yetkazib beruvchisi uchun — ichki joylashtirish xohish emas, regulyatorning talabi boʻlgan joyda.',
+        who: 'Bank, shifoxona tarmogʻi, yuridik firma yoki mudofaa yetkazib beruvchisi uchun — ichki oʻrnatma xohish emas, regulyator talabi boʻlgan joyda.',
         price: 'Kelishiladi',
         period: '',
         priceNote:
-          'Infratuzilmangizga qarab hisoblanadi: qancha oʻqiladi, necha kishi soʻraydi va kimning uskunasida ishlaydi. Air-gap oʻrnatmalari alohida loyiha.',
+          'Infratuzilmangizga qarab hisoblanadi: qancha maʼlumot oʻqiladi, necha kishi soʻraydi va kimning uskunasida ishlaydi. Air-gap oʻrnatmasi alohida loyiha.',
         features: [
-          'Jamoadagi hamma narsa, umuman chiquvchi yoʻlsiz.',
+          'Jamoadagi hamma narsa, tashqariga umuman yoʻlsiz.',
           'Cheklanmagan xodim, cheklanmagan hujjat.',
-          'Air-gap oʻrnatma. Modellar, indeks va interfeys birga keladi va oflayn ishlaydi.',
+          'Air-gap oʻrnatma: modellar, indeks va interfeys birga keladi, oflayn ishlaydi.',
           'Sizning uskunangiz, sizning javonlaringiz, sizning jismoniy nazoratingiz.',
-          'IdP orqali SSO, ruxsatlar soʻrov paytida hal qilinadi.',
-          'Sohangizga moslashtirilgan modellar, sizning chegarangiz ichida oʻqitiladi.',
-          'Oflayn yangilanishlar: siz olib kiradigan va oʻrnatishni tanlaydigan imzolangan paket.',
-          'Alohida qoʻllab-quvvatlash — uni qurgan muhandislarga toʻgʻridan-toʻgʻri chiziq.',
+          'IdP orqali SSO; ruxsatlar har bir soʻrovda qaytadan tekshiriladi.',
+          'Sohangizga moslashtirilgan modellar — oʻz chegarangiz ichida oʻqitiladi.',
+          'Oflayn yangilanish: siz olib kiradigan va oʻrnatishni oʻzingiz hal qiladigan imzolangan paket.',
+          'Alohida qoʻllab-quvvatlash: tizimni qurgan muhandislar bilan toʻgʻridan-toʻgʻri aloqa.',
         ],
         cta: 'Biz bilan gaplashing',
       },
     ],
 
     plansNote:
-      'Narxlar AQSh dollarida, oyiga, oylik hisob-kitob bilan. Yillik toʻlovda ikki oy bepul. Mahalliy soliqlar kiritilmagan. Bu yerdagi hech narsa shartnoma emas — bogʻlovchi shartlar joylashtirish shartnomasi bilan keladi.',
+      'Narxlar AQSh dollarida, oyiga, har oy toʻlanadi. Yillik toʻlovda ikki oy bepul. Mahalliy soliqlar kiritilmagan. Bu yerdagi hech narsa shartnoma emas — bogʻlovchi shartlar joylashtirish shartnomasi bilan keladi.',
 
     everyTier: {
       label: 'Har bir tarifda',
-      headline: ['Har bir tarifda,', 'tuzilishi boʻyicha rost.'],
+      headline: ['Har bir tarifda', 'birdek amal qiladi.'],
       items: [
         {
           label: 'Joylashtirish',
-          value: 'Har bir oʻlchamda bitta dastur. Tariflar orasida masshtab oʻzgaradi, ochiqlik emas.',
+          value: 'Har bir oʻlchamda bitta dastur. Tariflar orasida hajm oʻzgaradi, ochiqlik emas.',
         },
         {
-          label: 'Chiqish',
-          value: 'Hech narsa uyga qoʻngʻiroq qilmaydi. Telemetriya yoʻq, zanjirda model API’si yoʻq.',
+          label: 'Tashqariga chiqish',
+          value:
+            'Hech narsa tashqariga xabar yubormaydi. Telemetriya ham, tashqi model API’si ham yoʻq.',
         },
         {
-          label: 'Iqtiboslar',
-          value: 'Har bir daʼvo oʻzi olingan hujjatga ulanadi. Manba yoʻq — daʼvo ham yoʻq.',
+          label: 'Manbalar',
+          value: 'Har bir jumla oʻzi olingan hujjatga bogʻlanadi. Manbasi yoʻq javob ham yoʻq.',
         },
         {
-          label: 'Audit izi',
-          value: 'Savollar, javoblar va manbalar sizning tizimlaringizda, oʻz saqlash jadvalingizda.',
+          label: 'Audit jurnali',
+          value:
+            'Savollar, javoblar va manbalar sizning tizimlaringizda, siz belgilagan muddat boʻyicha.',
         },
       ],
     },
 
     faq: {
-      label: 'Toʻgʻri javoblar',
+      label: 'Ochiq javoblar',
       headline: 'Narxlar roʻyxati chetlab oʻtadigan savollar.',
       items: [
         {
-          q: 'Nega Korxona tarifida raqam yoʻq?',
-          a: 'Chunki ichki oʻrnatma qadoqlangan mahsulot emas. U qancha turishi qancha maʼlumot oʻqilishiga, necha kishi savol berishiga va kimning uskunasida ishlashiga bogʻliq — shifoxonadagi air-gap javoni bilan VPC butunlay boshqa loyiha. Individual va Jamoa — maʼlum oʻlchamdagi bitta dastur, shuning uchun ular bosilgan narx bilan chiqadi. Korxona esa bitta suhbatdan keyin hisoblanadi va oʻsha hisob rost boʻladi.',
+          q: 'Nega Korxona tarifining narxi yoʻq?',
+          a: 'Chunki ichki oʻrnatma qutidagi mahsulot emas. Narx qancha maʼlumot oʻqilishiga, necha kishi savol berishiga va kimning uskunasida ishlashiga bogʻliq: shifoxonadagi air-gap javon bilan VPC butunlay boshqa loyiha. Individual va Jamoa — hajmi maʼlum bitta dastur, shuning uchun ularning narxi ochiq turadi. Korxona tarifi bitta suhbatdan keyin hisoblanadi va oʻsha hisob haqiqatga toʻgʻri keladi.',
         },
         {
-          q: 'Jamoa haqiqatan ham Individualning yuz barobarimi?',
-          a: 'Narxi — ha: bir boshga $15, yuzta bosh. Dastur esa yoʻq — yuz kishiga kirish guruhlari, ularni taqsimlaydigan egasi va audit izi kerak, bular esa faqat bir kishidan yuqorida mavjud. Siz toʻlamaydigan narsa — har bir oʻrindiq uchun hisoblagich. Seshanba kuni kimnidir qoʻshing, hisob-fakturada hech narsa oʻzgarmaydi.',
+          q: 'Jamoa — Individualning yuz barobarimi?',
+          a: 'Yoʻq, arzonroq: yuz barobari $1 500 boʻlardi, biz esa $1 200 deymiz. Yaʼni bir kishiga $12 — yakka tarifdan ham past. Dastur tomondan ham bu oddiy koʻpaytma emas: yuz kishiga kirish guruhlari, ularni taqsimlaydigan egasi va audit jurnali kerak, bular bir kishilik tarifda umuman yoʻq. Siz toʻlamaydigan narsa — har bir oʻrindiq uchun hisoblagich: seshanba kuni yangi odam qoʻshsangiz, hisob-fakturada hech narsa oʻzgarmaydi.',
         },
         {
-          q: 'Bu yerda «ichki joylashtirish» aniq nimani anglatadi?',
-          a: 'Dastur maʼlumotlaringiz allaqachon turgan joyda ishlashini — serverxonangizda, VPC’ingizda yoki internetga yoʻli yoʻq mashinada. Uning ortida jimgina asosiy ishni bajaradigan vendor buluti yoʻq. Bizda sizning oʻrnatmangizga kirish ham, maʼlumotingizga yoʻl ham yoʻq.',
+          q: '«Ichki oʻrnatma» bu yerda aniq nimani anglatadi?',
+          a: 'Dastur maʼlumotlaringiz allaqachon turgan joyda ishlashini: oʻz serveringizda, VPC’ingizda yoki internetga ulanmagan mashinada. Uning ortida jimgina asosiy ishni bajarayotgan bulut yoʻq. Bizda sizning oʻrnatmangizga ham, maʼlumotingizga ham yoʻl yoʻq.',
         },
         {
           q: 'Joylashtirish siz tomondan nimani talab qiladi?',
-          a: 'Ishga tushirish uchun joy, oʻqitmoqchi boʻlgan manbalaringizga kirish maʼlumotlari va SSO uchun identifikatsiya provayderingiz. Oʻrnatishni jamoangiz bajaradi, biz esa devor ortidan arxiv otish oʻrniga ular bilan birga qilamiz. Hajm sizning korpusingizga bogʻliq, shuning uchun bu bu yerdagi izohga emas, hisoblash suhbatiga tegishli.',
+          a: 'Ishga tushirish uchun joy, oʻqitmoqchi boʻlgan manbalaringizga ruxsat va SSO uchun identifikatsiya provayderingiz. Oʻrnatishni jamoangiz bajaradi, biz esa devor ortidan arxiv otish oʻrniga ular bilan birga ishlaymiz. Kerakli quvvat korpusingizga bogʻliq, shuning uchun bu yerdagi izohga emas, hisob-kitob suhbatiga tegishli.',
         },
         {
-          q: 'Sizda SOC 2 yoki HIPAA sertifikati bormi?',
-          a: 'Yoʻq. CompanyMind hech qanday sertifikatga ega emas va biz buni nishoncha bilan boshqacha koʻrsatmaymiz. Biz taklif qiladigan narsa arxitektura: dastur majburiyatlaringiz allaqachon qamrab olgan chegara ichida ishlaydi, shuning uchun nazoratlaringiz, jurnallaringiz va auditorlaringiz unga xuddi infratuzilmangizdagi boshqa hamma narsaga yetgandek yetadi. Sertifikatlar sizniki. Bizning ishimiz — ularni saqlashni qiyinlashtirmaslik.',
+          // Eng muhim halol javob. Tartibga solinadigan xaridor buni birinchi
+          // soʻraydi va bu yerdagi har qanday chiroyli aylanma savdoni butunlay
+          // yoʻqotadi. Avval «yoʻq» deymiz, keyin nega arxitektura nishondan
+          // yaxshiroq javob ekanini aytamiz.
+          q: 'SOC 2 yoki HIPAA sertifikatingiz bormi?',
+          a: 'Yoʻq. CompanyMind’da hech qanday sertifikat yoʻq va biz buni nishoncha bilan boshqacha koʻrsatmaymiz. Biz taklif qiladigan narsa — arxitektura: dastur majburiyatlaringiz allaqachon qamrab olgan chegara ichida ishlaydi, shuning uchun nazoratlaringiz, jurnallaringiz va auditorlaringiz unga infratuzilmangizdagi boshqa hamma narsaga yetgandek yetadi. Sertifikatlar sizniki. Bizning ishimiz — ularni saqlashni qiyinlashtirmaslik.',
         },
         {
-          q: 'Kichikdan boshlab oʻsishimiz mumkinmi?',
+          q: 'Kichikdan boshlab oʻsish mumkinmi?',
           a: 'Ha, va yoʻlda hech narsa koʻchirilmaydi. Har bir tarif bitta dasturni ishlatadi — kichigi qiziqarli qismlari olib tashlangan demo emas. Oʻsish — qamrovni kengaytirish: koʻproq odam, koʻproq manba va oxir-oqibat oʻz uskunangiz.',
         },
       ],
     },
 
     cta: {
-      label: 'Dizayn hamkorlar',
-      headline: ['Har bir tarif oʻsha', 'bitta qoʻngʻiroqdan boshlanadi.'],
-      body: 'CompanyMind hali ishga tushmagan. Biz uni bu muammoni yechishga yordam beradigan darajada uni chuqur his qiladigan bir nechta tartibga solinadigan jamoa bilan quryapmiz. Nima sochilganini va u qayerga chiqishi mumkin emasligini ayting — biz sizga joylashtirish qanday koʻrinishini aytamiz.',
+      label: 'Hamkorlik',
+      headline: ['Har bir tarif oʻsha', 'bitta suhbatdan boshlanadi.'],
+      body: 'CompanyMind hali bozorga chiqmagan. Biz uni shu muammoni yaxshi biladigan bir nechta jamoa bilan birga quryapmiz. Nima sochilib yotganini va u qayerga chiqa olmasligini ayting — biz joylashtirish qanday boʻlishini aytamiz.',
       submit: 'Suhbatni boshlash',
       href: ROUTES.contact,
-      fineprint: 'Bitta odamdan bitta javob. Ketma-ketlik yoʻq, axborotnoma yoʻq.',
+      fineprint: 'Bitta odam oʻqiydi, bitta odam javob yozadi. Reklama xatlari yoʻq.',
     },
   },
 
@@ -861,143 +914,143 @@ export const uz: Dictionary = {
     meta: {
       title: 'Biz haqimizda',
       description:
-        'Eng yaxshi sunʼiy intellekt API sifatida keladi — iqtisodiyotdagi eng nozik maʼlumotlarni saqlaydigan muassasalar esa unga hech qachon murojaat qila olmaydi. CompanyMind nega suveren bilim infratuzilmasini quradi va biz qayerda turibmiz.',
+        'Eng kuchli sunʼiy intellekt API koʻrinishida keladi, iqtisodiyotdagi eng nozik maʼlumotlarni saqlaydigan muassasalar esa unga murojaat qila olmaydi. CompanyMind nega mustaqil bilim tizimini quryapti va qayerda turibmiz.',
     },
 
     hero: {
       eyebrow: 'Biz haqimizda',
-      headline: ['Eng yaxshi AI', 'boshqa birovning', 'kompyuterida', 'ishlaydi.'],
-      sub: 'Bank, shifoxona, mudofaa yetkazib beruvchisi yoki yuridik firma uchun bu tarozida oʻlchanadigan murosa emas. Bu — boshlanmaydigan suhbat. Shunday qilib, iqtisodiyotdagi eng muhim maʼlumotlarni saqlaydigan muassasalar bir avlodning eng foydali texnologiyasidan chetda qolmoqda. Tuzatishga arziydigan narsa aynan shu.',
+      headline: ['Eng kuchli AI', 'birovning', 'kompyuterida', 'ishlaydi.'],
+      sub: 'Bank, shifoxona, mudofaa yetkazib beruvchisi yoki yuridik firma uchun bu tarozida oʻlchanadigan murosa emas — bu umuman boshlanmaydigan suhbat. Natijada iqtisodiyotdagi eng muhim maʼlumotlarni saqlaydigan muassasalar avlodning eng foydali texnologiyasidan chetda qolyapti. Tuzatishga arziydigani ham shu.',
     },
 
     position: {
       label: 'Pozitsiya',
-      headline: ['Imkoniyat bitta shart', 'bilan birga keldi.'],
+      headline: ['Imkoniyat bitta shart', 'bilan keldi.'],
       body: [
-        'Soʻnggi uch yildagi har bir jiddiy sakrash bir xil yoʻl bilan yetkazildi: endpoint sifatida. Undan foydalanish uchun maʼlumotingizni siz nazorat qilmaydigan kompaniyaga, siz tekshira olmaydigan uskunada, siz yozmagan shartlar ostida yuborasiz. Aksariyat biznes uchun bu maqbul kelishuv. Baʼzilari uchun esa suhbat birinchi uchrashuvda tugaydi.',
-        'Bu ehtiyotkorlik ham, texnologiyadan qoʻrqish ham emas. Bu — ish. Nazoratchiga vendorning maxfiylik siyosati bilan javob bera olmaysiz. Imtiyozli materialni birovning jurnaliga qoʻya olmaysiz. Bu muassasalar ishlaydigan qoidalar ularni koʻndirib boʻladigan xohish emas — aynan shu qoidalar tufayli ularga bu maʼlumot ishonib topshirilgan.',
+        'Soʻnggi uch yildagi har bir jiddiy sakrash bir xil yoʻl bilan yetkazildi — endpoint sifatida. Undan foydalanish uchun maʼlumotingizni siz nazorat qilmaydigan kompaniyaga, siz tekshira olmaydigan uskunaga, siz yozmagan shartlar asosida yuborishingiz kerak. Koʻpchilik biznes uchun bu maqbul kelishuv. Baʼzilari uchun esa suhbat birinchi uchrashuvdayoq tugaydi.',
+        'Bu ehtiyotkorlik ham, texnologiyadan qoʻrqish ham emas — bu ish tartibi. Nazoratchiga vendorning maxfiylik siyosati bilan javob bera olmaysiz. Advokatlik siriga tegishli materialni birovning jurnaliga qoʻya olmaysiz. Bu muassasalar ishlaydigan qoidalar koʻndirsa boʻladigan xohish emas: aynan oʻsha qoidalar tufayli ularga bu maʼlumot ishonib topshirilgan.',
       ],
       ledger: {
-        colWho: 'Kim tashqarida qolgan',
+        colWho: 'Kim chetda qolgan',
         colWhy: 'Nega',
         rows: [
           {
             who: 'Bank',
-            why: 'Regulyatorga jadval boʻyicha va yozma javob beradigan mijoz yozuvlari.',
+            why: 'Regulyatorga belgilangan muddatda va yozma javob beriladigan mijoz yozuvlari.',
           },
           {
             who: 'Shifoxona',
-            why: 'Oʻzi qayta talqin qila olmaydigan qoidalar ostida himoya qilishi shart boʻlgan bemor maʼlumotlari.',
+            why: 'Oʻzi qayta talqin qila olmaydigan qoidalar asosida himoya qilinishi shart boʻlgan bemor maʼlumotlari.',
           },
           {
             who: 'Mudofaa yetkazib beruvchisi',
-            why: 'Umumiy tarmoqqa umuman tegishi taqiqlangan dasturlar.',
+            why: 'Umumiy tarmoqqa umuman tegishi mumkin boʻlmagan dasturlar.',
           },
           {
             who: 'Yuridik firma',
-            why: 'Advokatlik sirida saqlaydigan va uchinchi tomonga bera olmaydigan mijoz materiali.',
+            why: 'Advokatlik sirida saqlanadigan va uchinchi tomonga berilmaydigan mijoz materiali.',
           },
         ],
       },
-      closer: 'Texnologiya ular uchun ishlaydi. Yetkazib berish modeli — yoʻq.',
+      closer: 'Texnologiya ular uchun ham ishlaydi. Yetkazib berish usuli — yoʻq.',
       closerBody:
-        'Buni tashqaridan hech kim tuzatmaydi, chunki ragʻbat teskari tomonga qaragan: joylashtirilgan endpoint’ni qurish oson, hisoblash oson, sotish oson. Shuning uchun biz boshqa variantni quryapmiz — xuddi shu sinfdagi tizim, faqat devor ortiga emas, devor ichiga yetkaziladi.',
+        'Buni tashqaridan hech kim tuzatmaydi, chunki manfaat teskari tomonga qaragan: umumiy endpoint qurish oson, hisoblash oson, sotish oson. Shuning uchun biz boshqa yoʻlni quryapmiz: xuddi shu darajadagi tizim, faqat chegaradan tashqariga emas, chegara ichiga yetkaziladi.',
     },
 
     beliefs: {
       label: 'Nimaga ishonamiz',
-      headline: ['Uch narsada biz', 'murosaga bormaymiz.'],
+      headline: ['Uch narsada murosa', 'qilmaymiz.'],
       items: [
         {
           n: '01',
-          title: 'Manbasiz javob — mish-mish.',
-          body: 'Tartibga solinadigan biznesda manbasiz javob — javob emas, ish. Endi kimdir uning rostligini tekshirishi kerak. CompanyMind javoblarni topilgan parchalardan quradi va har bir jumlani oʻzi olingan hujjatga iqtibos qiladi, chunki tekshirib boʻlmaydigan javob umuman javobsizlikdan arzonroq.',
+          title: 'Manbasi yoʻq javob — mish-mish.',
+          body: 'Tartibga solinadigan biznesda manbasi koʻrsatilmagan javob — javob emas, qoʻshimcha ish: endi kimdir uni tekshirib chiqishi kerak. CompanyMind javobni topilgan parchalardan quradi va har bir jumlaga manba biriktiradi, chunki tekshirib boʻlmaydigan javob umuman javobsizlikdan qimmatga tushadi.',
         },
         {
           n: '02',
           title: 'Dastur maʼlumot turgan joyda ishlashi kerak.',
-          body: 'Nozik maʼlumotni koʻchirish koʻpchilik arxitekturaning eng xavfli qismi va aksariyat vendorlar buni baribir siz qiling deb hal qiladi. Bizningcha, joylashtirish muassasaga moslashadi: sizning serverxonangiz, VPC’ingiz, air-gap javoningiz. Nazoratlaringiz oʻsha chegarani allaqachon qamrab olgan. Biz atrofimizga yangisini chizishingizni soʻramaymiz.',
+          body: 'Nozik maʼlumotni koʻchirish koʻp arxitekturalarning eng xavfli qismi, aksariyat vendorlar esa bu ishni sizga yuklaydi. Bizningcha, joylashtirish muassasaga moslashishi kerak: oʻz serveringiz, VPC’ingiz, air-gap javoningiz. Nazoratlaringiz oʻsha chegarani allaqachon qamragan — biz atrofimizga yangisini chizishingizni soʻramaymiz.',
         },
         {
           n: '03',
-          title: 'Nazorat imkoniyatning narxi emas.',
-          body: 'Kuchli AI bilan oʻz maʼlumotingiz ustidan nazorat orasida tanlash — texnologiyaning xossasi emas, bu sanoat qanday yetkazishni tanlaganining natijasi. Modellarni oʻz uskunangizda ishlating va indeksni oʻz disklaringizda saqlang — murosa yoʻqoladi. Qurish qiyinroq. Imkonsiz emas.',
+          title: 'Nazorat — imkoniyatning narxi emas.',
+          body: 'Kuchli AI bilan oʻz maʼlumotingiz ustidan nazorat orasida tanlash texnologiyaning xossasi emas, sanoat yetkazib berishni shunday tanlaganining natijasi. Modellar oʻz uskunangizda ishlasa va indeks oʻz disklaringizda tursa, tanlash zarurati yoʻqoladi. Qurish qiyinroq, lekin imkonsiz emas.',
         },
       ],
     },
 
     stage: {
       label: 'Bosqich',
-      headline: ['Ishga tushmagan.', 'Buni ochiq aytamiz.'],
-      body: 'CompanyMind bu muammoni yechishga yordam beradigan darajada uni chuqur his qiladigan bir nechta tartibga solinadigan jamoa bilan qurilmoqda. Bosqichimiz haqidagi qolgan hamma narsa shu sahifada, qoʻlimizdan kelgan eng sodda tilda — chunki muqobili buni keyinroq oʻzingiz bilib olishingizni soʻrash boʻlardi.',
+      headline: ['Hali bozorga', 'chiqmaganmiz.'],
+      body: 'CompanyMind shu muammoni yaxshi biladigan bir nechta jamoa bilan birga qurilyapti. Bosqichimiz haqidagi qolgan hamma narsa shu sahifada, iloji boricha sodda tilda — chunki muqobili buni keyinroq oʻzingiz bilib olishingizni kutish boʻlardi.',
       inventory: [
         {
           k: 'Mijozlar',
-          v: 'Hozircha yoʻq. Bu saytda logotiplar qatori yoʻq, chunki unga qoʻyish uchun halol narsa yoʻq.',
+          v: 'Hozircha yoʻq. Bu saytda logotiplar qatori yoʻq, chunki unga qoʻyadigan halol narsa yoʻq.',
         },
         {
           k: 'Sertifikatlar',
-          v: 'Yoʻq. Bugun bizda hech qanday xavfsizlik sertifikati yoʻq va biz buni nishoncha bilan boshqacha koʻrsatmaymiz. Auditdan oʻtganimizda aytamiz va siz buni tekshira olasiz.',
+          v: 'Yoʻq. Bugun bizda hech qanday xavfsizlik sertifikati yoʻq va buni nishoncha bilan yashirmaymiz. Auditdan oʻtganimizda aytamiz, siz esa tekshira olasiz.',
         },
         {
           k: 'Keys tadqiqotlar',
-          v: 'Yoʻq. Ishga tushmagan boʻlish — oʻqishga arziydiganini yozadigan darajada uzoq ishlagan oʻrnatma yoʻq degani.',
+          v: 'Yoʻq. Bozorga chiqmagan boʻlish — oʻqishga arziydigan hikoya yozadigan darajada uzoq ishlagan oʻrnatma yoʻq degani.',
         },
         {
           k: 'Daromad',
-          v: 'Yoʻq. Biz hali oʻrindiq sotmayapmiz. Biz hamkor tanlayapmiz.',
+          v: 'Yoʻq. Biz hali oʻrindiq sotmayapmiz, hamkor tanlayapmiz.',
         },
       ],
-      have: 'Bizda bor narsa: har bir qatorini himoya qila oladigan pozitsiya va xossalari har qanday oʻrnatmaning birinchi kunidan rost boʻlgan arxitektura — chunki ular tizim qanday qurilganidan kelib chiqadi, uni necha kishi sotib olganidan emas.',
+      have: 'Bizda bor narsa — har bir qatorini himoya qila oladigan pozitsiya va xossalari har qanday oʻrnatmada birinchi kunidan rost boʻladigan arxitektura. Chunki ular tizim qanday qurilganidan kelib chiqadi, uni necha kishi sotib olganidan emas.',
     },
 
     lab: {
-      label: 'Laboratoriya',
+      label: 'Jamoa',
       headline: ['Kichik jamoa —', 'ataylab.'],
-      body: 'Suveren dastur sotuv muammosiga aylanishidan ancha oldin muhandislik muammosi. U biz hech qachon kirmagan binoga, biz nazorat qilmaydigan uskunaga, uyga yoʻlsiz va xonada CompanyMind’dan hech kim boʻlmagan holda oʻrnatilishi kerak. Bunday ish butun tizimni boshida tuta oladigan kichik jamoani mukofotlaydi. Quyida u qanday boʻlinishi.',
-      note: 'Rollar, portretlar emas. Ismlar haqiqiylari paydo boʻlganda qoʻyiladi.',
+      body: 'Mustaqil oʻrnatiladigan dastur sotuv muammosiga aylanishidan ancha oldin muhandislik muammosi. U biz hech qachon kirmagan binoga, biz nazorat qilmaydigan uskunaga, internetsiz va xonada CompanyMind’dan hech kim boʻlmagan holda oʻrnatilishi kerak. Bunday ish butun tizimni boshida tuta oladigan kichik jamoaga qulay. Quyida u qanday boʻlinadi.',
+      note: 'Bular — rollar, portret emas. Ismlar haqiqiy odamlar paydo boʻlganda qoʻyiladi.',
       roles: [
         {
           n: '01',
           title: 'Asoschi / ML',
           focus: 'pozitsiya · qidiruv · asoslash',
           nameSlot: 'ism keyinroq',
-          body: 'Model qatlamiga egalik qiladi: qidiruv, asoslash va javobni u qurilgan manba materiali ichida ushlab turadigan post-training ishi. CompanyMind nima qilishdan bosh tortishini hal qiladi. Birinchi xatingizga javob beradigan odam ham shu.',
+          body: 'Model qatlamiga javob beradi: qidiruv, asoslash va javobni manba materiali ichida ushlab turadigan post-training ishi. CompanyMind nima qilishdan bosh tortishini ham shu odam hal qiladi. Birinchi xatingizga javob beradigan ham u.',
         },
         {
           n: '02',
           title: 'Tizimlar',
-          focus: 'joylashtirish · inference · air gap',
+          focus: 'oʻrnatish · inference · air-gap',
           nameSlot: 'ism keyinroq',
-          body: 'Oʻrnatishga egalik qiladi. CompanyMind’ni shunday qadoqlaydiki, u biz hech koʻrmagan serverxonaga tushadi, mijozning oʻz GPU’larida ishlaydi va javon yonida muhandis turmasdan air-gap orqali yangilanishlarni qabul qiladi.',
+          body: 'Oʻrnatishga javob beradi. CompanyMind’ni shunday qadoqlaydiki, u biz hech koʻrmagan server xonasiga tushadi, mijozning oʻz GPU’larida ishlaydi va yonida muhandis turmasdan air-gap orqali yangilanadi.',
         },
         {
           n: '03',
           title: 'Amaliy tadqiqot',
           focus: 'oʻqish · qidiruv sifati · baholash',
           nameSlot: 'ism keyinroq',
-          body: 'Muammoning eng qaysar tomonida ishlaydi: matn suratlari boʻlgan skanlar, hech kim transkript qilmagan yozuvlar, aslida maʼlumotlar bazasi boʻlgan jadvallar. Sifatni mijozning chegarasi ichida oʻlchaydigan baholash tizimini quradi, chunki biz ularning maʼlumotiga hech qachon oʻzimiz qaray olmaymiz.',
+          body: 'Muammoning eng qaysar tomonida ishlaydi: matni surat boʻlgan skanlar, hech kim transkript qilmagan yozuvlar, aslida maʼlumotlar bazasi boʻlgan jadvallar. Sifatni mijoz chegarasi ichida oʻlchaydigan baholash tizimini quradi, chunki biz ularning maʼlumotiga hech qachon oʻzimiz qaray olmaymiz.',
         },
         {
           n: '04',
           title: 'Xavfsizlik muhandisligi',
-          focus: 'perimetr · audit izi · tekshiruv',
+          focus: 'perimetr · audit · tekshiruv',
           nameSlot: 'ism keyinroq',
-          body: 'Arxitekturamizni mijozning auditori oʻqiydigan koʻz bilan oʻqiydi, keyin oʻsha auditor soʻraydigan narsani quradi: maʼlumot oqimi hujjatlari, joylashtirish topologiyasi, mijozning oʻz tizimlariga tushadigan audit izi. Tekshirishni ularning nazoratlari bajaradi. Bizning ishimiz — ularga taxmin qiladigan hech narsa qoldirmaslik.',
+          body: 'Arxitekturamizni mijozning auditori koʻzi bilan oʻqiydi, keyin oʻsha auditor soʻraydigan narsani quradi: maʼlumot oqimi hujjatlari, oʻrnatma topologiyasi, mijozning oʻz tizimlariga tushadigan audit jurnali. Tekshirishni ularning nazoratlari bajaradi; bizning ishimiz — ularga taxmin qiladigan narsa qoldirmaslik.',
         },
       ],
     },
 
     cta: {
-      label: 'Dizayn hamkorlar',
+      label: 'Hamkorlik',
       headline: ['Maʼlumotingiz chiqa olmasa,', 'gaplashishimiz kerak.'],
-      body: 'Biz buni birga qurish uchun bir nechta tartibga solinadigan jamoa tanlayapmiz. Siz tizimni oʻz devorlaringiz ichida olasiz va u nimaga aylanishiga haqiqiy taʼsir koʻrsatasiz. Biz esa ishga tushishdan oldin qoʻlga kiritish arziydigan yagona narsani olamiz: bu ishlaydimi degan savolga rost javob.',
-      fineprint: 'Bitta odamdan bitta javob. Ketma-ketlik yoʻq.',
+      body: 'Biz buni birga qurish uchun bir nechta jamoa tanlayapmiz. Siz tizimni oʻz chegarangiz ichida olasiz va u nimaga aylanishiga haqiqiy taʼsir koʻrsatasiz. Biz esa bozorga chiqishdan oldin eng kerakli narsani olamiz: bu ishlaydimi degan savolga rost javob.',
+      fineprint: 'Bitta odam oʻqiydi, bitta odam javob yozadi.',
     },
   },
 
   /* -------------------------------------------------------------------------
-   * /aloqa — dizayn hamkor tanlash.
+   * /aloqa — hamkor tanlash.
    * Quyidagi har bir vaʼda kichik jamoaning pochta qutisi bajara oladigan
    * vaʼda. Kimdir haqiqatan javobgar boʻlmasa, javob muddatini qoʻshmang.
    * ----------------------------------------------------------------------- */
@@ -1005,51 +1058,57 @@ export const uz: Dictionary = {
     meta: {
       title: 'Aloqa',
       description:
-        'CompanyMind birga qurish uchun bir nechta tartibga solinadigan jamoa tanlayapti. Agar bilimingiz sochilgan boʻlsa va maʼlumotingiz infratuzilmangizdan chiqa olmasa — suhbatni boshlang.',
+        'CompanyMind birga qurish uchun bir nechta jamoa tanlayapti. Bilimingiz sochilib yotgan boʻlsa va maʼlumotingiz infratuzilmangizdan chiqa olmasa — suhbatni boshlang.',
     },
 
     hero: {
-      eyebrow: 'Dizayn hamkorlar',
-      headline: ['Biz buni birga', 'quradigan bir nechta', 'jamoa tanlayapmiz.'],
-      lede: 'CompanyMind hali ishga tushmagan. Hozircha mijoz yoʻq, sertifikat yoʻq, sotuv mashinasi yoʻq. Bizda bor narsa — himoya qila oladigan arxitektura va bizga yordam beradigan jamoalar atrofida hali egiladigan darajada yumshoq mahsulot.',
+      eyebrow: 'Hamkorlik',
+      headline: ['Buni birga quradigan', 'bir nechta jamoa', 'tanlayapmiz.'],
+      lede: 'CompanyMind hali bozorga chiqmagan: hozircha mijoz ham, sertifikat ham, sotuv boʻlimi ham yoʻq. Bizda bor narsa — himoya qila oladigan arxitektura va bizga yordam beradigan jamoalar atrofida hali egiluvchan mahsulot.',
     },
 
     fit: {
-      label: 'Moslik',
+      label: 'Kimga mos',
       title: 'Bu kim uchun',
-      body: 'Bank, shifoxona tarmogʻi, yuridik firma, mudofaa yetkazib beruvchisi. Maʼlumot haqiqatan chiqa olmaydigan va bu xohish emas, regulyatorning chizigʻi boʻlgan joy. Agar umuman AI qiziqtirsa, biz notoʻgʻri manzilmiz. Agar hech kim qidira olmaydigan va hech kimga yuklashga ruxsat berilmaydigan aniq bir bilim uyumingiz boʻlsa — toʻgʻri manzilmiz.',
+      body: 'Bank, shifoxona tarmogʻi, yuridik firma, mudofaa yetkazib beruvchisi. Maʼlumot haqiqatan tashqariga chiqa olmaydigan va bu xohish emas, regulyator chizigʻi boʻlgan joy. Umuman AI qiziqtirsa — biz notoʻgʻri manzilmiz. Hech kim qidira olmaydigan va hech kimga yuklab berish mumkin boʻlmagan aniq bir bilim uyumingiz boʻlsa — toʻgʻri manzilmiz.',
       points: [
         {
-          label: 'Ichki joylashtirish — muhokamasiz',
-          line: 'Maʼlumotingiz infratuzilmangizdan chiqa olmaydi va yuqoridagi kimdir buni allaqachon yozib qoʻygan.',
+          label: 'Ichki oʻrnatma — muhokamasiz',
+          line: 'Maʼlumotingiz infratuzilmangizdan chiqa olmaydi va buni yuqoridagi kimdir allaqachon yozib qoʻygan.',
         },
         {
           label: 'Tartibsizlik haqiqiy',
-          line: 'Oʻn yillik fayllar, yozishmalar, yozuvlar va skanlar. Javob ichida ekanini allaqachon bilasiz.',
+          line: 'Oʻn yillik fayllar, yozishmalar, yozuvlar va skanlar. Javob ularning ichida ekanini bilasiz.',
         },
         {
-          label: 'Joylashtira olasiz',
-          line: 'Siz tomondan kimdir bizga uskuna va ishlaydigan tarmoq bera oladi.',
+          label: 'Oʻrnata olasiz',
+          line: 'Siz tomondan kimdir bizga uskuna va ishlaydigan tarmoq ajrata oladi.',
         },
         {
           label: 'Biz bilan bahslashasiz',
-          line: 'Dizayn hamkorlar yoʻl xaritasini egadi. Bu faqat xato qilganimizda aytsangiz ishlaydi.',
+          line: 'Hamkorlar yoʻl xaritasiga taʼsir qiladi. Bu faqat xato qilganimizda ochiq aytsangiz ishlaydi.',
         },
       ],
       trade:
-        'Kelishuv ochiq. Siz muammoingiz atrofida shakllangan mahsulot va uni quruvchilarga toʻgʻridan-toʻgʻri kirish olasiz. Shuningdek, tugallanmagan mahsulot va birinchi boʻlishning barcha xatolarini ham olasiz.',
+        'Kelishuv ochiq: siz muammoingiz atrofida shakllangan mahsulotni va uni quruvchilar bilan toʻgʻridan-toʻgʻri aloqani olasiz. Shu bilan birga tugallanmagan mahsulotni va birinchi boʻlishning barcha xatolarini ham olasiz.',
     },
 
     next: {
       label: 'Yuborgandan keyin',
       title: 'Keyin nima boʻladi',
       steps: [
-        { n: '01', line: 'Uni odam oʻqiydi. Ball qoʻyadigan model ham, sotuv navbati ham emas.' },
-        { n: '02', line: 'Bitta javob olasiz. Mos kelmasa, jim qolish oʻrniga shuni aytamiz.' },
-        { n: '03', line: 'Mos kelsa, qoʻngʻiroq taklif qilamiz va tizimni ishlayotgan holda koʻrsatamiz.' },
+        { n: '01', line: 'Xatni odam oʻqiydi. Ball qoʻyadigan model ham, sotuv navbati ham yoʻq.' },
+        {
+          n: '02',
+          line: 'Bitta javob olasiz. Mos kelmasa, jim qolish oʻrniga shuni ochiq aytamiz.',
+        },
+        {
+          n: '03',
+          line: 'Mos kelsa, qoʻngʻiroq belgilaymiz va tizimni ishlayotgan holda koʻrsatamiz.',
+        },
       ],
       promise:
-        'Bitta odamdan bitta javob. Ketma-ketlik yoʻq, axborotnoma yoʻq. Manzilingizni sotmaymiz, ulashmaymiz va hech qanday roʻyxatga qoʻshmaymiz.',
+        'Bitta odam oʻqiydi, bitta odam javob yozadi. Reklama xatlari yoʻq. Manzilingizni sotmaymiz, ulashmaymiz va hech qanday roʻyxatga qoʻshmaymiz.',
     },
 
     form: {
@@ -1064,27 +1123,27 @@ export const uz: Dictionary = {
         company: { label: 'Kompaniya', hint: 'Ixtiyoriy.', placeholder: 'Qayerda ishlaysiz' },
         role: { label: 'Lavozim', hint: 'Ixtiyoriy.', placeholder: 'U yerda nima qilasiz' },
         scattered: {
-          label: 'Nima sochilgan?',
-          hint: 'Ixtiyoriy. Kompaniyangizning bilimi hozir aslida qayerda yashaydi? Ikki qator yetarli.',
+          label: 'Nima sochilib yotibdi?',
+          hint: 'Ixtiyoriy. Kompaniyangizning bilimi hozir aslida qayerda? Ikki qator yetarli.',
           placeholder:
             'Uchta tizimga tarqalgan oʻn yillik shartnomalar, ularni yozgan odam esa ishdan ketgan.',
         },
       },
       submit: 'Yuborish',
-      sending: 'Yuborilmoqda',
+      sending: 'Yuborilyapti',
       errors: {
-        emailRequired: 'Javob berishimiz uchun ish pochtangizni kiriting.',
-        emailInvalid: 'Bu pochta manziliga oʻxshamaydi.',
+        emailRequired: 'Javob berishimiz uchun ish pochtangizni yozing.',
+        emailInvalid: 'Bu pochta manziliga oʻxshamayapti.',
       },
       success: {
         title: 'Qabul qilindi.',
-        body: 'Bizdan kimdir oʻqiydi va javob beradi. Bundan keyin boshqa hech narsa kelmaydi — ketma-ketlik ham, axborotnoma ham.',
+        body: 'Xatingizni oʻqib, javob yozamiz. Bundan boshqa hech narsa kelmaydi — na reklama, na axborotnoma.',
       },
       failure: {
         title: 'Yuborilmadi.',
-        body: 'Ayb bizda, sizda emas. Toʻgʻridan-toʻgʻri yozing — u ayni oʻsha joyga tushadi:',
+        body: 'Ayb bizda, sizda emas. Toʻgʻridan-toʻgʻri yozing — xat ayni oʻsha joyga tushadi:',
       },
-      fallback: { lead: 'Pochta orqali yozasizmi?', address: brand.email, subject: 'Dizayn hamkor' },
+      fallback: { lead: 'Pochta orqali yozasizmi?', address: brand.email, subject: 'Hamkorlik' },
     },
   },
 
@@ -1092,9 +1151,9 @@ export const uz: Dictionary = {
    * /maxfiylik, /shartlar
    * ⚠️ YURIDIK TEKSHIRUVDAN OʻTMAGAN. ISHGA TUSHIRISHDAN OLDIN OʻQING. ⚠️
    * Bular ataylab qisqa matnlar: yagona interaktiv qismi aloqa formasi boʻlgan,
-   * hali ishga tushmagan marketing sayti uchun ROST. Ular yurisdiksiya, yuridik
-   * shaxs, kafolat, javobgarlik chegarasi, subprotsessorlar yoki kunlardagi
-   * saqlash muddatlarini ataylab nomlamaydi.
+   * hali bozorga chiqmagan marketing sayti uchun ROST. Ular yurisdiksiya,
+   * yuridik shaxs, kafolat, javobgarlik chegarasi, subprotsessorlar yoki
+   * kunlardagi saqlash muddatlarini ataylab nomlamaydi.
    *
    * ⚠️ QUYIDAGI DAʼVOLAR SAYT SHU KICHIKLIGICHA QOLGANDA ROST. ⚠️
    * Kimdir analitika skripti, piksel, shrift CDN’i yoki videoni qoʻshgan kuni
@@ -1112,124 +1171,124 @@ export const uz: Dictionary = {
       label: 'Maxfiylik',
       title: 'Maxfiylik',
       description:
-        'CompanyMind sayti nima yigʻadi: aloqa formasidagi xabaringiz va boshqa hech narsa. Kuzatuv cookie yoʻq, reklama tarmogʻi yoʻq, maʼlumot sotish yoʻq.',
+        'Bu sayt nima yigʻadi: aloqa formasiga yozgan xabaringiz va boshqa hech narsa. Kuzatuv cookie yoʻq, reklama tarmogʻi yoʻq, maʼlumot sotish yoʻq.',
       headline: ['Bu sayt deyarli', 'hech narsa yigʻmaydi.'],
       standfirst:
-        'Bu shu sahifa uchun tanlagan poza emas. Bu mahsulot aytadigan aynan oʻsha argument: yigʻilmagan maʼlumot sizib chiqa olmaydi, sotila olmaydi va yoʻqola olmaydi. Marketing saytini ham shu qoidada ushlaymiz.',
+        'Bu shu sahifa uchun tanlangan poza emas. Bu — mahsulotning asosiy fikri: yigʻilmagan maʼlumot sizib chiqmaydi, sotilmaydi va yoʻqolmaydi. Marketing saytini ham shu qoida boʻyicha ushlab turamiz.',
       sections: [
         {
           heading: 'Bu sayt nima yigʻadi',
           body: [
-            'Bitta narsa: aloqa formasiga yozganingizni. Ish pochtangiz va yoniga yozishni tanlagan narsangiz. Bu bizga xabar sifatida keladi va uni odam oʻqiydi.',
+            'Bitta narsa — aloqa formasiga yozganingizni: ish pochtangiz va yoniga qoʻshgan gapingiz. Bu bizga xabar boʻlib keladi va uni odam oʻqiydi.',
             'Bu saytda boshqa hech narsa sizdan hech nima soʻramaydi. Hisob yoʻq, kirish yoʻq, profil yoʻq.',
           ],
         },
         {
           heading: 'Bu sayt nima qilmaydi',
           body: [
-            'Bu statik marketing sayti. U ataylab kichik va qilmaydigan ishlari roʻyxati qiladiganlaridan uzunroq.',
+            'Bu — oddiy marketing sayti. U ataylab kichik, qilmaydigan ishlari roʻyxati esa qiladiganlaridan uzun.',
           ],
           list: [
-            'Kuzatuv cookie yoʻq. Bu sayt yoza oladigan yagona cookie — siz tanlagan til, keyingi safar sayt oʻsha tilda ochilishi uchun.',
-            'Reklama tarmoqlari yoʻq, piksellar yoʻq, retargeting yoʻq. Sizni internet boʻylab kuzatmaymiz.',
-            'Siz haqingizda xulq-atvor profili yoʻq va seans yozuvi yoʻq.',
-            'Maʼlumotingizni sotish yoʻq. Hech kimga, hech qanday narxda, hech qanday sabab bilan.',
-            'Axborotnoma yoʻq, ketma-ketlik yoʻq, siz soʻramagan roʻyxat yoʻq.',
+            'Kuzatuv cookie yoʻq. Sayt yozadigan yagona cookie — siz tanlagan til, keyingi safar oʻsha tilda ochilishi uchun.',
+            'Reklama tarmoqlari, piksellar va retargeting yoʻq. Sizni internet boʻylab kuzatmaymiz.',
+            'Siz haqingizda hech qanday xulq-atvor profili ham, seans yozuvi ham yoʻq.',
+            'Maʼlumotingizni sotmaymiz. Hech kimga, hech qanday narxda.',
+            'Axborotnoma yoʻq, reklama zanjiri yoʻq, siz soʻramagan roʻyxat yoʻq.',
           ],
         },
         {
           heading: 'Yuborganingiz bilan nima qilamiz',
           body: [
-            'Oʻqiymiz va javob beramiz. Suhbat davom etishi uchun xabarni saqlaymiz — xuddi kompaniyaga yuborgan har qanday xat oʻsha kompaniyaning pochta qutisida qolgani kabi.',
-            'Oʻchirilishini istasangiz, yozing — oʻchiramiz. Taxmin qilgandan koʻra soʻralishni afzal koʻramiz.',
+            'Oʻqiymiz va javob beramiz. Suhbat davom etishi uchun xabarni saqlaymiz — xuddi kompaniyaga yozilgan har qanday xat oʻsha kompaniyaning pochtasida qolgani kabi.',
+            'Oʻchirishimizni istasangiz, yozing — oʻchiramiz. Taxmin qilgandan koʻra soʻralganini afzal koʻramiz.',
           ],
         },
         {
-          heading: 'Sahifaning oʻzini yetkazish',
+          heading: 'Sahifaning oʻzi qanday yetib keladi',
           body: [
-            'Veb-sahifa serverdan kelishi kerak, server esa soʻrovni koʻradi. Hosting provayderimiz bu saytni brauzeringizga yetkazish uchun texnik jihatdan zarur boʻlgan narsani, jumladan oddiy soʻrov jurnallarini qayta ishlaydi. Biz ulardan siz haqingizda tasavvur qurish uchun foydalanmaymiz va ularni hech narsa bilan boyitmaymiz.',
-            'Toʻliq maxfiylik siyosati aynan shu yerda provayderlari va saqlash muddatlarini nomlaydi. Biz hali ishga tushmaganmiz va bu roʻyxat yakuniy emas, shuning uchun keyinchalik jimgina tuzatishimiz mumkin boʻlgan versiyani eʼlon qilmaymiz. Soʻrang — bugun nima ishlayotganini aniq aytamiz.',
+            'Veb-sahifa serverdan keladi, server esa soʻrovni koʻradi. Hosting provayderimiz saytni brauzeringizga yetkazish uchun texnik jihatdan zarur boʻlgan narsani, jumladan oddiy soʻrov jurnallarini qayta ishlaydi. Biz ulardan siz haqingizda tasavvur yasash uchun foydalanmaymiz va ularni hech narsa bilan boyitmaymiz.',
+            'Toʻliq maxfiylik siyosati aynan shu joyda provayderlar va saqlash muddatlarini nomlaydi. Biz hali bozorga chiqmaganmiz va bu roʻyxat yakuniy emas, shuning uchun keyin jimgina tuzatiladigan versiyani eʼlon qilmaymiz. Soʻrang — bugun nima ishlayotganini aniq aytamiz.',
           ],
         },
         {
           heading: 'Mahsulot esa butunlay boshqa narsa',
           body: [
-            'Yuqoridagi hamma narsa shu veb-sayt haqida. U CompanyMind mahsuloti haqida emas, chunki ikkalasi bir-biridan bundan uzoqroq boʻla olmaydi.',
-            'CompanyMind sizning infratuzilmangiz ichida joylashadi. Maʼlumotingiz oʻsha yerda qoladi. Bizda unga kirish ham, uning nusxasi ham, unga yoʻl ham yoʻq — u turadigan vendor buluti yoʻq, chunki umuman vendor buluti yoʻq. Oʻrnatmangiz ichidagi maʼlumot bilan nima boʻlishini bu sahifa emas, sizning nazoratlaringiz va biz siz bilan imzolaydigan shartnoma boshqaradi.',
+            'Yuqoridagi hamma narsa shu veb-sayt haqida. U CompanyMind mahsuloti haqida emas, chunki ikkalasi bir-biridan juda uzoq.',
+            'CompanyMind sizning infratuzilmangiz ichida turadi. Maʼlumotingiz oʻsha yerda qoladi. Bizda unga kirish ham, nusxasi ham, unga yoʻl ham yoʻq — u turadigan bulut yoʻq, chunki umuman bulut yoʻq. Oʻrnatmangiz ichidagi maʼlumot bilan nima boʻlishini bu sahifa emas, sizning nazoratlaringiz va biz siz bilan imzolaydigan shartnoma belgilaydi.',
           ],
         },
       ],
       note: {
         label: 'Shu qismini oʻqing',
         heading: 'Bu sahifa qisqa, chunki sayt kichik.',
-        body: 'U aloqa formasi bor, hali ishga tushmagan marketing saytini qamrab oladi va biz qoʻlga kiritmagan bandlarni takrorlash oʻrniga bugun aslida rost boʻlgan narsani aytadi. Toʻliq maʼlumot himoyasi shartlari — subprotsessorlar, saqlash, rezidentlik, oʻchirish, audit huquqlari — joylashtirish shartnomasi bilan muzokara qilinadi va unga biriktiriladi. Bogʻlaydiganlari oʻshalar.',
+        body: 'U aloqa formasi bor, hali bozorga chiqmagan marketing saytini qamrab oladi va qoʻlga kiritilmagan bandlarni takrorlash oʻrniga bugun rost boʻlgan narsani aytadi. Maʼlumot himoyasining toʻliq shartlari — subprotsessorlar, saqlash, joylashuv, oʻchirish, audit huquqlari — joylashtirish shartnomasida muzokara qilinadi va unga biriktiriladi. Bogʻlaydigani ham oʻsha.',
       },
       contact: {
-        heading: 'Bular haqida soʻrash',
-        body: 'Bitta manzil va unga odam javob beradi. Nima saqlayotganimizni soʻrang, oʻchirishni soʻrang yoki bu sahifa qamramagan savolni bering.',
+        heading: 'Shular haqida soʻrash',
+        body: 'Bitta manzil bor va unga odam javob beradi. Nima saqlayotganimizni soʻrang, oʻchirishni soʻrang yoki bu sahifa qamramagan savolni bering.',
       },
     },
 
     terms: {
       label: 'Shartlar',
-      title: 'Shartlar',
+      title: 'Foydalanish shartlari',
       description:
-        'CompanyMind sayti shartlari: unda nima bor, aloqa formasi nimani anglatadi va anglatmaydi, hamda haqiqatan bogʻlaydigan shartlar qayerda yashaydi.',
-      headline: ['Bu sayt', 'mahsulot emas.'],
+        'CompanyMind sayti shartlari: unda nima bor, aloqa formasi nimani anglatadi va anglatmaydi, haqiqatan bogʻlaydigan shartlar esa qayerda.',
+      headline: ['Bu sayt —', 'mahsulot emas.'],
       standfirst:
-        'CompanyMind hali ishga tushmagan. Bu yerda nima qurayotganimiz haqida oʻqishingiz va biz bilan gaplashishni soʻrashingiz mumkin. Bu shartlar aynan shuni qamrab oladi, boshqa hech narsani emas.',
+        'CompanyMind hali bozorga chiqmagan. Bu yerda nima qurayotganimiz haqida oʻqishingiz va biz bilan gaplashishni soʻrashingiz mumkin. Bu shartlar aynan shuni qamrab oladi, boshqa hech narsani emas.',
       sections: [
         {
           heading: 'Bu shartlar nimani qamraydi',
           body: [
-            'Bu veb-saytdan foydalanishingizni. Butun qamrov shu.',
-            'Bu saytdan hech qanday dastur taklif qilinmaydi, litsenziyalanmaydi, sotilmaydi yoki yetkazilmaydi. Demak, bu dastur shartnomasi emas va uni oʻqish sizni shartnomaga qoʻymaydi.',
+            'Shu veb-saytdan foydalanishingizni. Butun qamrov shu.',
+            'Bu saytdan hech qanday dastur taklif qilinmaydi, litsenziyalanmaydi, sotilmaydi yoki yetkazilmaydi. Demak, bu dastur shartnomasi emas va uni oʻqiganingiz sizni hech qanday majburiyatga qoʻymaydi.',
           ],
         },
         {
           heading: 'Bu yerda nima yozilgan',
           body: [
-            'Tartibga solinadigan tashkilotlar uchun, ularning oʻz infratuzilmasida joylashtiriladigan qurilayotgan mahsulot taʼrifi. Biz uni aniq taʼriflashga, qoʻllab-quvvatlay olmaydigan narsani daʼvo qilmaslikka va bizda yoʻq sertifikatni koʻrsatmaslikka jiddiy harakat qildik.',
-            'Bu hamon ishlab chiqilayotgan dastur taʼrifi. U nima qilishi, qancha turishi va qachon chiqishi — ikkalamiz imzolaydigan narsa paydo boʻlgunicha oʻzgarishi mumkin. Narxlar sahifasidagi raqamlar — ochiq aytilgan hozirgi niyatimiz, qulflangan taklif emas.',
+            'Tartibga solinadigan tashkilotlar uchun, ularning oʻz infratuzilmasida ishlaydigan qurilayotgan mahsulot taʼrifi. Uni aniq taʼriflashga, qoʻllab-quvvatlay olmaydigan gapni aytmaslikka va bizda yoʻq sertifikatni koʻrsatmaslikka jiddiy harakat qildik.',
+            'Bu — hamon ishlab chiqilayotgan dastur taʼrifi. U nima qilishi, qancha turishi va qachon chiqishi ikkalamiz imzolaydigan hujjat paydo boʻlgunicha oʻzgarishi mumkin. Narxlar sahifasidagi raqamlar — bugungi niyatimiz, qulflangan taklif emas.',
           ],
         },
         {
           heading: 'Sizdan nima soʻraymiz',
           body: [
             'Oʻqing, havola qiling, iqtibos keltiring, hamkasbingizga yuboring. Bularning hech biriga ruxsatimiz kerak emas.',
-            'Soʻzlar, dizayn va kod bizniki. Ularni oʻzingizniki deb koʻrsatmang va saytga hujum qilmang yoki uni tinimsiz skreyping qilmang. Butun roʻyxat shu.',
+            'Soʻzlar, dizayn va kod bizniki. Ularni oʻzingizniki deb koʻrsatmang, saytga hujum qilmang va uni tinimsiz skreyping qilmang. Butun roʻyxat shu.',
           ],
         },
         {
           heading: 'Aloqa formasi',
           body: [
-            'Gaplashmoqchi boʻlsangiz ish pochtangizni yuboring. Uni yuborish shartnoma tuzmaydi, hech narsani band qilmaydi, narxni qulflamaydi va ikkalamizni hech narsaga majburlamaydi. U odam bilan suhbatni boshlaydi.',
-            'Maxfiy materialni u orqali yubormang. Bu marketing saytidagi forma va u nozik narsalar uchun qurilgan kanal emas. Kerak boʻlsa, ayting — biz uni tegishlicha tashkil qilamiz.',
+            'Gaplashmoqchi boʻlsangiz ish pochtangizni yuboring. Uni yuborish shartnoma tuzmaydi, hech narsani band qilmaydi, narxni qulflamaydi va ikkalamizni hech narsaga majburlamaydi. U shunchaki odam bilan suhbatni boshlaydi.',
+            'Maxfiy materialni bu forma orqali yubormang: bu marketing saytidagi oddiy forma va nozik maʼlumot uchun qurilgan kanal emas. Kerak boʻlsa ayting — alohida tashkil qilamiz.',
           ],
         },
         {
           heading: 'Bogʻlaydigan shartlar qayerda',
           body: [
-            'Bu yerda emas. Agar birga ishlasak, dasturni, maʼlumotni, xavfsizlik majburiyatlarini, qoʻllab-quvvatlashni, javobgarlikni va haqiqatan muhim boʻlgan boshqa hamma narsani joylashtirish shartnomasi boshqaradi. U muzokara qilinadi, imzolanadi va aynan sizga moslashtiriladi.',
-            'U paydo boʻlgunicha bu saytdagi hamma narsa — marketing. Veb-sahifani shartnoma qilib koʻrsatgandan koʻra shuni aytishni afzal koʻramiz.',
+            'Bu yerda emas. Birga ishlasak, dasturni, maʼlumotni, xavfsizlik majburiyatlarini, qoʻllab-quvvatlashni, javobgarlikni va haqiqatan muhim boʻlgan qolgan hamma narsani joylashtirish shartnomasi belgilaydi. U muzokara qilinadi, imzolanadi va aynan sizga moslashtiriladi.',
+            'U paydo boʻlgunicha bu saytdagi hamma narsa — marketing. Veb-sahifani shartnoma qilib koʻrsatgandan koʻra shuni ochiq aytishni afzal koʻramiz.',
           ],
         },
       ],
       note: {
         label: 'Shu qismini oʻqing',
         heading: 'Bular ataylab toʻliq shartlar emas.',
-        body: 'Bu yerda amal qiluvchi qonun bandi, javobgarlik chegarasi, kafolat yoki bosh harflardagi ogohlantirish topmaysiz. Bu eʼtiborsizlik emas. Hali kafolatlaydigan narsa yoʻq va faqat aloqa formasi joylashgan sayt uchun yurisdiksiya nomlash teatr boʻlardi. Haqiqiy shartlar haqiqiy narsa uchun yoziladi va joylashtirish shartnomasi bilan keladi.',
+        body: 'Bu yerda amal qiluvchi qonun bandi, javobgarlik chegarasi, kafolat yoki bosh harflardagi ogohlantirish topmaysiz. Bu eʼtiborsizlik emas: hali kafolatlaydigan narsa yoʻq, faqat aloqa formasi joylashgan sayt uchun yurisdiksiya nomlash esa teatr boʻlardi. Haqiqiy shartlar haqiqiy narsa uchun yoziladi va joylashtirish shartnomasi bilan keladi.',
       },
       contact: {
-        heading: 'Bular haqida savollar',
-        body: 'Taxmin qilishdan oldin soʻrang. Agar bu yerdagi biror narsa biz nazarda tutmagan vaʼda kabi oʻqilsa — bilishni istaymiz va matnni tuzatamiz.',
+        heading: 'Savollaringiz boʻlsa',
+        body: 'Taxmin qilgandan koʻra soʻrang. Bu yerdagi biror gap biz nazarda tutmagan vaʼdadek oʻqilsa — bilishni istaymiz va matnni tuzatamiz.',
       },
     },
   },
 
   /* -------------------------------------------------------------------------
    * 404 — brend metaforasi, jiddiy oʻynalgan: indeksda yoʻq hujjat.
-   * Mahsulotning qoidasi «manba yoʻq — daʼvo ham yoʻq», shuning uchun bu
+   * Mahsulotning qoidasi «manbasi yoʻq javob ham yoʻq», shuning uchun bu
    * sahifa ham taxmin qilmaydi.
    * ----------------------------------------------------------------------- */
   notFound: {
@@ -1237,9 +1296,9 @@ export const uz: Dictionary = {
     title: 'Indeksda yoʻq',
     description: 'Bu sahifa saytning bir qismi emas.',
     headline: ['Indeksda', 'yoʻq.'],
-    body: 'Siz soʻragan sahifa bu saytning qismi emas. U koʻchirilgan boʻlishi mumkin, umuman mavjud boʻlmagan boʻlishi ham mumkin — va biz qaysi biri ekanini taxmin qilmaymiz.',
+    body: 'Siz soʻragan sahifa bu saytda yoʻq. U koʻchirilgan ham boʻlishi mumkin, umuman boʻlmagan ham — biz qaysi biri ekanini taxmin qilmaymiz.',
     footnote:
-      'Manba yoʻq — daʼvo ham yoʻq. Bu qoida mahsulotni boshqaradi, demak bu sahifani ham. Qolgan hamma narsa bitta havola narida.',
+      'Manbasi yoʻq javob ham yoʻq. Bu qoida mahsulotga ham, shu sahifaga ham tegishli. Qolgan hamma narsa bitta havola narida.',
     artifact: { caption: 'soʻralgan hujjat', status: 'indekslanmagan · 0 manba' },
     home: 'Bosh sahifaga qaytish',
     linksLabel: 'Yoki toʻgʻridan-toʻgʻri',
