@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { Dictionary } from '@/lib/i18n'
 import { answerComponents, safeUrl, withCitations } from '@/lib/answer-markdown'
+import { EvidenceList } from './Evidence'
 
 export type Cite = {
   marker: number
@@ -47,7 +48,17 @@ export function unresolvedMarkers(msg: Msg): number[] {
  *    removed from the prose and reported once, honestly, below the answer.
  * 2. It does not render raw HTML or images — see lib/answer-markdown.tsx.
  */
-function AnswerBody({ msg, onCite }: { msg: Msg; onCite: (m: number) => void }) {
+function AnswerBody({
+  msg,
+  onCite,
+  onHover,
+  hoveredMarker,
+}: {
+  msg: Msg
+  onCite: (m: number) => void
+  onHover: (m: number | null) => void
+  hoveredMarker: number | null
+}) {
   const real = new Set(msg.citations.map((c) => c.marker))
   const wrap = (children: React.ReactNode) =>
     withCitations(children, (n, key) =>
@@ -55,7 +66,13 @@ function AnswerBody({ msg, onCite }: { msg: Msg; onCite: (m: number) => void }) 
         <button
           key={key}
           onClick={() => onCite(n)}
-          className="mx-0.5 inline-flex -translate-y-0.5 items-center rounded-sm bg-[color-mix(in_srgb,var(--brain)_16%,transparent)] px-1 font-mono text-[0.7rem] text-brain-text hover:bg-[color-mix(in_srgb,var(--brain)_28%,transparent)]"
+          onMouseEnter={() => onHover(n)}
+          onMouseLeave={() => onHover(null)}
+          data-lit={hoveredMarker === n}
+          // data-lit, not :hover — the highlight has to fire from the evidence
+          // card's side too. Binding claim to proof in both directions is what
+          // makes them read as one object rather than a number and a footnote.
+          className="mx-0.5 inline-flex -translate-y-0.5 items-center rounded-sm bg-[color-mix(in_srgb,var(--brain)_16%,transparent)] px-1 font-mono text-[0.7rem] text-brain-text transition-colors hover:bg-[color-mix(in_srgb,var(--brain)_28%,transparent)] data-[lit=true]:bg-brain data-[lit=true]:text-paper"
           aria-label={`Source ${n}`}
         >
           {n}
@@ -94,6 +111,8 @@ export function Message({
   onToggleAll,
   onRetry,
   citationAnchorRef,
+  onHoverCite,
+  hoveredMarker,
   dict,
 }: {
   msg: Msg
@@ -101,6 +120,9 @@ export function Message({
   onToggleCite: (marker: number) => void
   onToggleAll: () => void
   onRetry?: () => void
+  /** Two-way binding with the evidence rail. */
+  onHoverCite: (marker: number | null) => void
+  hoveredMarker: number | null
   /** Set on the FIRST citation chip of the FIRST cited answer in this chat —
    *  CitationHint positions itself against exactly that node. */
   citationAnchorRef?: (el: HTMLButtonElement | null) => void
@@ -118,8 +140,6 @@ export function Message({
     )
   }
 
-  const open = msg.citations.find((c) => c.marker === openMarker) ?? null
-
   async function copy() {
     await navigator.clipboard.writeText(msg.content)
     setCopied(true)
@@ -130,7 +150,12 @@ export function Message({
 
   return (
     <div className="group motion-safe:animate-fade-in">
-      <AnswerBody msg={msg} onCite={onToggleCite} />
+      <AnswerBody
+        msg={msg}
+        onCite={onToggleCite}
+        onHover={onHoverCite}
+        hoveredMarker={hoveredMarker}
+      />
 
       {/* The whole product is "every answer cites its source". When that did not
           hold, saying so is the feature — an unbacked answer that looks exactly
@@ -144,8 +169,14 @@ export function Message({
           className="mt-3 flex items-start gap-2 rounded-md border border-query bg-[color-mix(in_srgb,var(--query)_8%,transparent)] px-3 py-2 text-body-sm text-ink"
         >
           <svg
-            width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor"
-            strokeWidth="1.4" strokeLinecap="round" aria-hidden="true"
+            width="15"
+            height="15"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+            aria-hidden="true"
             className="mt-0.5 shrink-0 text-query-text"
           >
             <path d="M8 2.5 14.5 13.5h-13z M8 6.5v3M8 11.5h.01" />
@@ -158,50 +189,24 @@ export function Message({
         </p>
       )}
 
-      {msg.citations.length > 0 && (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          {msg.citations.map((c) => (
-            <span key={c.marker} className="inline-flex items-center">
-              <button
-                ref={c.marker === msg.citations[0].marker ? citationAnchorRef : undefined}
-                onClick={() => onToggleCite(c.marker)}
-                data-active={openMarker === c.marker}
-                className="rounded-l-md border border-line px-2 py-1 font-mono text-[0.7rem] text-ink-soft hover:text-ink data-[active=true]:border-brain data-[active=true]:text-brain-text"
-              >
-                [{c.marker}] {c.filename}
-                {c.page ? ` · p.${c.page}` : ''}
-              </button>
-              {c.chunkId ? (
-                <a
-                  href={`/s/${c.chunkId}`}
-                  target="_blank"
-                  rel="noopener"
-                  title="Open source"
-                  className="rounded-r-md border border-l-0 border-line px-1.5 py-1 font-mono text-[0.7rem] text-ink-soft hover:border-brain hover:text-brain-text"
-                >
-                  ↗
-                </a>
-              ) : (
-                <span
-                  className="rounded-r-md border border-l-0 border-line px-1.5 py-1 font-mono text-[0.7rem] text-ink-soft"
-                  title="The source document has been re-ingested; the quoted text is preserved."
-                >
-                  ↗
-                </span>
-              )}
-            </span>
-          ))}
-        </div>
-      )}
+      {/* The rail owns evidence on a wide screen; below xl there is no room
+          for it, so the same cards render here instead. Never both at once —
+          that would put the answer's proof on screen twice.
 
-      {open && (
-        <figure className="mt-3 rounded-md border-l-2 border-brain bg-paper-raised px-4 py-3">
-          <figcaption className="mb-1 font-mono text-[0.6875rem] uppercase tracking-[0.1em] text-ink-soft">
-            {open.filename}
-            {open.page ? ` · page ${open.page}` : ''}
-          </figcaption>
-          <blockquote className="text-body-sm leading-[1.7] text-ink">{open.snippet}</blockquote>
-        </figure>
+          The click-to-expand <figure> that used to live here is gone. The quote
+          was the one thing worth showing and it sat behind a click, which is
+          how the product's whole differentiator came to be invisible by
+          default. It is the body of the card now. */}
+      {msg.citations.length > 0 && (
+        <EvidenceList
+          className="mt-3 xl:hidden"
+          citations={msg.citations}
+          openMarker={openMarker}
+          onActivate={onToggleCite}
+          onHover={onHoverCite}
+          dict={dict}
+          firstCardRef={citationAnchorRef}
+        />
       )}
 
       {/* Visible by default; only a device that HAS hover gets to hide them.

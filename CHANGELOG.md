@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The evidence rail.** The citation was the product and the least designed
+  thing on screen: a 0.7rem grey monospace chip, with the quoted passage hidden
+  behind a click. A thread now carries a rail on its right showing the sources
+  of the active answer — numbered to match the marker in the prose, the source's
+  filename as an eyebrow, and **the quoted sentence itself as the body of the
+  card**, always visible. Reading the claim and reading the proof is one act now.
+  - **One rail per thread, not one per answer.** A rail per message would stack
+    down the right edge, each misaligned with the answer it belongs to and each
+    leaving a column of whitespace after a short reply. This one follows the
+    newest answer, and pins to whichever answer you last pointed at.
+  - **Binding runs both ways:** hovering `[2]` in the prose lights source 2 in
+    the rail, and hovering the card lights the marker. That is what makes a
+    claim and its proof read as one object rather than a number and a footnote.
+  - **Below 1280px the rail is not rendered** — the chat measure alone (46rem)
+    already exceeds the content area there — and the same cards render inline
+    under the answer instead. One component, two homes, never both at once.
+  - The rail states three genuinely different things rather than one vague one:
+    nothing asked yet, this reply needed no document, or this answer's sources
+    resolve to nothing.
+
 - **Download and delete for documents in Sources.** The library could show you
   a document and tell you who could see it, but never hand it back or let it go.
   - **Download** (`GET /api/documents/[id]/file`) is offered to anyone the
