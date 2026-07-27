@@ -4,7 +4,13 @@ import { useCallback, useEffect, useState } from 'react'
 import type { Dictionary } from '@/lib/i18n'
 
 type WsUser = { id: string; email: string; name: string | null }
-type Group = { id: string; name: string; isDefault: boolean; memberUserIds: string[] }
+type Group = {
+  id: string
+  name: string
+  isDefault: boolean
+  memberUserIds: string[]
+  documentCount: number
+}
 
 export function AccessManager({ csrf, dict }: { csrf: string; dict: Dictionary }) {
   const t = dict.panels.access
@@ -12,6 +18,11 @@ export function AccessManager({ csrf, dict }: { csrf: string; dict: Dictionary }
   const [users, setUsers] = useState<WsUser[]>([])
   const [newName, setNewName] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [renaming, setRenaming] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  // Deleting a group changes what everyone in it can retrieve, so it asks —
+  // inline, in the reader's language, naming what is at stake.
+  const [confirming, setConfirming] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     const r = await fetch('/api/groups')
@@ -55,6 +66,15 @@ export function AccessManager({ csrf, dict }: { csrf: string; dict: Dictionary }
 
   async function remove(group: Group) {
     await post(`/api/groups/${group.id}`, 'DELETE')
+    setConfirming(null)
+    load()
+  }
+
+  async function commitRename(group: Group) {
+    const name = renameValue.trim()
+    setRenaming(null)
+    if (!name || name === group.name) return
+    await post(`/api/groups/${group.id}`, 'PATCH', { name })
     load()
   }
 
@@ -64,10 +84,10 @@ export function AccessManager({ csrf, dict }: { csrf: string; dict: Dictionary }
 
   return (
     <div className="mt-6">
-      <p className="mb-4 text-body-sm text-ink-soft">
-        {t.intro}
-      </p>
-
+      {/* The paragraph that used to sit here said the same thing as the
+          permanent explanation directly above it on the page — two
+          restatements of one rule, stacked. The one above is the spec-mandated
+          copy that must never leave the page, so this one goes. */}
       <form onSubmit={create} className="mb-6 flex gap-2">
         <input
           value={newName}
@@ -84,20 +104,86 @@ export function AccessManager({ csrf, dict }: { csrf: string; dict: Dictionary }
       <ul className="space-y-3">
         {groups.map((g) => (
           <li key={g.id} className="rounded-lg border border-line bg-paper-raised p-4">
-            <div className="flex items-center justify-between">
-              <span className="font-mono text-[0.8125rem] uppercase tracking-[0.08em] text-ink">
-                {g.name}
-                {g.isDefault && <span className="ml-2 text-ink-soft">{t.defaultEveryone}</span>}
-              </span>
-              {!g.isDefault && (
+            <div className="flex items-center gap-3">
+              {renaming === g.id ? (
+                <input
+                  autoFocus
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  onBlur={() => commitRename(g)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      commitRename(g)
+                    } else if (e.key === 'Escape') {
+                      e.preventDefault()
+                      setRenaming(null)
+                    }
+                  }}
+                  aria-label={t.renameGroup.replace('{name}', g.name)}
+                  className="min-w-0 flex-1 rounded-md border border-brain bg-paper px-2 py-1 text-body text-ink"
+                />
+              ) : (
                 <button
-                  onClick={() => remove(g)}
-                  className="text-body-sm text-ink-soft underline underline-offset-2 hover:text-sovereign-text"
+                  type="button"
+                  disabled={g.isDefault}
+                  onClick={() => {
+                    setRenameValue(g.name)
+                    setRenaming(g.id)
+                  }}
+                  title={g.isDefault ? undefined : t.renameGroup.replace('{name}', g.name)}
+                  /* Sentence case, not mono-uppercase. These are words a person
+                     chose — "Finance", "Exec-only" — and shouting them in a
+                     monospace face turned them into system identifiers. */
+                  className="min-w-0 flex-1 truncate rounded-md px-1 py-0.5 text-left text-body font-medium text-ink enabled:hover:bg-paper-sunk"
+                >
+                  {g.name}
+                  {g.isDefault && (
+                    <span className="ml-2 text-body-sm font-normal text-ink-soft">
+                      {t.defaultEveryone}
+                    </span>
+                  )}
+                </button>
+              )}
+              {/* The number this page exists to show. */}
+              <span className="shrink-0 text-body-sm tabular-nums text-ink-soft">
+                {(g.documentCount === 1 ? t.opensOne : t.opens).replace(
+                  '{count}',
+                  String(g.documentCount),
+                )}
+              </span>
+              {!g.isDefault && confirming !== g.id && (
+                <button
+                  onClick={() => setConfirming(g.id)}
+                  aria-label={t.deleteGroupAria.replace('{name}', g.name)}
+                  className="shrink-0 text-body-sm text-ink-soft underline underline-offset-2 hover:text-sovereign-text"
                 >
                   {t.delete}
                 </button>
               )}
             </div>
+
+            {confirming === g.id && (
+              <div className="mt-3 flex flex-wrap items-center gap-2 rounded-md border border-sovereign bg-[color-mix(in_srgb,var(--sovereign)_8%,transparent)] px-3 py-2 text-body-sm">
+                <span className="text-ink">
+                  {t.deleteGroupConfirm
+                    .replace('{name}', g.name)
+                    .replace('{count}', String(g.documentCount))}
+                </span>
+                <button
+                  onClick={() => remove(g)}
+                  className="ml-auto rounded-md bg-sovereign px-2.5 py-1 text-paper"
+                >
+                  {t.delete}
+                </button>
+                <button
+                  onClick={() => setConfirming(null)}
+                  className="text-ink-soft underline underline-offset-2 hover:text-ink"
+                >
+                  {t.cancelDelete}
+                </button>
+              </div>
+            )}
             {!g.isDefault && (
               <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
                 {users.length === 0 && (

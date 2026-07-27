@@ -25,7 +25,17 @@ export function TourPill({
   onDismiss: () => void
 }) {
   return (
-    <div className="fixed bottom-5 right-5 z-40 flex items-center gap-1 rounded-full border border-line bg-paper-raised py-1 pl-4 pr-1 shadow-lift">
+    /* Never bottom-right.
+     *
+     * The composer is anchored to the bottom of the viewport and grows to fill
+     * the width on a narrow screen, so the entire bottom band is the primary
+     * control: measured at 420px, this pill sat directly on top of the send
+     * button, and at 1200px it covered the "Nothing leaves this server" line.
+     * There is no viewport corner that is safe at every width — so it docks
+     * into the two regions that are structurally empty instead. On desktop
+     * that is the sidebar column above the account menu; on mobile the sidebar
+     * is a drawer, so it takes the free right end of the top bar. */
+    <div className="fixed right-3 top-2.5 z-40 flex items-center gap-1 rounded-full border border-line bg-paper-raised py-1 pl-4 pr-1 shadow-lift md:bottom-20 md:left-4 md:right-auto md:top-auto">
       <button
         type="button"
         onClick={onStart}

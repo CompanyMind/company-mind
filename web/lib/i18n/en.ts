@@ -112,6 +112,11 @@ export const en = {
     placeholder: 'Ask your company’s knowledge…',
     copy: 'Copy',
     copied: 'Copied',
+    // Shown when the answer's [n] markers point at sources that were never
+    // returned. It names what is missing and what the reader should do about
+    // it, and never apologises — this is the product working, not failing.
+    uncited: 'No source backs this answer. Treat it as unverified and check Sources before relying on it.',
+    partiallyCited: '{count} of the references in this answer point to nothing. Only the sources listed below are real.',
     sources: 'Sources',
     retry: 'Retry',
     send: 'Send',
@@ -223,6 +228,14 @@ export const en = {
       defaultEveryone: '(default · everyone)',
       delete: 'Delete',
       noMembers: 'No members in this workspace yet.',
+      opens: 'opens {count} documents',
+      opensOne: 'opens {count} document',
+      renameGroup: 'Rename {name}',
+      deleteGroupAria: 'Delete the group {name}',
+      // Names the consequence, not the object: people lose reach, which is the
+      // thing an owner is actually deciding about.
+      deleteGroupConfirm: 'Delete {name}? Its members lose access to {count} documents. The documents stay.',
+      cancelDelete: 'Keep it',
     },
     people: {
       addSomeone: 'Add someone',

@@ -106,6 +106,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Answers displayed citations that pointed at nothing.** Found live on
+  production: the two most recent threads carried seven and eight `[n]` markers
+  and *zero* stored citations. `resolve_citations` drops any marker past the
+  number of retrieved passages, and the UI then fell through and printed the raw
+  marker — so the reader saw eight sources and could open none of them. On a
+  product sold on traceability that is the worst failure available. Unresolved
+  markers are now removed from the prose, and the answer carries a plain notice
+  saying it is unbacked and should be treated as unverified. Derived from the
+  message itself, so it is also true of every answer already in the database.
+- **The chat renders Markdown.** Answers were painted into a single `<p>` with
+  no parser, so production showed literal `**Tier 1**` and `*and*` on the
+  product's most-seen screen. Lists, tables, headings, code and emphasis now
+  render — a policy answer wants a tier table, not a paragraph. Deliberately
+  narrower than "render Markdown": **images are dropped entirely**, because a
+  tracking image inside an uploaded document would make the reader's browser
+  fetch a remote URL and quietly break the "Nothing leaves this server" claim
+  printed under the composer; links are restricted to http/https/mailto; raw
+  HTML is never enabled.
+- **Copy, Sources and Retry were unreachable on every phone and tablet.** They
+  were `opacity-0` until `group-hover`, and touch has no hover — so there was no
+  way to copy an answer or open its sources at all. They are visible by default
+  now; only a device that reports `hover: hover` hides them until hover.
+- **The tour pill sat on top of the send button.** Measured at 420px the pill
+  overlapped the composer's send control, and at 1200px it covered the trust
+  line. No viewport corner is safe when the composer is bottom-anchored and
+  full-width, so it docks into the sidebar column on desktop and the free end of
+  the mobile top bar instead.
+- **Tailwind never compiled classes used in `lib/`.** `content` globbed only
+  `./app/**`, so the new Markdown renderer's `list-disc`/`pl-5` were emitted in
+  the markup and never in the CSS — bullet lists rendered as bare lines. Silent
+  by nature: the class is right there in the DOM. `./lib/**` is scanned now.
+- **Atlas labels overprinted into an unreadable pile.** At 152 documents every
+  hub drew its filename unconditionally, so the more a workspace knew the less
+  its map could be read. A label now reserves a box and is skipped if the space
+  is taken — hubs come first, and hover/lens focus always wins. Labels also drop
+  the extension, the `department-NN-` filing prefix (the dot's colour already
+  says the department) and the slug separators.
+- **The Atlas findings rail was 320 undifferentiated cards.** 94 of them read
+  "Visible to nearly everyone in the workspace", because `create_document` tags
+  every upload to Everyone — so over-exposure is the state a document is *born*
+  in. The count is real and stays in the header; the list folds to the five
+  worst per kind with an explicit "Showing 5 of 94", sorts by the severity the
+  engine already computes, and says which kind of exposure each one is. `Fix`
+  became `Review` and is now a button, so `Dismiss` — which retires a governance
+  finding for good — is no longer the equally-easy twin beside it.
+- **Access showed who but never what.** `list_groups` returns a document count
+  per group, so a row reads "Exec-only — opens 12 documents" instead of leaving
+  the page's own question unanswered. Groups can be renamed (the API already
+  allowed it), deleting one asks first and names what its members lose, and
+  group names are no longer CSS-uppercased into system identifiers. The
+  duplicate paragraph restating the access rule directly under the permanent
+  one is gone.
 - **Opening Ask waited on the language model before drawing the composer.** The
   Ask page awaited `getSuggestions()` in its server component, and the engine
   writes those starter questions with one model call per folder, in sequence —

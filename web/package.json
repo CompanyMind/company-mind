@@ -26,7 +26,9 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-force-graph-2d": "^1.29.1",
-    "react-joyride": "3.2.0"
+    "react-joyride": "3.2.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@types/d3-quadtree": "^3.0.6",
