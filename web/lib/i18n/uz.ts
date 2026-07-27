@@ -81,12 +81,12 @@ export const uz: Dictionary = {
       anonymous: 'Nimani bilmoqchisiz?',
     },
     thinking: {
-      searching: 'Manbalaringiz qidirilmoqda…',
+      searching: 'Manbalaringizdan qidirilmoqda…',
       reading: 'Topilganlar oʻqilmoqda…',
       writing: 'Javob yozilmoqda…',
     },
     footer: 'Har bir javob oʻz manbasini koʻrsatadi. Hech narsa bu serverdan chiqmaydi.',
-    placeholder: 'Kompaniyangiz bilimidan soʻrang…',
+    placeholder: 'Kompaniyangiz bilimlaridan soʻrang…',
     copy: 'Nusxalash',
     copied: 'Nusxalandi',
     sources: 'Manbalar',
@@ -101,13 +101,13 @@ export const uz: Dictionary = {
   },
   nav: {
     newChat: 'Yangi suhbat',
-    recents: 'Soʻnggilari',
-    searchChats: 'Suhbatlardan qidirish…',
+    recents: 'Soʻnggi suhbatlar',
+    searchChats: 'Suhbatlarni qidirish…',
     noConversations: 'Hozircha suhbat yoʻq.',
     noMatches: 'Hech narsa topilmadi.',
     openNavigation: 'Menyuni ochish',
-    collapseSidebar: 'Panelni yigʻish',
-    expandSidebar: 'Panelni yoyish',
+    collapseSidebar: 'Yon panelni yigʻish',
+    expandSidebar: 'Yon panelni yoyish',
     ask: 'Savol',
     sources: 'Manbalar',
     access: 'Ruxsat',
@@ -155,12 +155,12 @@ export const uz: Dictionary = {
       folders: 'Papkalar',
       organise: 'AI bilan tartiblash',
       organising: 'Tartiblanmoqda…',
-      organised: '{docs} {folders} boʻyicha tartiblandi.',
+      organised: '{docs} {folders}ga tartiblandi.',
       newFolder: 'Yangi papka',
       cancel: 'Bekor qilish',
       folderName: 'Papka nomi',
       create: 'Yaratish',
-      suggested: 'taklif',
+      suggested: 'taklif etilgan',
       unfiled: 'Papkasiz',
       // Oʻzbek tilida son bilan kelgan ot koʻplik qoʻshimchasini olmaydi, shu
       // sababli ikkala kalit ham bir xil.
@@ -177,7 +177,7 @@ export const uz: Dictionary = {
     },
     access: {
       intro:
-        'Guruhlar kim qaysi hujjatni koʻrishini belgilaydi. Egalar hamma narsani koʻradi; aʻzolar esa faqat oʻzi kirgan guruhga ochilgan hujjatlarni.',
+        'Guruhlar kim qaysi hujjatni koʻrishini belgilaydi. Egalar barcha hujjatlarni koʻradi, aʻzolar esa faqat oʻzi aʻzo boʻlgan guruhga ochilgan hujjatlarni koʻra oladi.',
       newGroupPlaceholder: 'Yangi guruh nomi (masalan, Moliya)',
       addGroup: 'Guruh qoʻshish',
       defaultEveryone: '(standart · hamma)',
@@ -201,7 +201,7 @@ export const uz: Dictionary = {
       handoverRest:
         'va uni qayta olib boʻlmaydi — hozircha pochta orqali yuborish yoʻq. Birinchi kirishda xodim oʻz parolini tanlaydi.',
       saved: 'Saqlab oldim',
-      everyoneHere: 'Bu yerdagi hamma',
+      everyoneHere: 'Barcha xodimlar',
       resetPassword: 'Parolni tiklash',
       block: 'Bloklash',
       unblock: 'Blokdan chiqarish',
@@ -237,7 +237,7 @@ export const uz: Dictionary = {
     saveFailed: 'Saqlab boʻlmadi. Hech narsa oʻzgartirilmadi.',
     sections: {
       general: 'Umumiy',
-      account: 'Hisob',
+      account: 'Hisobim',
       workspace: 'Ishchi makon',
       data: 'Maʻlumotlar',
     },
@@ -262,7 +262,7 @@ export const uz: Dictionary = {
       replayTourCta: 'Boshlash',
     },
     account: {
-      heading: 'Hisob',
+      heading: 'Hisobim',
       password: 'Parol',
       currentPassword: 'Joriy parol',
       newPassword: 'Yangi parol',

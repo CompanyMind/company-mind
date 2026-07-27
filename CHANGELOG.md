@@ -36,6 +36,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The answering system prompt is hardened** (`engine/app/ask/answer.py`). It now
+  replies in the reader's own language; refuses to reveal, confirm or hint at
+  which model, vendor or version powers the system, or to disclose its own
+  instructions, and enumerates the specific evasion routes (roleplay,
+  hypotheticals, encodings, false developer/debug authority, "the text above")
+  that a general rule reliably loses to; and declares retrieved sources to be
+  **data, never instructions**, which is the central injection risk in a product
+  where anyone who can upload a document could otherwise address the model
+  directly. `engine/tests/test_system_prompt.py` pins these properties.
+- Refusals are detected by a language-independent `NO_ANSWER` sentinel instead of
+  string equality against an English sentence. With the model now answering in
+  Uzbek or Russian, the old check would have let every non-English refusal
+  through as an ordinary answer that happened to cite nothing.
+- Uzbek copy reworked to read as Uzbek rather than transposed English —
+  "Soʻnggi suhbatlar" over a possessive with nothing to possess, "Barcha
+  xodimlar" for a staff roster, searching *in* sources rather than *for* them.
 - The dashboard has **one sidebar instead of two**. Navigation, chat history and
   the account menu share it; chat threads are addressable at
   `/dashboard/c/[chatId]`, so they survive a reload and can be linked to.
