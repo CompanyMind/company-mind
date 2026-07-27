@@ -36,6 +36,13 @@ export const users = pgTable('users', {
   // 'en' | 'ru' | 'uz'. Per-user rather than per-workspace: a bank's Russian-speaking
   // analyst and its English-speaking admin share one workspace.
   locale: text('locale').notNull().default('en'),
+  // Set on every admin-created account. Without it, the admin who generated the
+  // temp password knows that person's password forever, which destroys any
+  // claim about per-user attribution. Enforced by a redirect in the (app)
+  // layout — deliberately NOT at the session choke point, which would lock the
+  // user out of the very page that clears it. See the design doc: this is
+  // hygiene, not a defence against the account's own holder.
+  mustChangePassword: boolean('must_change_password').notNull().default(false),
   // Set when the user explicitly declines the guided tour (the pill's own
   // dismiss action). Deliberately separate from onboardingDismissedAt above —
   // that column belongs to the older static first-run strip a later task
@@ -50,6 +57,13 @@ export const workspaces = pgTable('workspaces', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: text('name').notNull(),
   slug: text('slug').notNull().unique(),
+  // A firm, suspended by the platform operator (non-payment, offboarding).
+  // On the WORKSPACE, not on each user: cutting off a firm by blocking its
+  // employees one at a time is not a mechanism, and it loses the reason.
+  // Enforced in validateSessionToken, the same choke point as user blocking,
+  // and suspending also deletes that firm's sessions so it takes effect on the
+  // next request rather than at cookie expiry.
+  suspendedAt: timestamp('suspended_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 })
 
@@ -64,7 +78,16 @@ export const memberships = pgTable(
       .references(() => workspaces.id, { onDelete: 'cascade' }),
     role: text('role').notNull().default('member'), // 'owner' | 'member'
   },
-  (t) => [primaryKey({ columns: [t.userId, t.workspaceId] })],
+  (t) => [
+    primaryKey({ columns: [t.userId, t.workspaceId] }),
+    // One user, one firm — an INVARIANT, not an accident. validateSessionToken
+    // resolves the workspace with findFirst() and no ORDER BY, so a user with
+    // two memberships would land in whichever one Postgres happened to return.
+    // No workspace switcher is being built (YAGNI), so the ambiguity has no
+    // upside; pinning it costs one index. Verified before migrating that no
+    // existing user holds two.
+    uniqueIndex('memberships_one_workspace_per_user').on(t.userId),
+  ],
 )
 
 // One row per (user, workspace, step) the guided tour has ever SHOWN that

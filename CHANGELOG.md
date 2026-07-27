@@ -37,6 +37,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   "Board Minutes" still discloses that board minutes exist.
 
 ### Added
+- Schema for the three-tier admin model (migration `0016`): `workspaces.suspended_at` (a firm
+  suspended by the platform operator — on the workspace, not per user), `users.must_change_password`
+  (set on every admin-created account), and a unique index `memberships_one_workspace_per_user`.
+  That last one makes "one user, one firm" an invariant rather than an accident:
+  `validateSessionToken` resolves the workspace with `findFirst()` and no `ORDER BY`, so a user with
+  two memberships would land in whichever Postgres happened to return. Verified before migrating
+  that no existing user holds two.
 - `web/lib/chat-isolation.test.ts` — a regression test locking chat history to the signed-in person.
   No production change: `listChats` already filtered on `userId` and `getChatMessages`/`renameChat`/
   `deleteChat` already went through `chatOwned(chatId, workspaceId, userId)`. The tests exist so a
