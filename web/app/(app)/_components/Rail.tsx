@@ -39,6 +39,9 @@ export function Rail({
     { href: '/dashboard/access', label: 'Access' },
     // Integrations is owner-only — the page notFound()s for members, so the
     // link would be a dead end.
+    // Owner-only, like Integrations and Atlas — the pages notFound() for
+    // members, so the links would be dead ends.
+    ...(isOwner ? [{ href: '/dashboard/people', label: 'People' }] : []),
     ...(isOwner ? [{ href: '/dashboard/integrations', label: 'Integrations' }] : []),
     ...(isOwner ? [{ href: '/dashboard/atlas', label: 'Atlas' }] : []),
     // The platform tier lives outside this shell entirely — it needs no

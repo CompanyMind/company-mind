@@ -93,19 +93,24 @@ describe.skipIf(!HAS_DB)('createFirm', () => {
     if (!first.ok) return
     track(first)
 
-    const before = await db.select({ id: workspaces.id }).from(workspaces)
     const second = await createFirm({
       name: `Second ${tag}`,
       ownerEmail: `dup-${tag}@acme.test`,
       ownerName: null,
     })
-    const after = await db.select({ id: workspaces.id }).from(workspaces)
 
     expect(second.ok).toBe(false)
     if (second.ok) return
     expect(second.reason).toBe('duplicate-email')
+
     // The load-bearing assertion: the rejected attempt created NOTHING.
-    expect(after.length).toBe(before.length)
+    // Asserted against THIS attempt's own name, not a global workspace count —
+    // vitest runs test files in parallel, so a count taken before and after is
+    // a race against every other suite that creates a firm.
+    const orphan = await db.query.workspaces.findFirst({
+      where: eq(workspaces.name, `Second ${tag}`),
+    })
+    expect(orphan).toBeUndefined()
   })
 
   it('lists the firm with its owner and user count', async () => {

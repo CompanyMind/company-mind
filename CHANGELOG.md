@@ -37,6 +37,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   "Board Minutes" still discloses that board minutes exist.
 
 ### Added
+- **The firm owner's People page** (`/dashboard/people`, `lib/people.ts`, `/api/people/*`) — create
+  staff accounts, reset a password, block a leaver, all inside your own firm. This is what makes the
+  product sellable: the customer onboards their own staff without the operator. An owner may create
+  another owner, since a firm with one admin is a single point of failure the operator then has to
+  unlock by hand. **The workspace comes from the session and a body value is ignored outright rather
+  than validated** — there is no legitimate reason for a client to name one. Asserted twice: at the
+  lib layer (`people-scoping.test.ts`, real DB, cross-firm block/reset refused *and* the target
+  verified untouched) and at the route layer (`people-routes.test.ts`, forged `workspaceId` /
+  `workspace_id` / `workspace` in the body all ignored).
 - **The platform tier** at `/platform` and `/platform/usage`, in its own `(platform)` route group
   with its own shell. Deliberately not under `(app)`: that layout requires a workspace, and the
   operator may not have one. Open a firm (name + first owner's email -> workspace, owner account,
