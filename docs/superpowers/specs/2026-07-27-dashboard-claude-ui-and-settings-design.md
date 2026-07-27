@@ -134,8 +134,30 @@ cannot rot.
 
 `theme` is stored on `users` (`'system' | 'light' | 'dark'`, default `'system'`)
 and mirrored into a non-sensitive cookie so the root layout can stamp
-`data-theme` on `<html>` server-side. A tiny inline script in `<head>` resolves
-`system` against `matchMedia` before first paint, so there is no flash.
+`data-theme` on `<html>` server-side.
+
+Each token is declared **once**, with both values, using CSS `light-dark()`:
+
+```css
+:root            { color-scheme: light dark; }   /* system */
+[data-theme='light'] { color-scheme: light; }
+[data-theme='dark']  { color-scheme: dark; }
+
+--paper: #f3eee3;                        /* fallback for old engines */
+--paper: light-dark(#f3eee3, #1a1917);
+```
+
+This means **no inline script and no flash** — the browser resolves the pair
+from `color-scheme`, which is already set in the server-rendered HTML. It also
+means light and dark cannot drift apart, because they are the same declaration.
+The duplicated plain value above each `light-dark()` is the progressive-
+enhancement fallback: an engine without `light-dark()` discards the second
+declaration and keeps the light theme rather than losing the token entirely.
+
+**Because every Tailwind colour in `tailwind.config.ts` already resolves through
+`var(--token)`, the entire app themes for free.** No `dark:` variants are added
+anywhere. The only work left is code that hardcodes a hex — which is `Atlas.tsx`
+alone (§4.3).
 
 Reading a cookie in `app/layout.tsx` opts its routes into dynamic rendering. Every
 authenticated route is already dynamic (`runtime = 'nodejs'`, `getCurrentUser()`
