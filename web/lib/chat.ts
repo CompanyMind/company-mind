@@ -143,6 +143,20 @@ export async function deleteChat(
   return true
 }
 
+/**
+ * Every chat this user owns in this workspace. Scoped to BOTH ids for the same
+ * reason every other read here is: a chat belongs to exactly one
+ * (workspaceId, userId) pair, and "delete my history" must never be able to
+ * mean anyone else's. Messages and citations cascade.
+ */
+export async function deleteAllChats(workspaceId: string, userId: string): Promise<number> {
+  const deleted = await db
+    .delete(chats)
+    .where(and(eq(chats.workspaceId, workspaceId), eq(chats.userId, userId)))
+    .returning({ id: chats.id })
+  return deleted.length
+}
+
 export async function saveTurn(opts: {
   chatId: string
   workspaceId: string

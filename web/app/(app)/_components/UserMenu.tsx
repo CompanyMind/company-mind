@@ -71,13 +71,16 @@ export function UserMenu({
     }
   }, [open, close])
 
-  // ⌘, / Ctrl+, — the shortcut every desktop app uses for preferences. Ignored
-  // while typing, or it would swallow a comma in the composer.
+  // ⌘, / Ctrl+, — the shortcut every desktop app uses for preferences.
+  //
+  // Deliberately NOT skipped while a text field has focus. The usual "ignore
+  // shortcuts while typing" guard exists to avoid swallowing a character, and
+  // this combination cannot be one: a literal comma is typed without a
+  // modifier. With the guard in place the shortcut was dead on the surface
+  // people use most, because the empty state autofocuses the composer.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!((e.metaKey || e.ctrlKey) && e.key === ',')) return
-      const t = e.target as HTMLElement | null
-      if (t && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))) return
       e.preventDefault()
       router.push('/dashboard/settings/general')
     }

@@ -21,6 +21,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   WCAG ratio recomputed, in both themes.
 - `theme` and `motion` columns on `users`, and `PATCH /api/me` to change them
   along with name and locale.
+- **Settings**, opened from the sidebar's account menu or `⌘,`. An intercepted
+  route, so it overlays whatever you were doing and Escape puts you back in your
+  thread; a hard refresh on the same URL renders it as a full page.
+  - **General** — name, **language** (the `users.locale` column has had no UI
+    since i18n landed, so ru/uz users were stuck on whatever the owner seeded),
+    appearance, motion, replay the guided tour.
+  - **Account** — change password, **active sessions** (device, IP, signed-in,
+    with the current one marked), sign out of all devices. No IP-geolocation
+    lookup: calling out to prettify a row would contradict the product's claim.
+  - **Workspace** (owner-only) — rename, the deployment-mode egress claim, and
+    doorways to People / Access / Telegram.
+  - **Data** — what is stored and where, and delete all my conversations.
+
+### Fixed
+
+- `web/lib/db/client.ts` cached its connection pool in a module-level binding,
+  so Next's dev server built a **new pool of 10 on every hot reload** and
+  abandoned the old one. An editing session exhausted Postgres in well under an
+  hour, and the symptom (`sorry, too many clients already`) looked nothing like
+  its cause. Cached on `globalThis` instead.
 
 ### Security
 - **The control plane was open to every member.** Sixteen mutating API routes were gated by

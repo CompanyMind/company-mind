@@ -10,8 +10,10 @@ export type Role = 'owner' | 'member'
 
 /** What every authenticated request resolves to. `role` is carried here because
  *  the membership row is already fetched to find the workspace — every surface
- *  that needs the role would otherwise re-query for it. */
-export type Session = { user: User; workspace: Workspace; role: Role }
+ *  that needs the role would otherwise re-query for it. `sessionId` rides along
+ *  for the same reason: the session row is already read below, and the active
+ *  sessions list needs it to mark which row is "this device". */
+export type Session = { sessionId: string; user: User; workspace: Workspace; role: Role }
 
 export async function createSession(
   userId: string,
@@ -61,7 +63,12 @@ export async function validateSessionToken(token: string): Promise<Session | nul
   if (workspace.suspendedAt) return null
   // Anything that is not exactly 'owner' is a member. Never widen here: an
   // unrecognised role string must fall to the least privilege, not the most.
-  return { user, workspace, role: membership.role === 'owner' ? 'owner' : 'member' }
+  return {
+    sessionId: row.id,
+    user,
+    workspace,
+    role: membership.role === 'owner' ? 'owner' : 'member',
+  }
 }
 
 /**
