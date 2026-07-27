@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import Link from 'next/link'
 import type { Dictionary } from '@/lib/i18n'
 import { useTourTarget } from '@/lib/tour/targets'
 import { useDocumentUpload } from '@/lib/useDocumentUpload'
+import { FileChips, type ChipDoc } from './FileChips'
 
 /** Eight rows, then it scrolls. Past that the composer starts eating the
  *  conversation it is supposed to be part of. */
@@ -37,10 +37,10 @@ export function Composer({
   const fileRef = useRef<HTMLInputElement>(null)
   const composerRef = useTourTarget('ask-composer')
   const { upload, busy: uploading, error } = useDocumentUpload(csrf)
-  // How many files the last upload accepted. The upload always worked — it just
-  // said nothing, so it read as broken. It also needs saying that a file added
-  // here joins the whole workspace's Sources, not this one conversation.
-  const [added, setAdded] = useState(0)
+  // Attached files, shown as cards inside the box above the input. They stay
+  // until the engine finishes indexing (or the reader dismisses them), so the
+  // upload is never silent — which is what made it read as broken.
+  const [chips, setChips] = useState<ChipDoc[]>([])
 
   // Grow to fit the content, up to MAX_ROWS. Reset to 'auto' first or
   // scrollHeight only ever reports the current (already grown) height and the
@@ -67,17 +67,44 @@ export function Composer({
 
   async function onFiles(files: FileList | null) {
     if (!files?.length) return
-    setAdded(0)
     try {
-      const n = await upload(files)
-      if (n > 0) {
-        setAdded(n)
-        onUploaded?.()
-      }
+      // A card appears the moment the server confirms each file, rather than
+      // after the whole batch — with several files that is the difference
+      // between watching progress and staring at nothing.
+      const n = await upload(files, (doc) =>
+        setChips((cs) => (cs.some((c) => c.id === doc.id) ? cs : [...cs, doc])),
+      )
+      if (n > 0) onUploaded?.()
     } finally {
       if (fileRef.current) fileRef.current.value = ''
     }
   }
+
+  // Follow each card from uploaded → indexed. Indexing happens in the engine,
+  // in the background, so the only way to know it finished is to ask. The
+  // interval clears itself once nothing is still pending, so a settled composer
+  // costs no polling.
+  const pendingIds = chips
+    .filter((c) => c.status !== 'indexed' && c.status !== 'failed')
+    .map((c) => c.id)
+    .join(',')
+  useEffect(() => {
+    if (!pendingIds) return
+    let cancelled = false
+    const tick = async () => {
+      const r = await fetch('/api/documents')
+      if (!r.ok || cancelled) return
+      const { documents } = (await r.json()) as { documents: ChipDoc[] }
+      const byId = new Map(documents.map((d) => [d.id, d.status]))
+      setChips((cs) => cs.map((c) => ({ ...c, status: byId.get(c.id) ?? c.status })))
+    }
+    const t = setInterval(tick, 2000)
+    void tick()
+    return () => {
+      cancelled = true
+      clearInterval(t)
+    }
+  }, [pendingIds])
 
   return (
     <div>
@@ -89,6 +116,11 @@ export function Composer({
         }}
         className="rounded-2xl border border-line-control bg-paper-raised shadow-artifact transition-colors focus-within:border-brain"
       >
+        <FileChips
+          docs={chips}
+          dict={dict}
+          onDismiss={(id) => setChips((cs) => cs.filter((c) => c.id !== id))}
+        />
         <textarea
           ref={ref}
           rows={1}
@@ -140,19 +172,6 @@ export function Composer({
       {error && (
         <p role="alert" className="mt-2 text-body-sm text-sovereign-text">
           {error}
-        </p>
-      )}
-      {uploading && (
-        <p role="status" className="mt-2 text-body-sm text-ink-soft">
-          {dict.uploading}
-        </p>
-      )}
-      {!uploading && added > 0 && (
-        <p role="status" className="mt-2 text-body-sm text-ink-soft">
-          {dict.uploaded.replace('{count}', String(added))}{' '}
-          <Link href="/dashboard/sources" className="text-brain-text underline underline-offset-2">
-            {dict.openSources}
-          </Link>
         </p>
       )}
     </div>

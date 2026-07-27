@@ -117,10 +117,13 @@ export const en = {
     send: 'Send',
     attach: 'Add documents',
     uploading: 'Uploading…',
-    // A file added from the composer joins the whole workspace's Sources, not
-    // this one conversation — so the confirmation says where it went.
-    uploaded: '{count} added to Sources, and being indexed now.',
-    openSources: 'Open Sources',
+    // Shown on the file card in the composer. A file added here joins the whole
+    // workspace's Sources, not this one conversation, so the status names
+    // indexing rather than implying the file rides along with the next question.
+    indexing: 'Indexing…',
+    indexed: 'Added to Sources',
+    uploadFailed: 'Could not be added',
+    dismissFile: 'Remove from this list',
   },
   nav: {
     newChat: 'New chat',

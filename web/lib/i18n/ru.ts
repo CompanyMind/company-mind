@@ -90,8 +90,10 @@ export const ru: Dictionary = {
     send: 'Отправить',
     attach: 'Добавить документы',
     uploading: 'Загрузка…',
-    uploaded: 'Добавлено в «Источники» ({count}), идёт индексация.',
-    openSources: 'Открыть «Источники»',
+    indexing: 'Индексируем…',
+    indexed: 'Добавлен в «Источники»',
+    uploadFailed: 'Не удалось добавить',
+    dismissFile: 'Убрать из списка',
   },
   nav: {
     newChat: 'Новый чат',

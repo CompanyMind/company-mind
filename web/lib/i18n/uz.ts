@@ -94,8 +94,10 @@ export const uz: Dictionary = {
     send: 'Yuborish',
     attach: 'Hujjat qoʻshish',
     uploading: 'Yuklanmoqda…',
-    uploaded: 'Manbalarga qoʻshildi ({count} ta), hozir indekslanmoqda.',
-    openSources: 'Manbalarni ochish',
+    indexing: 'Oʻqilmoqda…',
+    indexed: 'Manbalarga qoʻshildi',
+    uploadFailed: 'Qoʻshib boʻlmadi',
+    dismissFile: 'Roʻyxatdan olib tashlash',
   },
   nav: {
     newChat: 'Yangi suhbat',
