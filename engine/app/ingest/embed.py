@@ -4,7 +4,7 @@ from typing import Protocol
 
 import httpx
 
-from ..settings import settings, use_real_models
+from ..settings import require_models, settings, use_real_models
 
 
 class EmbeddingsProvider(Protocol):
@@ -89,6 +89,7 @@ class OpenAICompatEmbeddings:
 
 
 def get_provider() -> EmbeddingsProvider:
+    require_models()
     if use_real_models():
         return OpenAICompatEmbeddings(
             settings.models_base_url,

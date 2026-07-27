@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     # regulated deployments MUST set MODELS_BASE_URL to their own endpoint.
     models_base_url: str = OPENAI_DEFAULT_BASE
     openai_api_key: str = ""  # required to use the OpenAI default; sent as a Bearer token
+    # Deterministic placeholder providers, for tests and offline development
+    # ONLY. Must be set explicitly — see use_fake_models() for why this is no
+    # longer inferred from "no credentials present".
+    fake_models: bool = False
     llm_model: str = "gpt-5.4-nano-2026-03-17"
     embed_model: str = "text-embedding-3-small"
     # Must match web/lib/db/schema.ts EMBED_DIM and the embedding model's output.
@@ -65,14 +69,50 @@ if settings.contextual_mode not in _IMPLEMENTED_CONTEXTUAL_MODES:
     )
 
 
-def use_real_models() -> bool:
-    """Call a real model provider, or fall back to the deterministic fake?
+class ModelsNotConfigured(RuntimeError):
+    """No model provider is configured and fakes are not permitted.
 
-    - A custom (self-hosted) base URL → always real; an API key is optional
-      because many self-hosted endpoints are unauthenticated on the internal net.
-    - The default OpenAI base → real only when an API key is present, so tests
-      and offline dev with no credentials still fall back to the fake providers.
+    Raised instead of quietly serving deterministic placeholder text. The fake
+    answer reads exactly like a real cited one — "Based on your sources: … [1]"
+    — so a misconfigured deployment used to look like a working one, right up
+    until someone trusted the answer. Failing loudly is the whole point.
+    """
+
+
+def use_real_models() -> bool:
+    """Is a real model provider configured?
+
+    - A custom (self-hosted) base URL → yes; an API key is optional because many
+      self-hosted endpoints are unauthenticated on the internal network.
+    - The default OpenAI base → yes only when an API key is present.
     """
     if settings.models_base_url and settings.models_base_url != OPENAI_DEFAULT_BASE:
         return True
     return bool(settings.openai_api_key)
+
+
+def use_fake_models() -> bool:
+    """May the deterministic fake providers stand in for a real model?
+
+    ONLY when FAKE_MODELS is explicitly set. This used to be implied by "no
+    credentials configured", which meant the fallback was one missing
+    environment variable away in production — and that is exactly how a
+    greeting came back as a fabricated extract from the staff handbook.
+
+    The fakes still exist because the test suite needs them: CI runs 148 engine
+    tests with no secrets at all (see .github/workflows/ci.yml, which references
+    none), and ingestion tests need embeddings that are deterministic, free and
+    offline. What they must never again be is an accident.
+    """
+    return settings.fake_models
+
+
+def require_models() -> None:
+    """Fail loudly when neither a real provider nor an explicit fake is set."""
+    if not use_real_models() and not use_fake_models():
+        raise ModelsNotConfigured(
+            "No model provider configured. Set MODELS_BASE_URL to a self-hosted "
+            "OpenAI-compatible endpoint (the on-prem path), or OPENAI_API_KEY to "
+            "use the hosted default. Set FAKE_MODELS=1 only for tests and offline "
+            "development — it returns placeholder text, never real answers."
+        )

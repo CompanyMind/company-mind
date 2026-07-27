@@ -52,9 +52,13 @@ tables, rendered at `web/app/(app)/dashboard/atlas/`.
   Don't swap in a third-party auth lib. The **platform super-admin stays seed-only**
   (`web/scripts/seed.ts`); everyone else is created in-product by the tier above them.
 - **CSRF** is a session-bound HMAC token — no cookie write during render (Next forbids it).
-- **Models**: self-hosted via an OpenAI-compatible endpoint (`MODELS_BASE_URL`). When
-  unset, **deterministic fake** embedding/chat providers kick in so the pipeline is fully
-  testable with no GPU. `EMBED_DIM=1024` is pinned in `web/lib/db/schema.ts` AND
+- **Models**: self-hosted via an OpenAI-compatible endpoint (`MODELS_BASE_URL`), or the
+  hosted default with `OPENAI_API_KEY`. **Deterministic fake providers are test-only** and
+  require an explicit `FAKE_MODELS=1`; with neither a real provider nor that flag the engine
+  raises `ModelsNotConfigured` rather than answering. They used to be implied by "no
+  credentials", which made a misconfigured deployment serve placeholder text that reads
+  exactly like a real cited answer. CI runs the whole engine suite with no secrets, which is
+  why the fakes still exist at all. `EMBED_DIM=1024` is pinned in `web/lib/db/schema.ts` AND
   `engine/app/settings.py` — changing it means re-embedding every chunk.
 - **Three tiers** (`docs/superpowers/specs/2026-07-27-tenancy-and-three-tier-admin-design.md`):
   **platform operator** (`getSuperAdmin()`, `/platform`) opens and suspends *firms* and never

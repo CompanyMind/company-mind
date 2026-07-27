@@ -36,6 +36,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The deterministic fake providers are test-only now.** They used to engage
+  whenever no model credentials were present, so a deployment missing one
+  environment variable served placeholder text — and that text reads exactly
+  like a real cited answer (`Based on your sources: … [1]`), so a broken install
+  looked like a working one. They now require an explicit `FAKE_MODELS=1`;
+  otherwise the engine raises `ModelsNotConfigured` from both the ask path and
+  the ingestion path rather than inventing an answer or a vector. They still
+  exist because CI runs all 155 engine tests with no secrets at all.
 - **The assistant triages before it retrieves.** A greeting used to be answered
   by quoting whatever document ranked first — "assalomu alaykum, sen nima qila
   olasan" came back as a citation-laden extract from the staff handbook. The
