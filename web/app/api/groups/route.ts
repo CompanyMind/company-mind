@@ -23,11 +23,14 @@ export async function GET() {
     .innerJoin(users, eq(users.id, memberships.userId))
     .where(eq(memberships.workspaceId, owner.workspaceId))
   return NextResponse.json({
+    // Field-by-field on purpose (never a spread) — GroupRow is shaped by the
+    // engine's response and a spread would forward whatever it grows next.
     groups: gs.map((g) => ({
       id: g.id,
       name: g.name,
       isDefault: g.isDefault,
       memberUserIds: g.memberUserIds,
+      documentCount: g.documentCount,
     })),
     users: wsUsers,
   })

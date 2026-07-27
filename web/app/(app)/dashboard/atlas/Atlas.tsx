@@ -164,7 +164,27 @@ function heatColor(t: number): string {
   return `rgb(${r}, ${g}, ${b})`
 }
 
-const shortName = (f: string) => f.replace(/\.[a-z0-9]+$/i, '')
+/**
+ * A filename, as a map label.
+ *
+ * Real corpora are named like `engineering-11-recommendation-engine--architecture--runbook.md`,
+ * and printing that verbatim gave the map a centre made of overlapping slugs.
+ * Three things go: the extension, the `department-NN-` filing prefix (the dot's
+ * colour already says which department, so the word is spent twice), and the
+ * `--`/`-` word separators. What is left is the part that distinguishes this
+ * document from its neighbours — which is the only job a label has here.
+ */
+const LABEL_MAX = 34
+export const shortName = (f: string) => {
+  const base = f.replace(/\.[a-z0-9]+$/i, '')
+  const withoutPrefix = base.replace(/^[a-z]+[-_]\d+[-_]/i, '')
+  const words = withoutPrefix.replace(/--+/g, ' · ').replace(/[-_]+/g, ' ').trim()
+  // Fall back through every narrowing step: a name that is only an extension
+  // strips to nothing, and an unlabelled dot on a map of documents is worse
+  // than an ugly one.
+  const label = words || base || f
+  return label.length > LABEL_MAX ? label.slice(0, LABEL_MAX - 1).trimEnd() + '…' : label
+}
 
 export function Atlas({
   csrf,
@@ -196,6 +216,10 @@ export function Atlas({
   const fgRef = useRef<any>(null)
   const tipRef = useRef<HTMLDivElement>(null)
   const nodesRef = useRef<any[]>([])
+  /** Label boxes already claimed in the frame being painted. Emptied by
+   *  onRenderFramePre before every frame — a ref, not state, because it is
+   *  written during canvas painting and must never trigger a re-render. */
+  const labelBoxes = useRef<{ x0: number; y0: number; x1: number; y1: number }[]>([])
   const containerRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
   const mounted = useRef(true)
@@ -807,6 +831,9 @@ export function Atlas({
                   const t = typeof link.target === 'object' ? link.target.id : link.target
                   return focus && focus.has(s) && focus.has(t) ? 1.5 : 0.6
                 }}
+                onRenderFramePre={() => {
+                  labelBoxes.current.length = 0
+                }}
                 nodeCanvasObjectMode={() => 'replace'}
                 nodeCanvasObject={(node: any, ctx: CanvasRenderingContext2D, scale: number) => {
                   const dimmed = focus ? !focus.has(String(node.id)) : false
@@ -867,14 +894,42 @@ export function Atlas({
                     ctx.textAlign = 'center'
                     ctx.textBaseline = 'top'
                     const y = node.y + r + 2
-                    // Paper-colored outline stroke stands in for a halo box —
-                    // legible over the edge mesh without boxing the label in.
-                    ctx.lineJoin = 'round'
-                    ctx.lineWidth = fontSize * 0.34
-                    ctx.strokeStyle = palette.halo
-                    ctx.strokeText(label, node.x, y)
-                    ctx.fillStyle = isHub ? color : palette.ink
-                    ctx.fillText(label, node.x, y)
+
+                    // Claim the space, or say nothing.
+                    //
+                    // At 152 documents every hub drew its label unconditionally
+                    // and the centre of the map became a stack of overprinted
+                    // slugs — the more a workspace knew, the less its map could
+                    // be read. A label now reserves its own box and is skipped
+                    // if that box is already taken. Nodes arrive sorted by
+                    // degree, so the biggest hubs claim first and the labels
+                    // that survive are the ones worth reading. Hover and lens
+                    // focus bypass the check: a label you asked for must always
+                    // win against ambient ones.
+                    const half = ctx.measureText(label).width / 2 + 1 / scale
+                    const box = {
+                      x0: node.x - half,
+                      y0: y,
+                      x1: node.x + half,
+                      y1: y + fontSize * 1.15,
+                    }
+                    const mustShow = focused || isHover
+                    const taken =
+                      !mustShow &&
+                      labelBoxes.current.some(
+                        (b) => !(box.x1 < b.x0 || b.x1 < box.x0 || box.y1 < b.y0 || b.y1 < box.y0),
+                      )
+                    if (!taken) {
+                      labelBoxes.current.push(box)
+                      // Paper-colored outline stroke stands in for a halo box —
+                      // legible over the edge mesh without boxing the label in.
+                      ctx.lineJoin = 'round'
+                      ctx.lineWidth = fontSize * 0.34
+                      ctx.strokeStyle = palette.halo
+                      ctx.strokeText(label, node.x, y)
+                      ctx.fillStyle = isHub ? color : palette.ink
+                      ctx.fillText(label, node.x, y)
+                    }
                   }
                   ctx.globalAlpha = 1
                 }}

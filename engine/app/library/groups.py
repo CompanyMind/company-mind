@@ -7,11 +7,25 @@ def _slug(name: str) -> str:
 
 
 def list_groups(conn, workspace_id: str) -> list[dict]:
+    """Groups with the number of documents each one opens up.
+
+    The count is the point of the page. Access answers "who can see what", and
+    without it the surface only ever answered the first half: a row reading
+    "EXEC-ONLY — 1 person" tells an owner nothing about what that person can
+    reach, which is the only thing they came to find out. LEFT JOIN so a group
+    that grants nothing still lists, showing 0 rather than vanishing.
+    """
     rows = conn.execute(
-        "SELECT id, name, is_default FROM groups WHERE workspace_id=%s ORDER BY is_default DESC, name",
+        "SELECT g.id, g.name, g.is_default, count(dg.document_id) AS documents "
+        "FROM groups g LEFT JOIN document_groups dg ON dg.group_id = g.id "
+        "WHERE g.workspace_id=%s "
+        "GROUP BY g.id, g.name, g.is_default "
+        "ORDER BY g.is_default DESC, g.name",
         (workspace_id,),
     ).fetchall()
-    return [{"id": str(r[0]), "name": r[1], "is_default": r[2]} for r in rows]
+    return [
+        {"id": str(r[0]), "name": r[1], "is_default": r[2], "document_count": r[3]} for r in rows
+    ]
 
 
 def group_member_user_ids(conn, workspace_id: str) -> dict[str, list[str]]:

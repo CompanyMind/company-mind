@@ -18,9 +18,23 @@ async function engineJson(path: string, init?: RequestInit): Promise<unknown> {
   return res.json()
 }
 
-export type GroupRow = { id: string; name: string; isDefault: boolean; memberUserIds: string[] }
+export type GroupRow = {
+  id: string
+  name: string
+  isDefault: boolean
+  memberUserIds: string[]
+  /** How many documents this group opens up — the "what" half of "who can see
+   *  what". 0 for a group just created, which is why it is not optional. */
+  documentCount: number
+}
 
-type EngineGroup = { id: string; name: string; is_default: boolean; member_user_ids?: string[] }
+type EngineGroup = {
+  id: string
+  name: string
+  is_default: boolean
+  member_user_ids?: string[]
+  document_count?: number
+}
 
 export async function listGroups(workspaceId: string): Promise<GroupRow[]> {
   const data = (await engineJson(`/groups?workspace_id=${workspaceId}`)) as { groups: EngineGroup[] }
@@ -29,6 +43,7 @@ export async function listGroups(workspaceId: string): Promise<GroupRow[]> {
     name: g.name,
     isDefault: g.is_default,
     memberUserIds: g.member_user_ids ?? [],
+    documentCount: g.document_count ?? 0,
   }))
 }
 
@@ -44,7 +59,13 @@ export async function createGroup(
   if (res.status === 409) return 'conflict'
   if (!res.ok) throw new Error(`engine POST /groups responded ${res.status}`)
   const { group } = (await res.json()) as { group: EngineGroup }
-  return { id: group.id, name: group.name, isDefault: group.is_default, memberUserIds: [] }
+  return {
+    id: group.id,
+    name: group.name,
+    isDefault: group.is_default,
+    memberUserIds: [],
+    documentCount: 0,
+  }
 }
 
 export async function renameGroup(

@@ -10,7 +10,13 @@ import type { Config } from 'tailwindcss'
  * channels into the token layer would double every token for little gain.
  */
 const config: Config = {
-  content: ['./app/**/*.{ts,tsx}'],
+  // `lib/` is scanned too. It held no class names until answer-markdown.tsx,
+  // so this went unnoticed — and the failure is silent in the worst way: the
+  // markup renders with the right classes on it and Tailwind simply never emits
+  // the rules, so `list-disc` computed to `list-style: none` and the answer's
+  // bullet lists came out as bare lines. Anything under lib/ that returns JSX
+  // needs to be in here.
+  content: ['./app/**/*.{ts,tsx}', './lib/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {

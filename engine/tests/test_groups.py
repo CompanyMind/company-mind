@@ -14,6 +14,45 @@ def _ws(conn, ws):
     conn.execute("INSERT INTO workspaces (id,name,slug) VALUES (%s,%s,%s)", (ws, f"ws-{ws}", str(ws)))
 
 
+def test_list_groups_reports_how_many_documents_each_one_opens():
+    """Access answers "who can see what". Without this count it only ever
+    answered the first half — a row reading "Exec-only · 1 person" told an
+    owner nothing about what that person could reach."""
+    ws = uuid.uuid4()
+    with psycopg.connect(DB) as conn:
+        with conn.transaction():
+            _ws(conn, ws)
+    try:
+        with psycopg.connect(DB) as conn:
+            conn.autocommit = True
+            finance = g.create_group(conn, str(ws), "Finance")
+            empty = g.create_group(conn, str(ws), "Board")
+            for name in ("a.txt", "b.txt"):
+                doc = conn.execute(
+                    "INSERT INTO documents (workspace_id,filename,mime,bytes,storage_key,status) "
+                    "VALUES (%s,%s,'text/plain',1,'k','indexed') RETURNING id",
+                    (ws, name),
+                ).fetchone()[0]
+                conn.execute(
+                    "INSERT INTO document_groups (workspace_id,document_id,group_id) "
+                    "VALUES (%s,%s,%s)",
+                    (ws, doc, finance["id"]),
+                )
+
+            by_name = {r["name"]: r for r in g.list_groups(conn, str(ws))}
+
+            assert by_name["Finance"]["document_count"] == 2
+            # A group that grants nothing must still be listed, showing zero —
+            # "no one can reach anything through this" is itself the answer an
+            # owner came for, and a vanished row would read as no group at all.
+            assert by_name["Board"]["document_count"] == 0
+            assert empty["name"] == "Board"
+    finally:
+        with psycopg.connect(DB) as conn:
+            with conn.transaction():
+                conn.execute("DELETE FROM workspaces WHERE id=%s", (ws,))
+
+
 def test_group_lifecycle():
     ws, user, doc = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
     with psycopg.connect(DB) as conn:
