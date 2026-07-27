@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import type { Dictionary } from '@/lib/i18n'
 
 type Group = { id: string; name: string }
 type Link = {
@@ -12,7 +13,8 @@ type Link = {
 }
 type Status = { connected: boolean; username: string | null }
 
-export function Integrations({ csrf }: { csrf: string }) {
+export function Integrations({ csrf, dict }: { csrf: string; dict: Dictionary }) {
+  const t = dict.panels.integrations
   const [status, setStatus] = useState<Status>({ connected: false, username: null })
   const [links, setLinks] = useState<Link[]>([])
   const [groups, setGroups] = useState<Group[]>([])
@@ -74,62 +76,61 @@ export function Integrations({ csrf }: { csrf: string }) {
     await send(`/api/telegram-links/${link.id}/groups`, 'PUT', { groupIds })
   }
 
-  const person = (l: Link) => l.displayName || (l.telegramUsername ? `@${l.telegramUsername}` : 'Telegram user')
+  const person = (l: Link) =>
+    l.displayName || (l.telegramUsername ? `@${l.telegramUsername}` : t.telegramUser)
 
   return (
     <div className="mt-6 space-y-8">
       {/* Telegram connection */}
       <section className="rounded-lg border border-line bg-paper-raised p-5">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-lg text-ink">Telegram</h2>
+          <h2 className="font-display text-lg text-ink">{t.telegram}</h2>
           {status.connected && (
-            <span className="font-mono text-[0.75rem] text-brain-text">@{status.username} · connected</span>
+            <span className="font-mono text-[0.75rem] text-brain-text">@{status.username} · {t.connected}</span>
           )}
         </div>
         <p className="mt-1 text-body-sm text-ink-soft">
-          One bot for your workspace. People ask it questions; each person only gets answers from
-          documents their groups allow.
+          {t.telegramBody}
         </p>
         {status.connected ? (
           <button
             onClick={disconnect}
             className="mt-4 rounded-md border border-line-control px-3 py-1.5 text-body-sm text-ink-soft hover:text-sovereign-text"
           >
-            Disconnect
+            {t.disconnect}
           </button>
         ) : (
           <form onSubmit={connect} className="mt-4 flex gap-2">
             <input
               value={token}
               onChange={(e) => setToken(e.target.value)}
-              placeholder="Bot token from @BotFather"
+              placeholder={t.tokenPlaceholder}
               className="min-w-0 flex-1 rounded-md border border-line-control bg-paper px-3 py-2 font-mono text-body-sm text-ink"
             />
             <button
               disabled={busy || !token.trim()}
               className="rounded-md bg-ink px-4 py-2 text-body-sm text-paper disabled:opacity-50"
             >
-              {busy ? 'Connecting…' : 'Connect'}
+              {busy ? t.connecting : t.connect}
             </button>
           </form>
         )}
         {error && <p className="mt-2 text-body-sm text-sovereign-text">{error}</p>}
         <p className="mt-3 border-t border-line pt-3 text-body-sm text-ink-soft">
-          Note: Telegram messages pass through Telegram’s cloud. The bot is ask-only and never sends
-          your documents — for strict zero-egress, use the web app.
+          {t.telegramNote}
         </p>
       </section>
 
       {/* Access requests */}
       <section>
-        <h2 className="font-display text-lg text-ink">Access requests</h2>
+        <h2 className="font-display text-lg text-ink">{t.accessRequests}</h2>
         <p className="mt-1 text-body-sm text-ink-soft">
-          Approve people who’ve messaged the bot, and choose which groups they can draw answers from.
+          {t.accessRequestsBody}
         </p>
         <ul className="mt-4 space-y-3">
           {links.length === 0 && (
             <li className="rounded-md border border-line px-4 py-6 text-body-sm text-ink-soft">
-              No one has started the bot yet.
+              {t.noneStarted}
             </li>
           )}
           {links.map((l) => (
@@ -150,12 +151,12 @@ export function Integrations({ csrf }: { csrf: string }) {
                   </span>
                   {l.status !== 'approved' && (
                     <button onClick={() => act(l, 'approve')} className="text-body-sm text-brain-text underline">
-                      Approve
+                      {t.approve}
                     </button>
                   )}
                   {l.status !== 'blocked' && (
                     <button onClick={() => act(l, 'block')} className="text-body-sm text-ink-soft underline hover:text-sovereign-text">
-                      Block
+                      {t.blockAction}
                     </button>
                   )}
                 </div>

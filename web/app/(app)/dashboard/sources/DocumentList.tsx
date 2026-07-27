@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import type { Dictionary } from '@/lib/i18n'
 
 type Doc = {
   id: string
@@ -14,21 +15,23 @@ type Doc = {
 type Group = { id: string; name: string; isDefault: boolean }
 type FolderOption = { id: string; name: string }
 
-const STATUS_LABEL: Record<Doc['status'], string> = {
-  uploaded: 'Queued',
-  parsing: 'Indexing…',
-  indexed: 'Indexed',
-  failed: 'Failed',
-}
+const statusLabel = (t: Dictionary['panels']['sources']): Record<Doc['status'], string> => ({
+  uploaded: t.queued,
+  parsing: t.indexing,
+  indexed: t.indexed,
+  failed: t.failed,
+})
 
 export function DocumentList({
   csrf,
   folder,
   initialDoc,
   canManage,
+  dict,
 }: {
   csrf: string
   folder: string
+  dict: Dictionary
   initialDoc?: string
   /** Owner. Group tagging and moving documents are owner-only at the API, and
    *  /api/groups is owner-only too (it returns every colleague's email), so a
@@ -39,6 +42,8 @@ export function DocumentList({
   const [groups, setGroups] = useState<Group[]>([])
   const [folders, setFolders] = useState<FolderOption[]>([])
   const [editing, setEditing] = useState<string | null>(initialDoc ?? null)
+  const t = dict.panels.sources
+  const STATUS_LABEL = statusLabel(t)
 
   const refresh = useCallback(async () => {
     const dr = await fetch(`/api/documents?folder=${encodeURIComponent(folder)}`)
@@ -79,13 +84,13 @@ export function DocumentList({
 
   function visibleLabel(doc: Doc) {
     const names = groups.filter((g) => doc.groupIds.includes(g.id)).map((g) => g.name)
-    return names.length ? names.join(', ') : 'No one'
+    return names.length ? names.join(', ') : t.noGroups
   }
 
   return (
     <ul className="mt-4 divide-y divide-line rounded-md border border-line">
       {docs.length === 0 && (
-        <li className="px-4 py-6 text-body-sm text-ink-soft">This folder is empty.</li>
+        <li className="px-4 py-6 text-body-sm text-ink-soft">{t.emptyFolder}</li>
       )}
       {docs.map((d) => (
         <li key={d.id} id={`doc-${d.id}`} className="px-4 py-3">
@@ -122,7 +127,7 @@ export function DocumentList({
                 onChange={(e) => move(d, e.target.value)}
                 className="rounded-md border border-line bg-paper px-2 py-1 text-body-sm text-ink-soft"
               >
-                <option value="unfiled">Unfiled</option>
+                <option value="unfiled">{t.unfiled}</option>
                 {folders.map((f) => (
                   <option key={f.id} value={f.id}>
                     {f.name}

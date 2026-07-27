@@ -24,7 +24,7 @@ export default async function IntegrationsPage() {
         <h1 className="font-display text-2xl text-ink">{dict.pages.integrations.title}</h1>
         <p className="mt-1 text-body-sm text-ink-soft">{dict.pages.integrations.body}</p>
       </header>
-      <Integrations csrf={csrf} />
+      <Integrations csrf={csrf} dict={dict} />
     </div>
   )
 }

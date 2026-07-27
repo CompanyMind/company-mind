@@ -29,7 +29,7 @@ export default async function AccessPage() {
           colleague's email. Members keep the page for the explanation above:
           understanding why an answer was scoped does not require the controls
           that do the scoping. */}
-      {auth?.role === 'owner' && <AccessManager csrf={csrf} />}
+      {auth?.role === 'owner' && <AccessManager csrf={csrf} dict={dict} />}
     </div>
   )
 }
