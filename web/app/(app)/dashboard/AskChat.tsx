@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation'
 import type { Dictionary } from '@/lib/i18n'
 import { CitationHint } from '@/app/(app)/_components/tour/CitationHint'
 import { Composer } from './Composer'
-import { Message, type Msg } from './Message'
+import { Message, unresolvedMarkers, type Msg } from './Message'
+import { EvidenceRail } from './Evidence'
 import { Thinking } from './Thinking'
 
 /**
@@ -57,6 +58,11 @@ export function AskChat({
   const [busy, setBusy] = useState(false)
   const [open, setOpen] = useState<Record<string, number | null>>({})
   const [suggestions, setSuggestions] = useState<string[]>([])
+  // Which answer the evidence rail is showing. Null means "the newest one" —
+  // resolved at render, so a fresh answer takes the rail without an effect.
+  // Pointing at any marker pins the rail to that answer instead.
+  const [pinnedId, setPinnedId] = useState<string | null>(null)
+  const [hoveredMarker, setHoveredMarker] = useState<number | null>(null)
   const endRef = useRef<HTMLDivElement>(null)
   const timeOfDay = useTimeOfDay()
   // Mirrors `chatId` but updates synchronously the moment a new thread is
@@ -181,6 +187,12 @@ export function AskChat({
     return null
   }
 
+  // The answer the rail is showing. Falls back to the newest assistant turn, so
+  // the rail follows the conversation without anyone having to drive it, and a
+  // pin that outlives its message (a cleared thread) degrades to that too.
+  const lastAnswer = [...msgs].reverse().find((m) => m.role === 'assistant') ?? null
+  const railMsg = (pinnedId && msgs.find((m) => m.id === pinnedId)) || lastAnswer
+
   const composer = (
     <Composer
       csrf={csrf}
@@ -256,43 +268,69 @@ export function AskChat({
 
   // ---- Thread ----
   return (
-    <div className="flex h-full flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto px-6">
-        <div className="mx-auto flex w-full max-w-[var(--chat-measure)] flex-col gap-7 py-8">
-          {msgs.map((m, i) => (
-            <Message
-              key={m.id}
-              msg={m}
-              dict={dict}
-              openMarker={open[m.id] ?? null}
-              onToggleCite={(n) => setOpen((o) => ({ ...o, [m.id]: o[m.id] === n ? null : n }))}
-              onToggleAll={() =>
-                setOpen((o) => ({
-                  ...o,
-                  [m.id]: o[m.id] == null ? (m.citations[0]?.marker ?? null) : null,
-                }))
-              }
-              onRetry={
-                m.role === 'assistant' && previousQuestion(i)
-                  ? () => void send(previousQuestion(i)!)
-                  : undefined
-              }
-              citationAnchorRef={m.id === firstCitedMessageId ? setCitationAnchor : undefined}
-            />
-          ))}
-          {busy && <Thinking dict={dict.thinking} />}
-          <div ref={endRef} />
+    // The rail is a sibling of the whole conversation column (messages AND
+    // composer), not of the message list — it is thread furniture, so it spans
+    // the full height and does not scroll away with the transcript.
+    <div className="flex h-full min-h-0">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6">
+          <div className="mx-auto flex w-full max-w-[var(--chat-measure)] flex-col gap-7 py-8">
+            {msgs.map((m, i) => (
+              <Message
+                key={m.id}
+                msg={m}
+                dict={dict}
+                openMarker={open[m.id] ?? null}
+                onToggleCite={(n) => {
+                  setPinnedId(m.id)
+                  setOpen((o) => ({ ...o, [m.id]: o[m.id] === n ? null : n }))
+                }}
+                onToggleAll={() =>
+                  setOpen((o) => ({
+                    ...o,
+                    [m.id]: o[m.id] == null ? (m.citations[0]?.marker ?? null) : null,
+                  }))
+                }
+                onRetry={
+                  m.role === 'assistant' && previousQuestion(i)
+                    ? () => void send(previousQuestion(i)!)
+                    : undefined
+                }
+                citationAnchorRef={m.id === firstCitedMessageId ? setCitationAnchor : undefined}
+                hoveredMarker={railMsg?.id === m.id ? hoveredMarker : null}
+                onHoverCite={(n) => {
+                  if (m.role !== 'assistant') return
+                  setPinnedId(m.id)
+                  setHoveredMarker(n)
+                }}
+              />
+            ))}
+            {busy && <Thinking dict={dict.thinking} />}
+            <div ref={endRef} />
+          </div>
         </div>
+
+        <div className="px-6 pb-4">
+          <div className="mx-auto w-full max-w-[var(--chat-measure)]">
+            {composer}
+            <p className="mt-2 text-center text-[0.75rem] text-ink-soft">{dict.footer}</p>
+          </div>
+        </div>
+
+        <CitationHint anchorEl={citationAnchor} dict={citationHint} />
       </div>
 
-      <div className="px-6 pb-4">
-        <div className="mx-auto w-full max-w-[var(--chat-measure)]">
-          {composer}
-          <p className="mt-2 text-center text-[0.75rem] text-ink-soft">{dict.footer}</p>
-        </div>
-      </div>
-
-      <CitationHint anchorEl={citationAnchor} dict={citationHint} />
+      <EvidenceRail
+        citations={railMsg?.citations ?? []}
+        openMarker={railMsg ? (open[railMsg.id] ?? null) : null}
+        onActivate={(n) =>
+          railMsg && setOpen((o) => ({ ...o, [railMsg.id]: o[railMsg.id] === n ? null : n }))
+        }
+        onHover={setHoveredMarker}
+        hasAnswer={!!lastAnswer}
+        uncited={!!railMsg && unresolvedMarkers(railMsg).length > 0}
+        dict={dict}
+      />
     </div>
   )
 }

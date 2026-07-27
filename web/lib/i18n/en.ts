@@ -117,6 +117,12 @@ export const en = {
     // it, and never apologises — this is the product working, not failing.
     uncited: 'No source backs this answer. Treat it as unverified and check Sources before relying on it.',
     partiallyCited: '{count} of the references in this answer point to nothing. Only the sources listed below are real.',
+    openSource: 'Open source',
+    sourceReindexed: 'The document was re-indexed; the quoted text is preserved.',
+    // Three distinct rail states. Conflating them would repeat the dishonesty
+    // the dead [n] markers were guilty of.
+    evidenceIdle: 'Ask something. The passages behind each answer appear here.',
+    evidenceNone: 'This reply did not need a document.',
     sources: 'Sources',
     retry: 'Retry',
     send: 'Send',
