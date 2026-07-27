@@ -65,6 +65,11 @@ services:
       ENGINE_INTERNAL_SECRET: ${ENGINE_INTERNAL_SECRET}
       ENGINE_BASE_URL: ${ENGINE_BASE_URL}
       STORAGE_DIR: /data/uploads
+      # 'hosted' (default) or 'onprem'. Presentation only — it decides what the
+      # egress line claims and whether the Platform nav entry appears, never
+      # what anyone is allowed to do. Set it to onprem for a single-firm
+      # customer install; leaving it unset asserts the weaker, always-true claim.
+      DEPLOYMENT_MODE: ${DEPLOYMENT_MODE:-hosted}
       NODE_ENV: production
     volumes:
       - uploads:/data/uploads

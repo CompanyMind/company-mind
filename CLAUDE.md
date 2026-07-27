@@ -48,16 +48,35 @@ tables, rendered at `web/app/(app)/dashboard/atlas/`.
 ## Conventions & invariants
 
 - **Auth is sovereign, hand-rolled on purpose:** argon2id (`@node-rs/argon2`); session
-  tokens stored as sha256 hashes (never the token); HttpOnly/SameSite=Lax cookies;
-  seed-only accounts. Don't swap in a third-party auth lib.
+  tokens stored as sha256 hashes (never the token); HttpOnly/SameSite=Lax cookies.
+  Don't swap in a third-party auth lib. The **platform super-admin stays seed-only**
+  (`web/scripts/seed.ts`); everyone else is created in-product by the tier above them.
 - **CSRF** is a session-bound HMAC token — no cookie write during render (Next forbids it).
 - **Models**: self-hosted via an OpenAI-compatible endpoint (`MODELS_BASE_URL`). When
   unset, **deterministic fake** embedding/chat providers kick in so the pipeline is fully
   testable with no GPU. `EMBED_DIM=1024` is pinned in `web/lib/db/schema.ts` AND
   `engine/app/settings.py` — changing it means re-embedding every chunk.
+- **Three tiers** (`docs/superpowers/specs/2026-07-27-tenancy-and-three-tier-admin-design.md`):
+  **platform operator** (`getSuperAdmin()`, `/platform`) opens and suspends *firms* and never
+  sees a firm's documents or questions · **firm owner** (`getOwner()`, `/dashboard/people`)
+  creates their own staff and assigns groups, scoped to their own workspace · **member** asks.
+  The platform tier manages firms, **not people** — resist re-adding a cross-firm
+  create-user route, which is the thing the tier split exists to remove.
 - **Access model**: access groups; documents tagged with groups; a person's answer is the
   intersection of their groups; **owners bypass** (all_access). Telegram identities are
-  principals too. Aim: one predicate, reused by every surface.
+  principals too. The predicate lives **once**, in `engine/app/access.py::document_perm_sql`,
+  and is reused by retrieval *and* both library listings — a surface that reads documents
+  without it is a leak (that is exactly how filenames leaked to every member).
+- **The control plane is owner-only.** Anything that changes *who sees what* — document
+  groups, group CRUD, group members, folder CRUD, AI organise, upload, all Telegram routes —
+  is `getOwner()`-gated and enumerated in `web/lib/control-plane-gates.test.ts`. Add a route
+  there when you add one; a member able to rewrite the access model's inputs makes its
+  evaluation irrelevant.
+- **Workspace comes from the session, never the request.** `validateSessionToken` resolves it
+  from the caller's own membership and carries `role` alongside. No route may take a
+  workspace id from a body or query string.
+- **`DEPLOYMENT_MODE`** (`hosted` default | `onprem`) gates **presentation only** — the egress
+  claim and the Platform nav entry. Never authorization.
 - **Telegram**: one bot per workspace, token encrypted at rest with Fernet; long-polling
   worker (outbound only); admin approves users + assigns groups; ask-only replies with
   citation links to `/s/[chunkId]`.

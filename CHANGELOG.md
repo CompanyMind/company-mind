@@ -37,6 +37,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   "Board Minutes" still discloses that board minutes exist.
 
 ### Added
+- **`DEPLOYMENT_MODE`** (`hosted` default, or `onprem`). The same codebase serves a hosted
+  multi-firm deployment and a single-firm on-prem install; only the egress claim and the Platform
+  nav entry differ. It gates **presentation only** — authorization stays `getSuperAdmin()` /
+  `getOwner()` in both modes, because a mode flag that also granted access would be a second,
+  weaker security control shadowing the first. The default is deliberately the *weaker* claim: an
+  unset variable must never make the product assert an air-gap it does not have. Only the exact
+  string `onprem` unlocks the stronger claim — `on-prem`, `ONPREM`, `true` and friends all resolve
+  to hosted, so an air-gap claim can never turn on by a typo.
 - **The firm owner's People page** (`/dashboard/people`, `lib/people.ts`, `/api/people/*`) — create
   staff accounts, reset a password, block a leaver, all inside your own firm. This is what makes the
   product sellable: the customer onboards their own staff without the operator. An owner may create

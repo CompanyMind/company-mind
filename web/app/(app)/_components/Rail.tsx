@@ -13,12 +13,18 @@ export function Rail({
   isOwner,
   isSuperAdmin,
   locale,
+  deploymentMode,
 }: {
   workspace: string
   userName: string | null
   isOwner: boolean
   isSuperAdmin: boolean
   locale: string
+  /** Presentation only — see lib/env.ts. Authorization is unchanged in both
+   *  modes; this decides what the egress line claims and whether the Platform
+   *  entry is offered, since an on-prem install has exactly one firm and
+   *  nothing to provision. */
+  deploymentMode: 'hosted' | 'onprem'
 }) {
   const path = usePathname()
   const dict = getDictionary(isLocale(locale) ? locale : 'en')
@@ -46,7 +52,9 @@ export function Rail({
     ...(isOwner ? [{ href: '/dashboard/atlas', label: 'Atlas' }] : []),
     // The platform tier lives outside this shell entirely — it needs no
     // workspace, and its surfaces are firms and usage, not Ask/Sources.
-    ...(isSuperAdmin ? [{ href: '/platform', label: 'Platform' }] : []),
+    ...(isSuperAdmin && deploymentMode === 'hosted'
+      ? [{ href: '/platform', label: 'Platform' }]
+      : []),
   ]
   // Two of NAV's entries are tour anchors. Hooks can't be called inside the
   // `.map()` below (NAV's length varies with isOwner/isSuperAdmin, which
@@ -94,6 +102,15 @@ export function Rail({
           />
           egress 0 B
         </div>
+        {/* The claim differs by mode and must stay true in both. On-prem the
+            data never leaves the customer's own network. Hosted, many firms
+            share one server, so "your infrastructure" is not available —
+            "never leaves this server, never trains anything" is. */}
+        <p className="text-body-sm text-ink-soft max-md:hidden">
+          {deploymentMode === 'onprem'
+            ? 'Nothing leaves your infrastructure.'
+            : 'Nothing leaves this server. Never used for training.'}
+        </p>
         <div className="text-body-sm text-ink-soft max-md:hidden">{workspace}</div>
         <form action="/logout" method="post">
           <button className="text-body-sm text-ink-soft underline underline-offset-2 hover:text-ink">

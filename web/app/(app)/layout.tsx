@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth/current-user'
 import { getSuperAdmin } from '@/lib/auth/require-super-admin'
 import { issueCsrf } from '@/lib/csrf'
+import { env } from '@/lib/env'
 import { db } from '@/lib/db/client'
 import { userTourSteps } from '@/lib/db/schema'
 import { Rail } from './_components/Rail'
@@ -57,6 +58,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           isOwner={auth.role === 'owner'}
           isSuperAdmin={admin !== null}
           locale={auth.user.locale}
+          deploymentMode={env.DEPLOYMENT_MODE}
         />
         <main className="min-w-0 flex-1">{children}</main>
       </div>
