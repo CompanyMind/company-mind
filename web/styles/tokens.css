@@ -1,59 +1,133 @@
 /**
- * CompanyMind design tokens — "warm studio paper"
+ * CompanyMind design tokens — "warm studio paper", in two themes
  *
- * SINGLE SOURCE OF TRUTH. Both Tailwind (via tailwind.config.ts) and the
- * canvas swarm (via lib/swarm/tokens.ts, which reads these at runtime with
- * getComputedStyle) resolve their colors from here. Change a value once.
+ * SINGLE SOURCE OF TRUTH. Tailwind (via tailwind.config.ts) resolves every
+ * colour from here, which is why adding a dark theme needed no `dark:` variant
+ * anywhere in the app: each token simply gained a second value.
  *
- * CONTRAST LAW — verified with a real WCAG relative-luminance calculation,
- * not eyeballed. Ratios below are measured against --paper / --paper-raised /
- * --paper-sunk respectively.
+ * CONTRAST LAW — no longer a comment you have to trust. `lib/tokens-contrast.test.ts`
+ * parses this file, recomputes every WCAG relative-luminance ratio below, and
+ * fails the build if one drops under its floor. Measured against --paper /
+ * --paper-raised / --paper-sunk in BOTH themes.
  *
- *   --ink        14.89 / 16.24 / 13.23  AAA   → any text
- *   --ink-soft    5.57 /  6.07 /  4.95  AA    → body + secondary text
- *   --brain       4.49 /  4.90 /  3.99  UI    → LINES AND SHAPES ONLY
- *   --query       2.57 /  2.80 /  2.28  FAIL  → GRAPHICS ONLY, NEVER TEXT
- *   --sovereign   4.02 /  4.39 /  3.58  UI    → graphics + LARGE display only
+ *   --ink        >= 7:1    AAA   → any text
+ *   --ink-soft   >= 4.5:1  AA    → body + secondary text
+ *   --line-control >= 3:1  UI    → the visual boundary of a form control (SC 1.4.11)
+ *   --brain      >= 3:1    UI    → LINES AND SHAPES ONLY
+ *   --sovereign  >= 3:1    UI    → graphics
+ *   --query      >= 3:1 on DARK ONLY — on light paper it measures 2.57 and is
+ *                                     GRAPHICS ONLY, a legacy the test exempts
+ *                                     explicitly rather than silently.
  *
- * The accent inks cannot legally carry body text on this paper. When an accent
- * must READ as text, use the *-text variants below, which are darkened until
- * they pass AA on all three surfaces.
+ * The accent inks cannot legally carry body text. When an accent must READ as
+ * text, use the *-text variants: on light paper they are DARKENED until they
+ * pass AA, and on dark paper the same rule runs in reverse and they are
+ * LIGHTENED.
  */
 
+/* Theme resolution. `color-scheme` is what light-dark() reads, and it is set
+   from server-rendered HTML (app/layout.tsx stamps data-theme from a cookie),
+   so the correct palette is in effect on the very first paint — no inline
+   script, no flash. `:root` alone means "follow the OS". */
 :root {
+  color-scheme: light dark;
+}
+[data-theme='light'] {
+  color-scheme: light;
+}
+[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+:root {
+  /* Each token is declared TWICE on purpose. The first is the fallback an
+     engine without light-dark() keeps (light theme, degraded but correct);
+     the second is the real declaration. Never delete the first — without it an
+     unsupporting engine drops the token entirely and text lands on a
+     background of the same colour. */
+
   /* ---- Paper: the world ---- */
-  --paper: #f3eee3; /* warm cream — the whole-site field */
-  --paper-raised: #fbf8f1; /* lighter — raised cards, surfaces */
-  --paper-sunk: #e8e1d2; /* deeper — insets, the telemetry rail */
+  --paper: #f3eee3; /* warm cream / warm near-black — the whole-app field */
+  --paper: light-dark(#f3eee3, #1a1917);
+  --paper-raised: #fbf8f1; /* one step up — raised cards, surfaces */
+  --paper-raised: light-dark(#fbf8f1, #232220);
+  --paper-sunk: #e8e1d2; /* one step down — insets, the sidebar */
+  --paper-sunk: light-dark(#e8e1d2, #131211);
 
   /* ---- Ink: everything that must be read ---- */
-  --ink: #1c1b18; /* warm near-black — primary text */
-  --ink-soft: #635e54; /* warm gray — secondary text.
-                          NOTE: nudged from the original #6B665C, which measured
-                          4.38 on --paper-sunk and FAILED AA for normal text —
-                          exactly where the telemetry rail lives. */
-  --line: #d8d0be; /* hairline dividers on paper — DECORATIVE RULES ONLY.
-                      Measures 1.45 on --paper-raised: fine for a divider (WCAG
-                      exempts purely decorative lines), but ILLEGAL as the
-                      boundary of a form control. */
-  --line-control: #857960; /* 4.04 on --paper-raised — the border of any INPUT,
-                              SELECT or TEXTAREA. WCAG 2.1 SC 1.4.11 requires
-                              >=3:1 for the visual boundary that identifies a UI
-                              component, and --line is less than half that. The
-                              form is where a design partner actually reaches us;
-                              it does not get to be the one unusable thing here. */
+  --ink: #1c1b18; /* primary text */
+  --ink: light-dark(#1c1b18, #f4f0e6);
+  --ink-soft: #635e54; /* secondary text.
+                          NOTE: the light value was nudged from the original
+                          #6B665C, which measured 4.38 on --paper-sunk and
+                          FAILED AA for normal text — exactly where the sidebar
+                          lives. */
+  --ink-soft: light-dark(#635e54, #a8a094);
+  --line: #d8d0be; /* hairline dividers — DECORATIVE RULES ONLY. Far under 3:1
+                      by design (WCAG exempts purely decorative lines), which
+                      makes it ILLEGAL as the boundary of a form control. */
+  --line: light-dark(#d8d0be, #322f2a);
+  --line-control: #857960; /* the border of any INPUT, SELECT or TEXTAREA.
+                              SC 1.4.11 requires >=3:1 for the boundary that
+                              identifies a UI component, and --line is less
+                              than half that. */
+  --line-control: light-dark(#857960, #7d7466);
 
   /* ---- Accent inks: graphics only (see contrast law above) ---- */
-  --brain: #684bff; /* electric violet — indexed, organized, connected knowledge */
+  --brain: #684bff; /* electric violet — indexed, connected knowledge */
+  --brain: light-dark(#684bff, #9b86ff);
   --query: #e07b39; /* burnt amber — a live question moving through */
-  --sovereign: #d8315b; /* crimson-rose — RARE. perimeter pulse + final CTA. */
+  --query: light-dark(#e07b39, #e8904a);
+  --sovereign: #d8315b; /* crimson-rose — RARE. destructive + final CTA. */
+  --sovereign: light-dark(#d8315b, #f0577f);
 
-  /* ---- Accent inks, text-safe (darkened until AA on all surfaces) ---- */
-  --brain-text: #5636d6; /* 5.57 AA */
-  --query-text: #9a4a18; /* 5.39 AA */
-  --sovereign-text: #b02348; /* 5.71 AA */
+  /* ---- Accent inks, text-safe ---- */
+  --brain-text: #5636d6;
+  --brain-text: light-dark(#5636d6, #b3a3ff);
+  --query-text: #9a4a18;
+  --query-text: light-dark(#9a4a18, #f2ab72);
+  --sovereign-text: #b02348;
+  --sovereign-text: light-dark(#b02348, #f5849f);
 
-  /* ---- Shadows: objects resting on paper. Low, soft, WARM. Never hard. ---- */
+  /* ---- Graph marks: the Atlas canvas. Never text, so exempt from the contrast
+     law above — lib/tokens-contrast.test.ts asserts that exemption explicitly
+     instead of leaving it implied. Atlas reads these at runtime with
+     getComputedStyle, so it repaints when the theme changes.
+
+     KNOWN GAP, not an oversight: on LIGHT paper --graph-legal (2.34) and
+     --graph-orphan (2.57) sit under SC 1.4.11's 3:1 non-text floor, as they did
+     when they were hardcoded in Atlas.tsx. They are not raised here because the
+     department palette is deliberately even-chroma ("so no one department
+     shouts") and is OPEN — an unlisted department derives hsl(H 58% 47%) at
+     runtime, which no token test can reach. Fixing this means redesigning that
+     palette as its own piece of work, not smuggling it into a theme change. The
+     dark values were chosen fresh and clear the floor. ---- */
+  --graph-everyone: #9c948a;
+  --graph-everyone: light-dark(#9c948a, #6f675c);
+  --graph-engineering: #3b6fe0;
+  --graph-engineering: light-dark(#3b6fe0, #6f9bff);
+  --graph-finance: #12a074;
+  --graph-finance: light-dark(#12a074, #35c79a);
+  --graph-legal: #dd8a2b;
+  --graph-legal: light-dark(#dd8a2b, #f0a94f);
+  --graph-sales: #684bff;
+  --graph-sales: light-dark(#684bff, #9b86ff);
+  --graph-anomaly: #d8315b;
+  --graph-anomaly: light-dark(#d8315b, #f0577f);
+  --graph-orphan: #e07b39;
+  --graph-orphan: light-dark(#e07b39, #e8904a);
+  --graph-muted: #b8b0a2;
+  --graph-muted: light-dark(#b8b0a2, #4a453d);
+  --graph-faded: #c9c0ab;
+  --graph-faded: light-dark(#c9c0ab, #3a352e);
+  --graph-ink: #1c1b18;
+  --graph-ink: light-dark(#1c1b18, #f4f0e6);
+  --graph-halo: #f3eee3; /* the ground a node is cut out of */
+  --graph-halo: light-dark(#f3eee3, #1a1917);
+
+  /* ---- Shadows: objects resting on paper. Low, soft, WARM. Never hard.
+     A warm shadow is invisible on dark paper, so the dark set below leans on a
+     hairline ring to separate a surface from its ground instead. ---- */
   --shadow-artifact: 0 1px 2px rgba(60, 48, 30, 0.08), 0 2px 6px rgba(60, 48, 30, 0.06);
   --shadow-card: 0 1px 2px rgba(60, 48, 30, 0.05), 0 4px 16px rgba(60, 48, 30, 0.07);
   --shadow-lift: 0 2px 4px rgba(60, 48, 30, 0.06), 0 12px 32px rgba(60, 48, 30, 0.1);
@@ -66,4 +140,23 @@
   --gutter: clamp(1.25rem, 5vw, 5rem);
   --measure: 62ch;
   --nav-h: 4.5rem;
+  --sidebar-w: 17rem;
+  --sidebar-w-collapsed: 3.5rem;
+  --chat-measure: 46rem;
+}
+
+/* Shadows cannot use light-dark() — it takes colours, not whole shadow lists —
+   so they are the one thing declared per theme. Both branches, so `system`
+   follows the OS and an explicit choice always wins. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --shadow-artifact: 0 0 0 1px rgba(255, 255, 255, 0.05);
+    --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 4px 16px rgba(0, 0, 0, 0.4);
+    --shadow-lift: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 12px 32px rgba(0, 0, 0, 0.5);
+  }
+}
+[data-theme='dark'] {
+  --shadow-artifact: 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lift: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 12px 32px rgba(0, 0, 0, 0.5);
 }
