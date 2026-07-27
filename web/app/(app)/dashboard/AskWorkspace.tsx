@@ -2,10 +2,11 @@
 
 import { useCallback, useState } from 'react'
 import type { OnboardingState } from '@/lib/onboarding'
+import type { Dictionary } from '@/lib/i18n'
+import { useTourTarget } from '@/lib/tour/targets'
 import { Conversations } from './Conversations'
 import { AskChat } from './AskChat'
 import { GetStarted } from './GetStarted'
-import { ProgressStrip } from './ProgressStrip'
 
 // Whether to show the Get Started empty state instead of the real chat pane.
 // Once step 3 (ask) is done, or a chat/starter-question is already active,
@@ -34,10 +35,20 @@ export function AskWorkspace({
   csrf,
   onboarding,
   initialSuggestions,
+  dict,
+  canManage,
 }: {
   csrf: string
   onboarding: OnboardingState | null
   initialSuggestions: string[]
+  /** Owner. Forwarded to GetStarted, whose empty state otherwise tells a member
+   *  to upload documents they have no permission to upload. */
+  canManage: boolean
+  /** Resolved once, server-side, for the caller's locale. Forwarded in
+   * slices to whichever child actually needs copy — GetStarted's empty
+   * state, AskChat's just-in-time citation hint — rather than each child
+   * re-resolving its own dictionary. */
+  dict: Dictionary
 }) {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
   // Bumped whenever the sidebar list needs to refetch out-of-band — right now
@@ -52,6 +63,10 @@ export function AskWorkspace({
   // navigation, so without this, picking a suggestion would immediately
   // re-render Get Started instead of the chat thread that's now sending it.
   const [pending, setPending] = useState<string | null>(null)
+  // The Ask pane wrapper — anchors the tour's welcome step. It exists
+  // whether GetStarted or the real chat is showing inside it, so it's a
+  // durable anchor even before a user has asked anything.
+  const askPaneRef = useTourTarget('ask-pane')
 
   const handleFirstMessage = useCallback((newChatId: string) => {
     setSelectedChatId(newChatId)
@@ -65,8 +80,6 @@ export function AskWorkspace({
 
   return (
     <div className="flex h-dvh flex-col max-md:h-[calc(100dvh-3.5rem)]">
-      {onboarding && <ProgressStrip state={onboarding} csrf={csrf} />}
-
       <div className="hidden items-center justify-end border-b border-line px-4 py-2 max-md:flex">
         <button
           type="button"
@@ -98,12 +111,14 @@ export function AskWorkspace({
           />
         </div>
 
-        <div className="h-full min-w-0 flex-1">
+        <div ref={askPaneRef} className="h-full min-w-0 flex-1">
           {onboarding && showGetStarted(onboarding, initialSuggestions, selectedChatId, pending) ? (
             <GetStarted
+              canManage={canManage}
               workspaceEmpty={onboarding.workspaceEmpty}
               suggestions={initialSuggestions}
               onPick={(q) => setPending(q)}
+              emptyState={dict.emptyStates.askNoDocuments}
             />
           ) : (
             <AskChat
@@ -111,6 +126,7 @@ export function AskWorkspace({
               chatId={selectedChatId}
               onFirstMessage={handleFirstMessage}
               initialQuestion={pending}
+              citationHint={dict.tour.citationHint}
             />
           )}
         </div>

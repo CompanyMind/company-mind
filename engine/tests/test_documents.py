@@ -27,7 +27,7 @@ def test_create_and_list_documents():
             )
             assert doc["status"] == "uploaded"
             assert len(doc["group_ids"]) == 1  # defaulted to Everyone
-            docs = d.list_documents(conn, str(ws))
+            docs = d.list_documents(conn, str(ws), None, [], True)
             assert len(docs) == 1 and docs[0]["filename"] == "report.pdf"
             assert docs[0]["group_ids"] == doc["group_ids"]
             n = conn.execute(

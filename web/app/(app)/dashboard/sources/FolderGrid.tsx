@@ -2,6 +2,8 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import type { Dictionary } from '@/lib/i18n'
+import { useTourTarget } from '@/lib/tour/targets'
 
 export type FolderCard = {
   id: string
@@ -16,17 +18,31 @@ export function FolderGrid({
   unfiledCount,
   csrf,
   onChanged,
+  emptyState,
+  onUploadClick,
+  canManage,
 }: {
   folders: FolderCard[]
   unfiledCount: number
   csrf: string
   onChanged: () => void
+  /** Copy for the empty-workspace message below — real orientation plus one
+   * action, not a description on its own (spec §4 "Real empty states"). */
+  emptyState: Dictionary['emptyStates']['sourcesEmpty']
+  /** Opens the same hidden file input Sources.tsx's own top-of-page "Upload
+   * documents" button drives, so the empty state is actionable rather than
+   * purely descriptive — one upload implementation (`useDocumentUpload`),
+   * two entry points into it. */
+  onUploadClick: () => void
+  /** Owner. Folder create and AI organise are owner-only at the API. */
+  canManage: boolean
 }) {
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [organizing, setOrganizing] = useState(false)
   const [note, setNote] = useState<string | null>(null)
+  const organiseRef = useTourTarget('organise-button')
 
   async function create(e: React.FormEvent) {
     e.preventDefault()
@@ -75,9 +91,10 @@ export function FolderGrid({
       <div className="flex items-center justify-between">
         <h2 className="font-display text-lg text-ink">Folders</h2>
         <div className="flex items-center">
-          {unfiledCount > 0 && (
+          {canManage && unfiledCount > 0 && (
             <button
               type="button"
+              ref={organiseRef}
               onClick={organize}
               disabled={organizing}
               className="mr-3 rounded-md border border-brain px-3 py-1 text-body-sm text-brain-text disabled:opacity-60"
@@ -85,13 +102,15 @@ export function FolderGrid({
               {organizing ? 'Organising…' : 'Organise with AI'}
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => setCreating((c) => !c)}
-            className="text-body-sm text-ink-soft underline underline-offset-2 hover:text-ink"
-          >
-            {creating ? 'Cancel' : 'New folder'}
-          </button>
+          {canManage && (
+            <button
+              type="button"
+              onClick={() => setCreating((c) => !c)}
+              className="text-body-sm text-ink-soft underline underline-offset-2 hover:text-ink"
+            >
+              {creating ? 'Cancel' : 'New folder'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -112,10 +131,23 @@ export function FolderGrid({
       {note && <p className="mt-2 text-body-sm text-brain-text">{note}</p>}
 
       {folders.length === 0 && unfiledCount === 0 && (
-        <p className="mt-4 rounded-md border border-line px-4 py-6 text-body-sm text-ink-soft">
-          No documents yet. Upload PDFs, Word, text or markdown above, then let CompanyMind sort
-          them into folders for you.
-        </p>
+        <div className="mt-4 rounded-md border border-line px-4 py-6 text-center">
+          {/* For a member this state means "nothing you have access to yet",
+              not "nothing exists" — so it must not read as an instruction to
+              upload, which they cannot do. */}
+          <p className="text-body-sm text-ink-soft">
+            {canManage ? emptyState.body : emptyState.memberBody}
+          </p>
+          {canManage && (
+            <button
+              type="button"
+              onClick={onUploadClick}
+              className="mt-3 rounded-md bg-ink px-4 py-2 text-body-sm text-paper"
+            >
+              {emptyState.cta}
+            </button>
+          )}
+        </div>
       )}
 
       <ul className="mt-4 grid grid-cols-3 gap-3 max-md:grid-cols-1">

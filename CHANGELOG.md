@@ -7,7 +7,237 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- **The control plane was open to every member.** Sixteen mutating API routes were gated by
+  `getCurrentUser()` alone, so any signed-in member could `PUT /api/documents/<id>/groups` to retag
+  a document they could not open into a group they belonged to, or `PUT /api/groups/<id>/members`
+  to add themselves to any group — and `resolve_access` would then faithfully honour it. The access
+  model's evaluation was airtight; its inputs were world-writable. Every one is now `getOwner()`-
+  gated (403): document groups, group create/rename/delete, group members, folder CRUD, AI organise,
+  document upload, and all four Telegram routes — the last of which could grant an identity outside
+  the company access to a group. `GET /api/groups` is owner-only too: it returns the group structure
+  **and** every colleague's email and name, which is a staff directory whether or not anything is
+  written. Covered by `web/lib/control-plane-gates.test.ts`, where the route table *is* the test and
+  each case also asserts the underlying mutation was never invoked — a 403 returned after the write
+  landed would look fixed without being fixed.
+- Upload is now owner-only. `create_document` tags every upload to the Everyone group so a new file
+  is never accidentally hidden, which means a member upload would have published to the entire firm
+  by default. Relaxing this needs a group choice at upload time first.
+- The library listings ignored the access model. `engine/app/library/documents.py::list_documents`
+  and `folders.py::list_folders` took only a workspace id — no `group_ids`, no `all_access` —
+  while `get_source` three files away took both. Since `/dashboard/sources` is reachable by any
+  member, every member saw **every filename in the workspace**, including documents they could
+  never open, under a header reading "Everything in <workspace>'s brain". Filenames are not
+  neutral metadata here: `redundancy-list.xlsx` discloses precisely what the access model exists
+  to protect. Folder names and per-folder counts leaked the same way. Both functions now take
+  `group_ids` + `all_access` as **required** parameters (there were only two production call
+  sites, so a forgetful caller is now a hard error rather than a silent full-access read —
+  defaulting `all_access=True` would have reintroduced the bug). A folder with no visible
+  documents is omitted entirely for a non-owner rather than rendered as empty, since an empty
+  "Board Minutes" still discloses that board minutes exist.
+
 ### Added
+- **`DEPLOYMENT_MODE`** (`hosted` default, or `onprem`). The same codebase serves a hosted
+  multi-firm deployment and a single-firm on-prem install; only the egress claim and the Platform
+  nav entry differ. It gates **presentation only** — authorization stays `getSuperAdmin()` /
+  `getOwner()` in both modes, because a mode flag that also granted access would be a second,
+  weaker security control shadowing the first. The default is deliberately the *weaker* claim: an
+  unset variable must never make the product assert an air-gap it does not have. Only the exact
+  string `onprem` unlocks the stronger claim — `on-prem`, `ONPREM`, `true` and friends all resolve
+  to hosted, so an air-gap claim can never turn on by a typo.
+- **The firm owner's People page** (`/dashboard/people`, `lib/people.ts`, `/api/people/*`) — create
+  staff accounts, reset a password, block a leaver, all inside your own firm. This is what makes the
+  product sellable: the customer onboards their own staff without the operator. An owner may create
+  another owner, since a firm with one admin is a single point of failure the operator then has to
+  unlock by hand. **The workspace comes from the session and a body value is ignored outright rather
+  than validated** — there is no legitimate reason for a client to name one. Asserted twice: at the
+  lib layer (`people-scoping.test.ts`, real DB, cross-firm block/reset refused *and* the target
+  verified untouched) and at the route layer (`people-routes.test.ts`, forged `workspaceId` /
+  `workspace_id` / `workspace` in the body all ignored).
+- **The platform tier** at `/platform` and `/platform/usage`, in its own `(platform)` route group
+  with its own shell. Deliberately not under `(app)`: that layout requires a workspace, and the
+  operator may not have one. Open a firm (name + first owner's email -> workspace, owner account,
+  temp password shown once), suspend/resume it, and reset a firm owner's password — the one
+  per-person action the platform tier keeps, because a firm's owner is the top of that firm and
+  nobody inside it can unlock them. `lib/platform/aggregate-only.test.ts` asserts every platform
+  route 404s for a non-admin and that no response body, recursively, contains question text,
+  document text, or a per-user activity row.
+- **Firm provisioning** (`web/lib/platform/firms.ts`, engine `POST /workspaces/{id}/bootstrap`).
+  `createFirm` creates the workspace, its first owner and the membership in one transaction — a
+  half-created firm is invisible in the UI and needs a database client to clean up, which is exactly
+  what this panel exists to avoid. The engine bootstrap (the Everyone group) runs *after* the
+  transaction commits, never inside it: it is a different service over HTTP and holding a
+  transaction open across a network call is the pool-starvation mistake this codebase has already
+  paid for twice. Its outcome is returned as `bootstrapped: boolean` rather than logged — a warning
+  in a server log is invisible to the operator standing in front of the panel.
+- **Password change** (`/change-password`, `lib/auth/change-password.ts`). Previously an
+  admin-created account kept the password its creator generated, forever — tolerable when one
+  account was seeded by hand, not when a firm's owner creates forty. Requires the current password
+  even though the caller is authenticated (otherwise an unlocked screen is a permanent account
+  takeover), enforces a 12-character floor without composition rules, and deletes every OTHER
+  session for that user while keeping the caller's own — changing a password is what you do after
+  one leaks, so leaving the leaked session alive would make the act pointless.
+- Workspace suspension is enforced in `validateSessionToken`, beside user blocking and for the same
+  reason, and refused at login too — without the login check a suspended firm's user would get a
+  valid cookie and be bounced straight back, with no explanation and no way out of the loop.
+- `validateSessionUserOnly()` — resolves a session's user *without* requiring a membership, used
+  only by `getSuperAdmin()`. A platform operator in hosted mode owns no firm, and
+  `validateSessionToken` returns null with no membership row, so the operator could not previously
+  log in at all. Keeping it a separate function preserves the non-null `workspace` guarantee for all
+  38 `getCurrentUser()` call sites instead of making it nullable everywhere for one screen.
+- Schema for the three-tier admin model (migration `0016`): `workspaces.suspended_at` (a firm
+  suspended by the platform operator — on the workspace, not per user), `users.must_change_password`
+  (set on every admin-created account), and a unique index `memberships_one_workspace_per_user`.
+  That last one makes "one user, one firm" an invariant rather than an accident:
+  `validateSessionToken` resolves the workspace with `findFirst()` and no `ORDER BY`, so a user with
+  two memberships would land in whichever Postgres happened to return. Verified before migrating
+  that no existing user holds two.
+- `web/lib/chat-isolation.test.ts` — a regression test locking chat history to the signed-in person.
+  No production change: `listChats` already filtered on `userId` and `getChatMessages`/`renameChat`/
+  `deleteChat` already went through `chatOwned(chatId, workspaceId, userId)`. The tests exist so a
+  later refactor cannot quietly widen it to "everyone in the workspace" — which is exactly what the
+  document listing had done unnoticed. The load-bearing case asserts a client-supplied `userId` is
+  ignored, and it was verified to fail when the route was temporarily made to honour one.
+
+### Changed
+- The session now carries the caller's `role`. `validateSessionToken` already fetched the
+  `memberships` row to resolve the workspace and then discarded the role, so every surface needing
+  it re-queried. Adding it is additive (no call site broke) and costs no extra query;
+  `getOwner()` drops its own lookup as a result. An unrecognised role string falls to `'member'` —
+  least privilege, never widened.
+- `listDocuments` / `listFolders` (web BFF) now take a **required** `Caller` and forward
+  `user_id` + `role` to the engine. Required rather than optional for the same reason as the engine
+  side: an optional caller is how the listings came to ignore the access model at all.
+- The document-level permission predicate now lives once, in
+  `engine/app/access.py::document_perm_sql(doc_expr)`, and is used by retrieval
+  (`ask/retrieve.py::_perm_sql`, via `c.document_id`) and by both library listings (via `d.id`).
+  CLAUDE.md already stated the aim — one predicate, reused by every surface — and the listings
+  were where it had not been applied.
+
+### Fixed
+- `Sources.tsx`'s upload input used `className="hidden"` — the same WCAG 2.1 SC 2.1.1 (Level A)
+  keyboard trap fixed in the tour's `UploadStep.tsx` last week and recorded then as still present
+  here. `display:none` removes an element from the tab order entirely, so a keyboard-only user
+  could never reach the file chooser. Now `sr-only` plus a `has-[:focus-visible]` ring on the
+  label. This was the last instance of the bug.
+- Guided tour: `UploadStep.tsx`'s dropzone file input used `className="hidden"` (`display:none`),
+  which removes an element from the tab order entirely — a keyboard-only user could never reach or
+  open the native file chooser at the tour's upload step, confirmed live (`Tab` skipped straight
+  from the card to "Skip this"). WCAG 2.1 SC 2.1.1, Level A. Changed to `className="sr-only"`
+  (visually hidden, stays focusable and announced to assistive tech) plus a
+  `has-[:focus-visible]` ring on the wrapping label, since the input's own focus ring is otherwise
+  clipped to 1px. Confirmed live after the fix: `Tab` reaches the input, `Enter` opens the native
+  file chooser, and a visible ring appears on the label (6.27:1 against `--paper`).
+- Guided tour: focus fell to `<body>` whenever the tour ended (`Escape`, `TARGET_NOT_FOUND`, or
+  `Done`), confirmed live across all three paths. `TourProvider.tsx` now captures
+  `document.activeElement` when `start()` runs and restores it in `endTour()` if still attached to
+  the document — fixes the common Guide-replay path (confirmed live: ending a Guide-launched tour
+  now returns focus to the Guide button, not `<body>`). Auto-start and pill-launched sessions still
+  fall back to `<body>`, since neither has a durable element to restore to — a known, documented
+  gap (see the new accessibility note below), not chased further in the last task of this feature.
+
+### Added
+- `docs/product/2026-07-26-tour-accessibility-note.md` — a WCAG 2.1 AA note for the guided tour
+  with measured evidence (contrast ratios computed from `styles/tokens.css` and cross-checked
+  against live `getComputedStyle()` reads; keyboard-only, focus-management, 400%-zoom/320px in all
+  three locales, and `prefers-reduced-motion` all verified live against the real Docker app) and
+  honestly stated gaps, including the two fixes above and two gaps left undone (no `aria-live` on
+  the upload status line, and the identical hidden-file-input pattern still present in the
+  standalone `Sources.tsx`, out of this task's scope). Explicitly **not** an EAA/EN 301 549
+  conformance claim, which requires a documented assessment this task does not perform — states
+  that distinction outright rather than letting an AA note read as more than it is. No real screen
+  reader (NVDA/JAWS/VoiceOver) was available in this environment; states that plainly rather than
+  fabricating a session, and uses Playwright's accessibility-tree snapshot as the documented
+  fallback.
+
+### Removed
+- `/dashboard/admin`, `AdminPanel.tsx` and all of `/api/admin/*`. Their two halves moved in opposite
+  directions — usage and the firm list up to `/platform`, account creation down to the firm owner —
+  so nothing was left for the page to be. **`POST /api/admin/users` is deleted, not moved**: it let
+  the platform operator mint an account inside any firm, which is the firm's job. That deletion is
+  the point of the tier split.
+- The rejected first-run panel. `ProgressStrip.tsx` (a dismissible strip listing "Add documents /
+  Sort them / Ask a question") is deleted outright, and `GetStarted.tsx`'s `workspaceEmpty` branch
+  no longer renders the same three-item numbered instruction list — the founder's own verdict on
+  this UI: *"it shows in one static part it wrote down the instruction but i do not want it."* The
+  starter-suggestions branch (three clickable questions on a populated-but-unasked workspace) is
+  untouched — that was always a real empty state, not a tutorial, and was never what got rejected.
+  `AskWorkspace.tsx` no longer imports or renders `ProgressStrip`; `dashboard/page.tsx`'s onboarding
+  facts (`deriveOnboarding`, `onboarding_dismissed_at`) are kept exactly as they were — they still
+  decide `workspaceEmpty`/whether Get Started shows at all, which is a live, still-needed question
+  independent of the panel that used to sit on top of it.
+
+### Added
+- Real empty states, replacing the deleted panel — one line of orientation plus a single action,
+  never a list. **Ask pane** (no documents): one sentence plus an **Add documents** button to
+  Sources. **Sources**: an **Upload documents** button now lives inside `FolderGrid`'s own empty
+  message (`onUploadClick` opens the same hidden file input `Sources.tsx`'s top-of-page button
+  already drives — one upload implementation, two entry points). **Access**: permanent prose on the
+  access model — group intersection, owner bypass — rendered directly on `/dashboard/access`, not
+  only inside the tour's `access-v1` card, since a bank evaluator re-reading how the model works six
+  months from now has no tour to replay it from. **Atlas**: what it is and that it needs documents,
+  in its existing empty-canvas message — Atlas is deliberately not a tour step (`react-force-graph-2d`
+  paints to one `<canvas>`, so no selector can ever resolve a graph node), which makes this the only
+  place it gets explained at all. All four are localized: `emptyStates.{askNoDocuments,sourcesEmpty,
+  access,atlas}` added to `web/lib/i18n/{en,ru,uz}.ts`, keeping every locale's key set in sync
+  (`i18n.test.ts`) and the Uzbek free of ASCII apostrophes.
+- The just-in-time citation hint (`web/app/(app)/_components/tour/CitationHint.tsx`) — a single
+  non-modal coach mark anchored to the first citation chip of the first cited answer a user ever
+  sees, shown once per user and never again. Deliberately not a tour step: the citation button does
+  not exist in the DOM until an answer with a citation actually renders, so a fixed step anchored to
+  one is broken by construction, and teaching it at the moment it happens beats narrating it 90
+  seconds earlier at `ask-v1`. No scrim, no focus trap, no stolen focus — dismisses on click
+  (anywhere, including the citation chip itself) or Escape, and records `citation-hint-v1` via the
+  existing `POST /api/tour/step` the instant it becomes visible, not gated behind the user actually
+  dismissing it, so "never returns" holds even for someone who ignores it and navigates away.
+  `TourProvider.tsx`'s context grew `hasSeenStep`/`recordStepSeen`, generalized out of the joyride
+  step-record effect so the hint can reuse the exact same seen-set and `ON CONFLICT DO NOTHING`
+  idempotency every tour step already relies on, without running through joyride at all. Caught live
+  against a real Docker build (not just tests): the first implementation called `hasSeenStep()` fresh
+  on every render, and the hint's own position-tracking effect calls `setPos` once per animation frame
+  while visible — so the very next frame after the hint appeared, it re-read the ref its own "record
+  seen" effect had just flipped to `true` one render earlier and unmounted itself, all inside one
+  frame (<16ms), correctly recorded but never actually seen by anyone. Fixed by snapshotting
+  `hasSeenStep(CITATION_HINT_KEY)` once, via a lazy `useState` initializer at mount (`anchorEl` is
+  still `null` at that point, before any citation exists), instead of re-deriving it on every render.
+- Fixed a bug Task 7 flagged and carried forward: `ask-v1` could be recorded as "seen" even when its
+  target (`ask-composer`) never mounted — on an all-empty workspace `AskWorkspace` renders
+  `GetStarted` instead of `AskChat`, so the composer doesn't exist, yet `stepIndex` still advanced to
+  `ask-v1` and the old effect recorded it regardless, a tick before joyride's own `TARGET_NOT_FOUND`
+  ended the tour. The "record seen" effect in `TourProvider.tsx` is now gated on the step's own
+  `currentTarget` actually being resolved, not on `currentStepDef` alone — recording a step the user
+  was never shown corrupts `nextStepKey`'s resume logic, which trusts every `user_tour_steps` row to
+  mean exactly that. Deleting `GetStarted.tsx`'s instruction branch alone did **not** fix this:
+  `showGetStarted()`'s condition — GetStarted vs. AskChat — was unchanged, so the composer still
+  never mounts on a genuinely empty workspace; this provider-level gate is what actually closes it,
+  for every step, not just `ask-v1`.
+- Guided tour persistence, auto-start gate and replay entry point. `user_tour_steps(user_id,
+  workspace_id, step_key, seen_at)` and `users.tour_dismissed_at` — server-side, never localStorage,
+  so a second person signing in on a shared bank-branch workstation gets their own tour instead of
+  inheriting the first person's "completed" flag (proved live: two accounts in one browser session,
+  each auto-started independently). No stored step cursor anywhere: `web/lib/tour/state.ts` exports
+  two pure, no-import functions — `nextStepKey` (the first defined step key not yet in `seen`,
+  ignoring any unknown/retired key so a renamed step can never break resume) and `shouldAutoStart`
+  (true only when there are zero seen rows, the user hasn't dismissed, the landing path is exactly
+  `/dashboard`, and no upload is in flight). `POST /api/tour/step` (auth → CSRF → upsert `ON CONFLICT
+  DO NOTHING`) records `{stepKey}` the instant a step is SHOWN, not completed, and rejects any
+  `stepKey` outside the known, append-only set with 400 so a typo can't silently pollute the table.
+  The provider auto-starts per that gate; otherwise a quiet, dismissible "Take the tour" pill appears
+  (never on a deep link — landing on `/dashboard/sources?doc=…` shows the pill, not the tour). A
+  permanent **Guide** item in `Rail.tsx`'s bottom cluster, above `egress 0 B`, replays the full tour
+  from step 1 on demand without ever clearing `user_tour_steps` — verified live (rows identical before
+  and after) — which is what lets a future new step still be offered to a user who "completed" an
+  earlier version of the tour, and is the only affordance for the user onboarded months after
+  everyone else, who never hits the narrow first-run window at all.
+- i18n dictionaries (`web/lib/i18n/{index,en,ru,uz}.ts`) and `users.locale`, per-user (`'en'|'ru'|'uz'`,
+  defaulting `'en'`) — the first piece of the guided tour, built before any tour UI so the copy is data
+  from the start instead of hardcoded English dug back out later. `Dictionary` type is inferred from
+  `en.ts` and checked against `ru.ts`/`uz.ts` at compile time as well as by a vitest key-set walk. The
+  Uzbek dictionary is real Uzbek Latin — `ʻ` (U+02BB), never the ASCII apostrophe that already broke
+  `engine/app/ask/qtype.py`'s keyword matching; a test enforces it. `getDictionary` is intentionally
+  not behind `server-only` in `index.ts` since `isLocale` and the dictionary objects themselves must
+  stay importable from tests and client components — the guard belongs on whichever server component
+  later reads the user's locale.
 - Guided tour spec — `docs/superpowers/specs/2026-07-26-guided-tour-design.md`. Replaces last week's
   static first-run panel, which was rejected for covering the dashboard with instructions instead of
   explaining it in place. Two layers: the real dashboard untouched underneath, a guidance card above
@@ -208,8 +438,115 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Phases 3–4 deliberately perform. Metrics: doc-recall@k, quote-recall@k, MRR and nDCG@k (via `ranx`),
   plus a paired bootstrap whose resampling unit is the **source document**, because with several
   questions per document naive standard errors can be ~3× too small and real regressions read as noise.
+- Typed guided-tour target registry (`web/lib/tour/targets.ts`): `TourTarget`, a five-member const
+  union (`'ask-pane' | 'ask-composer' | 'rail-sources' | 'rail-access' | 'organise-button'`), plus a
+  `TourTargetProvider`, `useTourTarget(name)` (a memoised callback ref that registers on mount and
+  deletes on unmount) and `useTourTargetEl(name)` for the tour shell to read. Naming a target that
+  isn't in the union is a `tsc` error at `npm run build`, instead of a CSS selector that silently
+  stops matching once someone renames a class. The five refs are wired up: the Ask pane wrapper
+  (`AskWorkspace.tsx`), the composer form (`AskChat.tsx`), the Sources and Access rail links
+  (`Rail.tsx`, matched by `href` since NAV's length varies with role and hooks can't be called
+  inside its `.map()`), and the Organise-with-AI button (`FolderGrid.tsx`, which only renders when
+  `unfiledCount > 0` — the callback ref's `null`-on-unmount call is what keeps that safe). No DOM,
+  styling, or behaviour changes; `TourTargetProvider` is not yet mounted anywhere (that's the tour
+  shell, a later task), so until then registration is a harmless no-op by design.
+- Guided tour shell: `react-joyride@3.2.0` (MIT, pinned exact, ~20.3 kB gzipped on its own —
+  bundlephobia's 25.6 kB cited in the spec includes its transitive deps) in controlled mode, with a
+  fully custom card (`web/app/(app)/_components/tour/TourCard.tsx`) and provider
+  (`TourProvider.tsx`), both mounted in `(app)/layout.tsx` so the tour survives route changes.
+  `useTour()` exposes `{ start(), active }`; `stepIndex` is set only from joyride's own `onEvent`
+  callback, never a `useEffect` watching app state, per joyride's own "don't" about that. `options`
+  sets `hideOverlay: true` (no dimming scrim — a 0.3–0.5 veil drops `--ink-soft` to 2.99–4.16:1 on
+  `--paper` and fails WCAG 1.4.3), `overlayClickAction: false`, `disableFocusTrap: true` (joyride's
+  default focus trap targets whatever DOM node ends up as the floater wrapper regardless of a custom
+  `tooltipComponent`, and would fight the file input a later step hosts inside the card), and
+  `scrollDuration: 0` under `prefers-reduced-motion` (via `useSyncExternalStore`, not
+  `useState`+`useEffect`, on `matchMedia`). `TourCard` uses `role="dialog"` +
+  `aria-labelledby`/`aria-describedby`, never joyride's own `tooltipProps`
+  (`role="alertdialog"` + `aria-modal="true"`, which would confine a screen reader's virtual cursor
+  to the card and hide the exact dashboard element the step points at); `tabIndex={-1}` with focus
+  moved to the card on every step (joyride remounts the floater per step index, so a mount effect is
+  a per-step focus move); fluid `max-width: min(92vw, 28rem)`, never a fixed width — joyride's
+  380px default breaks the 320 CSS px reflow target at 400% zoom, and Russian runs 15–30% longer
+  than English on exactly these short strings. Escape ends the tour unconditionally from every step
+  (checked via the event's `origin`, ahead of `action`/`type` — joyride's own `dismissKeyAction:
+  'close'` only closes the current step, silently advancing on a non-final one instead of exiting;
+  WCAG 2.1.2 Level A). The active target gets a `--brain` ring via a `data-tour-active` attribute
+  (`globals.css`), set and removed on every step change and on tour end. Two throwaway steps prove
+  the wiring end to end (`welcome-v1` → the Ask pane, `access-v1` → the Access rail link); the real
+  steps land in `web/lib/tour/steps.ts` next task. Verified against the real Docker app: the card
+  renders in the product's visual language, the dashboard behind it stays clickable (a click on
+  "+ New chat" while the tour is open lands for real), Escape ends the tour from a non-final step
+  with the ring and card both gone, Tab reaches Skip/Next and focus lands on the new card on step
+  change, and the card holds to `min(92vw, 28rem)` (294px) with no overflow at a 320px viewport.
+  Zero outbound network calls (checked the full request log — only the app's own assets and API
+  routes).
+- Guided tour steps (`web/lib/tour/steps.ts`): `buildSteps({ role, dict, hasUnfiled, csrf })` returns
+  the owner's four-step tour (`welcome-v1`, `upload-v1`, `access-v1`, `ask-v1`; `organise-v1` is a
+  later task's seam) or the member's three (`welcome-v1`, `access-member-v1`, `ask-v1`) — no upload
+  step for members, ever, since telling someone without upload rights to upload is exactly the
+  failure the adaptive per-role design exists to avoid. `TourStep.placement` is typed as joyride's own
+  `Step['placement']`, not the `Placement` export alone — `Placement` by itself excludes `'center'`,
+  which `welcome-v1` needs; found by reading the installed react-joyride 3.2.0 source directly, since
+  its docs site 404s. `ask-v1` renders a static, non-interactive replica of `AskChat.tsx`'s citation
+  chip (`[1] hr-policy.pdf · p.4 ↗`, `aria-hidden`, same classes, plain `<span>`s) — a step can never
+  target the real button, which doesn't exist until an answer with a citation renders.
+- `web/app/(app)/_components/tour/UploadStep.tsx`: a real dropzone + file picker inside the tour card,
+  built on `useDocumentUpload(csrf)`, plus a live "N files received · M indexed" line polling
+  `GET /api/documents` every 2500ms. **The rule that matters most:** the shared "Next" button enables
+  the moment `accepted >= 1` (an HTTP 201), never on indexing completion — ingestion runs for minutes
+  on a real corpus, and joyride's `before` hook is capped at 5000ms, so gating advance on indexing
+  would time out and strand the user at a spinner in a card they cannot dismiss. A "Skip this" control
+  always advances regardless, for someone with no files to hand. The indexed count is a delta against
+  a baseline captured at mount (not the workspace's whole history, which could be hundreds of
+  pre-existing documents on a replayed tour) and is purely informational — a failed poll shows nothing
+  rather than an error, and the interval is cleared on unmount so it never outlives the step.
+  `web/lib/tour/step-controls.ts` adds a small context (`TourStepControlsContext`, provided by
+  `TourCard.tsx` around `step.content`) so a step's own content can gate and bypass the shared Next
+  button — needed because `TourStep.content` is an opaque `ReactNode` with no props channel of its
+  own back to the card shell; every other step never calls it, so Next stays enabled by default.
+  Verified against the real Docker app end to end: dropped a real file into the card, `Next` enabled
+  the moment the server returned 201 (before indexing finished), the status line then tracked indexing
+  separately, the document reached `status='indexed'` in Postgres, Escape ended the tour mid-upload
+  and the polling interval stopped with it, and a member's tour never showed an upload step at all.
+- Guided tour wiring (`web/app/(app)/_components/tour/TourProvider.tsx`) and the conditional
+  `organise-v1` step (`web/lib/tour/steps.ts`, spec §4 step 3) — the tour's only step that changes
+  route, and the last step-work in the plan. `TourProvider` now builds its real step list via
+  `buildSteps({ role, dict, hasUnfiled, csrf })` (replacing Task 4's two-step proof-of-wiring
+  placeholder); `hasUnfiled` comes from `GET /api/folders`, checked once when the tour starts and
+  held fixed for that run so the step array's length can never drift out from under an in-flight
+  `stepIndex`. `organise-v1` is included only when unfiled documents exist, sitting between
+  `upload-v1` and `access-v1`, anchored to `FolderGrid.tsx`'s real "Organise with AI" button.
+  `TourStep` gained a `heading` field (steps.ts), sourced from the same dict entry as its body, so
+  `TourCard`'s `<h2>`/`aria-labelledby` never renders empty — a gap Task 5 deliberately left for this
+  task to close.
+  Its `before` hook (`router.push('/dashboard/sources')`) is the tour's one forward navigation;
+  `access-v1`'s `before` (`router.push('/dashboard')`) is the one return, attached only when
+  `organise-v1` ran this tour. **`before` and joyride's `targetWaitTimeout` don't compose the way
+  the plan assumed** — verified by reading `react-joyride@3.2.0`'s own shipped source
+  (`useLifecycleEffect.ts`; its docs site 404s): a step with a `before` hook gets exactly one
+  target-existence check the instant the hook's promise resolves, never joyride's own poll. So
+  `organise-v1`'s hook polls the target registry itself (100ms interval, 4000ms budget — under
+  joyride's 5000ms `beforeTimeout`, so the wait always settles on its own terms rather than via
+  joyride's before-hook timeout, which also fires an `EVENTS.ERROR`). `handleEvent` now treats
+  `EVENTS.TARGET_NOT_FOUND` as "skip this step" (advance `stepIndex`, or end the tour if it was
+  last) instead of ending the tour outright — joyride's own auto-advance for a missing target only
+  runs in *uncontrolled* mode, so a controlled tour doing nothing here would strand the user with no
+  card and no ring. Escape still ends the tour unconditionally from every step, including
+  `organise-v1` — the user is left on whatever page they're on, never navigated as a parting act.
+  Verified against the real Docker app: with unfiled documents present, the step appears after
+  navigating to Sources with the ring on the real Organise button; with none, the tour goes straight
+  from `upload-v1` to `access-v1` with no gap or stall; Escape mid-`organise-v1` leaves the user on
+  `/dashboard/sources`.
 
 ### Changed
+- Sources' inline upload logic extracted into `web/lib/useDocumentUpload.ts`
+  (`useDocumentUpload(csrf)` → `{ upload, busy, error, accepted }`), so the guided tour's upload
+  step and the Sources page share one implementation instead of risking drift from the server's
+  contract. Pure refactor — same endpoint, same per-file sequential loop (not `Promise.all`; the
+  ingest path holds a database connection per request), same error copy. The hook owns `busy`/
+  `error`; refreshing the folder list afterwards stays the caller's job since Sources and the tour
+  do different things once an upload finishes.
 - Sources is now a folder grid instead of one flat list of every document — the flat list was already
   unusable at the 150-document demo corpus. Folder cards show a document count and a "suggested" chip
   for AI folders nobody has touched yet; an Unfiled card appears whenever unfiled documents exist.

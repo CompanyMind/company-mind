@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { forceX, forceY, forceCollide } from 'd3-force'
 import { quadtree, type Quadtree } from 'd3-quadtree'
+import type { Dictionary } from '@/lib/i18n'
 import { Findings } from './Findings'
 
 // Canvas rendering only makes sense in the browser — force-graph touches
@@ -131,9 +132,15 @@ const shortName = (f: string) => f.replace(/\.[a-z0-9]+$/i, '')
 export function Atlas({
   csrf,
   groups,
+  emptyState,
 }: {
   csrf: string
   groups: { id: string; name: string }[]
+  /** What Atlas is, and that it needs documents — Atlas is deliberately not
+   * a tour step (it paints to a single `<canvas>`, so no selector can ever
+   * resolve a graph node; spec §4 "Deliberately not tour steps"), which
+   * makes this empty state the only place it gets explained at all. */
+  emptyState: Dictionary['emptyStates']['atlas']
 }) {
   const router = useRouter()
   const [asGroup, setAsGroup] = useState('') // '' = owner · everything
@@ -672,9 +679,7 @@ export function Atlas({
 
         <div ref={containerRef} className="relative min-h-0 flex-1 bg-paper">
           {nodes.length === 0 ? (
-            <p className="px-4 py-6 text-body-sm text-ink-soft">
-              No documents yet. Upload documents in Sources, then rebuild the map.
-            </p>
+            <p className="max-w-md px-4 py-6 text-body-sm text-ink-soft">{emptyState.body}</p>
           ) : (
             size.width > 0 &&
             size.height > 0 && (

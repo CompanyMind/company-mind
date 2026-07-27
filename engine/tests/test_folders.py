@@ -39,7 +39,7 @@ def test_create_list_and_count():
         f = lib.create_folder(conn, ws, "Finance")
         assert f is not None
         assert lib.set_document_folder(conn, ws, d1, f["id"]) is True
-        out = lib.list_folders(conn, ws)
+        out = lib.list_folders(conn, ws, [], True)
     try:
         assert [x["name"] for x in out["folders"]] == ["Finance"]
         assert out["folders"][0]["document_count"] == 1
@@ -96,7 +96,7 @@ def test_rename_reports_conflict_and_marks_reviewed():
         assert lib.rename_folder(conn, ws, a["id"], "Beta") == "conflict"
         assert lib.rename_folder(conn, ws, a["id"], "Gamma") == "ok"
         assert lib.rename_folder(conn, ws, str(uuid.uuid4()), "X") == "notfound"
-        out = lib.list_folders(conn, ws)
+        out = lib.list_folders(conn, ws, [], True)
     try:
         gamma = [f for f in out["folders"] if f["name"] == "Gamma"][0]
         assert gamma["reviewed"] is True, "renaming is a review — the suggested chip must clear"

@@ -25,4 +25,21 @@ export const env = {
   get STORAGE_DIR() {
     return process.env.STORAGE_DIR ?? '.storage'
   },
+  /**
+   * 'hosted' — the operator runs one instance, many firms share one Postgres.
+   * 'onprem' — the customer runs it inside their own network, one firm.
+   *
+   * Defaults to 'hosted', the WEAKER claim, on purpose: an unset variable must
+   * never cause the product to assert an air-gap it does not have. An on-prem
+   * install that forgets the flag under-sells itself, which is a marketing loss
+   * rather than a false statement — the other way round is the opposite.
+   *
+   * This gates PRESENTATION ONLY — copy and nav visibility. Authorization stays
+   * getSuperAdmin()/getOwner() in both modes; a mode flag that also granted or
+   * revoked access would be a second, weaker security control shadowing the
+   * first.
+   */
+  get DEPLOYMENT_MODE(): 'hosted' | 'onprem' {
+    return process.env.DEPLOYMENT_MODE === 'onprem' ? 'onprem' : 'hosted'
+  },
 }

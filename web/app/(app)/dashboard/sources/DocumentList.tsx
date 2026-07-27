@@ -25,10 +25,15 @@ export function DocumentList({
   csrf,
   folder,
   initialDoc,
+  canManage,
 }: {
   csrf: string
   folder: string
   initialDoc?: string
+  /** Owner. Group tagging and moving documents are owner-only at the API, and
+   *  /api/groups is owner-only too (it returns every colleague's email), so a
+   *  member neither fetches it nor gets controls that would 403. */
+  canManage: boolean
 }) {
   const [docs, setDocs] = useState<Doc[]>([])
   const [groups, setGroups] = useState<Group[]>([])
@@ -36,15 +41,15 @@ export function DocumentList({
   const [editing, setEditing] = useState<string | null>(initialDoc ?? null)
 
   const refresh = useCallback(async () => {
-    const [dr, gr, fr] = await Promise.all([
-      fetch(`/api/documents?folder=${encodeURIComponent(folder)}`),
-      fetch('/api/groups'),
-      fetch('/api/folders'),
-    ])
+    const dr = await fetch(`/api/documents?folder=${encodeURIComponent(folder)}`)
     if (dr.ok) setDocs((await dr.json()).documents)
+    // Members stop here: both of these drive owner-only controls, and /api/groups
+    // is owner-gated, so fetching them would only produce a 403 per poll tick.
+    if (!canManage) return
+    const [gr, fr] = await Promise.all([fetch('/api/groups'), fetch('/api/folders')])
     if (gr.ok) setGroups((await gr.json()).groups)
     if (fr.ok) setFolders((await fr.json()).folders)
-  }, [folder])
+  }, [folder, canManage])
 
   useEffect(() => {
     refresh()
@@ -99,6 +104,7 @@ export function DocumentList({
               {STATUS_LABEL[d.status]}
             </span>
           </div>
+          {canManage && (
           <div className="mt-1 flex flex-wrap items-center gap-2 text-body-sm text-ink-soft">
             <span className="font-mono text-[0.6875rem] uppercase tracking-[0.08em]">
               visible to: {visibleLabel(d)}
@@ -125,7 +131,8 @@ export function DocumentList({
               </select>
             </label>
           </div>
-          {editing === d.id && (
+          )}
+          {canManage && editing === d.id && (
             <>
               <p className="mt-2 text-body-sm text-ink-soft">
                 Access is set here, not by the folder — moving a document between folders never

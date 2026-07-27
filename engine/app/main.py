@@ -51,16 +51,41 @@ async def ingest(
     return {"document": doc}
 
 
+# user_id/role default to a member with no id — safe-by-default, matching
+# graph_documents below. A caller that forgets them must get LESS access, never
+# more, which is why neither defaults to owner.
 @app.get("/documents", dependencies=[Depends(require_secret)])
-def documents_list(workspace_id: str, folder: str = ""):
+def documents_list(workspace_id: str, folder: str = "", user_id: str = "", role: str = "member"):
     with get_conn() as conn:
-        return {"documents": lib_documents.list_documents(conn, workspace_id, folder or None)}
+        gids, all_access = resolve_access(conn, workspace_id, user_id, role)
+        return {
+            "documents": lib_documents.list_documents(
+                conn, workspace_id, folder or None, gids, all_access
+            )
+        }
+
+
+@app.post("/workspaces/{workspace_id}/bootstrap", dependencies=[Depends(require_secret)])
+def workspace_bootstrap(workspace_id: str):
+    """Prepare a brand-new firm's knowledge-side state.
+
+    Right now that is exactly one thing: the default Everyone group, which
+    resolve_access looks up on every member request. It is created lazily on
+    first upload anyway, but a firm whose owner signs in before uploading would
+    otherwise find an empty Access page on day one and no group to tag anything
+    with. Idempotent — get_everyone returns the existing row if there is one, so
+    re-running this on an established workspace is a no-op.
+
+    Web cannot do this itself: groups is a knowledge table the engine owns."""
+    with get_conn() as conn:
+        return {"everyone_group_id": lib_groups.get_everyone(conn, workspace_id)}
 
 
 @app.get("/folders", dependencies=[Depends(require_secret)])
-def folders_list(workspace_id: str):
+def folders_list(workspace_id: str, user_id: str = "", role: str = "member"):
     with get_conn() as conn:
-        return lib_folders.list_folders(conn, workspace_id)
+        gids, all_access = resolve_access(conn, workspace_id, user_id, role)
+        return lib_folders.list_folders(conn, workspace_id, gids, all_access)
 
 
 class FolderNameBody(BaseModel):

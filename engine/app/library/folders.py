@@ -4,23 +4,48 @@ Folders are NAVIGATION. They are not access control: who may see a document is
 decided solely by document_groups x group_members (see app/access.py). Nothing in
 this module is consulted when computing visibility, and nothing here may start
 being consulted for it.
+
+list_folders applies that access rule when REPORTING folders — filtering what a
+caller is shown, never deciding what they may retrieve. The distinction matters:
+moving a document between folders still cannot change anyone's access.
 """
 
+from ..access import document_perm_sql
 
-def list_folders(conn, workspace_id: str) -> dict:
+
+def list_folders(conn, workspace_id: str, group_ids: list[str], all_access: bool) -> dict:
+    """Folder names and per-folder counts are disclosure too: an "Executive Pay"
+    folder showing 12 documents tells a member exactly what exists and how much
+    of it, even though every one of those documents is unopenable to them.
+
+    So the count is over VISIBLE documents only, and a folder with no visible
+    documents is omitted entirely for a non-owner rather than rendered as empty.
+    `group_ids` / `all_access` come from access.py::resolve_access; both required,
+    for the same reason as list_documents."""
+    # The predicate goes in the JOIN condition, not the WHERE clause: in the
+    # WHERE it would drop the folder row itself instead of just not counting the
+    # document, which breaks the owner's view of an empty folder.
+    join_perm = " AND " + document_perm_sql("d.id") if not all_access else ""
+    params: list = []
+    if not all_access:
+        params.append(list(group_ids))
+    params.append(workspace_id)
     rows = conn.execute(
         "SELECT f.id, f.name, f.origin, f.reviewed, f.keywords, count(d.id) "
         "FROM folders f "
-        "LEFT JOIN documents d ON d.folder_id = f.id AND d.workspace_id = f.workspace_id "
-        "WHERE f.workspace_id=%s "
+        "LEFT JOIN documents d ON d.folder_id = f.id AND d.workspace_id = f.workspace_id"
+        + join_perm
+        + " WHERE f.workspace_id=%s "
         "GROUP BY f.id, f.name, f.origin, f.reviewed, f.keywords "
         "ORDER BY f.name",
-        (workspace_id,),
+        tuple(params),
     ).fetchall()
-    unfiled = conn.execute(
-        "SELECT count(*) FROM documents WHERE workspace_id=%s AND folder_id IS NULL",
-        (workspace_id,),
-    ).fetchone()[0]
+    unfiled_sql = "SELECT count(*) FROM documents d WHERE d.workspace_id=%s AND d.folder_id IS NULL"
+    unfiled_params: list = [workspace_id]
+    if not all_access:
+        unfiled_sql += " AND " + document_perm_sql("d.id")
+        unfiled_params.append(list(group_ids))
+    unfiled = conn.execute(unfiled_sql, tuple(unfiled_params)).fetchone()[0]
     return {
         "folders": [
             {
@@ -32,6 +57,8 @@ def list_folders(conn, workspace_id: str) -> dict:
                 "document_count": r[5],
             }
             for r in rows
+            # An owner keeps their empty folders; a member never learns they exist.
+            if all_access or r[5] > 0
         ],
         "unfiled_count": unfiled,
     }

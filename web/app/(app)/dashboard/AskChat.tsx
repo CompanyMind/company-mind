@@ -1,6 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import type { Dictionary } from '@/lib/i18n'
+import { useTourTarget } from '@/lib/tour/targets'
+import { CitationHint } from '@/app/(app)/_components/tour/CitationHint'
 
 type Cite = {
   marker: number
@@ -42,11 +45,15 @@ export function AskChat({
   chatId,
   onFirstMessage,
   initialQuestion,
+  citationHint,
 }: {
   csrf: string
   chatId: string | null
   onFirstMessage: (chatId: string, title: string | null) => void
   initialQuestion?: string | null
+  /** Copy for the just-in-time citation hint (spec §4 "Deliberately not
+   * tour steps") — see CitationHint.tsx. */
+  citationHint: Dictionary['tour']['citationHint']
 }) {
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [q, setQ] = useState('')
@@ -57,6 +64,21 @@ export function AskChat({
   // created, so a rapid second send (before the parent's re-render lands)
   // still targets the right chat instead of creating a duplicate thread.
   const activeChatId = useRef<string | null>(chatId)
+  const composerRef = useTourTarget('ask-composer')
+  // The DOM node of the first citation chip button (the `[1] filename ·
+  // p.4` footer button below an answer, the same one steps.ts's static
+  // `citationReplica()` mirrors) in the first cited answer this chat pane
+  // has rendered — CitationHint's anchor. `null` until (and unless) such an
+  // answer exists.
+  const [citationAnchor, setCitationAnchor] = useState<HTMLButtonElement | null>(null)
+  // The earliest message (in this open chat's own order) that has at least
+  // one citation — its citations footer is guaranteed to exist whenever
+  // `citations.length > 0`, unlike an inline `[n]` marker in the answer
+  // text, which depends on the model's own wording. Recomputed on every
+  // render rather than memoised — `msgs` is small (one open conversation)
+  // and this is a single `.find`, cheap enough that memoising it would cost
+  // more than it saves.
+  const firstCitedMessageId = msgs.find((m) => m.role === 'assistant' && m.citations.length > 0)?.id ?? null
 
   useEffect(() => {
     activeChatId.current = chatId
@@ -177,6 +199,11 @@ export function AskChat({
                   {m.citations.map((c) => (
                     <span key={c.marker} className="inline-flex items-center">
                       <button
+                        ref={
+                          m.id === firstCitedMessageId && c.marker === m.citations[0].marker
+                            ? setCitationAnchor
+                            : undefined
+                        }
                         onClick={() =>
                           setOpen((o) => ({ ...o, [m.id]: o[m.id] === c.marker ? null : c.marker }))
                         }
@@ -235,7 +262,7 @@ export function AskChat({
         <div ref={endRef} />
       </div>
 
-      <form onSubmit={handleSubmit} className="sticky bottom-0 flex gap-2 bg-paper py-4">
+      <form ref={composerRef} onSubmit={handleSubmit} className="sticky bottom-0 flex gap-2 bg-paper py-4">
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -250,6 +277,8 @@ export function AskChat({
           Ask
         </button>
       </form>
+
+      <CitationHint anchorEl={citationAnchor} dict={citationHint} />
     </div>
   )
 }

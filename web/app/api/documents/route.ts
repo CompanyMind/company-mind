@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth/current-user'
+import { getOwner } from '@/lib/auth/require-owner'
 import { verifyCsrf } from '@/lib/csrf'
 import { saveFile } from '@/lib/storage'
 import { uploadDocument } from '@/lib/engine'
@@ -19,12 +20,16 @@ export async function GET(req: Request) {
   const auth = await getCurrentUser()
   if (!auth) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   const folder = new URL(req.url).searchParams.get('folder') ?? undefined
-  return NextResponse.json({ documents: await listDocuments(auth.workspace.id, folder) })
+  return NextResponse.json({ documents: await listDocuments(auth.workspace.id, { userId: auth.user.id, role: auth.role }, folder) })
 }
 
+// Owner-only. create_document tags every upload to the Everyone group so a new
+// file is never accidentally hidden — which means a member upload would publish
+// to the entire firm by default. Owner-only is the safe default here; relaxing
+// it is one gate change, but it needs a group choice at upload time first.
 export async function POST(req: Request) {
-  const auth = await getCurrentUser()
-  if (!auth) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  const owner = await getOwner()
+  if (!owner) return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   if (!(await verifyCsrf(req))) return NextResponse.json({ error: 'bad csrf' }, { status: 403 })
 
   if (exceedsUploadLimit(req.headers.get('content-length'))) {
@@ -42,12 +47,12 @@ export async function POST(req: Request) {
 
   // Web owns file storage; the engine owns the document record + ingestion.
   const data = Buffer.from(await file.arrayBuffer())
-  const { storageKey, bytes } = await saveFile(auth.workspace.id, file.name, data)
+  const { storageKey, bytes } = await saveFile(owner.workspaceId, file.name, data)
 
   let doc
   try {
     doc = await uploadDocument({
-      workspaceId: auth.workspace.id,
+      workspaceId: owner.workspaceId,
       filename: file.name,
       mime,
       bytes,

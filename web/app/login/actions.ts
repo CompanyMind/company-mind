@@ -4,7 +4,7 @@ import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
-import { users } from '@/lib/db/schema'
+import { memberships, users, workspaces } from '@/lib/db/schema'
 import { hashPassword, verifyPassword } from '@/lib/auth/password'
 import { createSession } from '@/lib/auth/session-store'
 import { checkLoginRate } from '@/lib/auth/rate-limit'
@@ -41,6 +41,20 @@ export async function login(
   // Same generic message as a wrong password — a distinct "you are blocked"
   // message would confirm to an attacker that the address is real.
   if (user.blockedAt) return { error: 'Invalid email or password.' }
+
+  // A suspended firm's people are refused here as well as in
+  // validateSessionToken. Without this they would get a valid cookie and then be
+  // bounced straight back to login by the next request, with no explanation and
+  // no way out of the loop. Same generic message, for the same reason as above.
+  const membership = await db.query.memberships.findFirst({
+    where: eq(memberships.userId, user.id),
+  })
+  if (membership) {
+    const ws = await db.query.workspaces.findFirst({
+      where: eq(workspaces.id, membership.workspaceId),
+    })
+    if (ws?.suspendedAt) return { error: 'Invalid email or password.' }
+  }
 
   const { token, expires } = await createSession(user.id, {
     userAgent: h.get('user-agent') ?? undefined,
