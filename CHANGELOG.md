@@ -37,6 +37,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   "Board Minutes" still discloses that board minutes exist.
 
 ### Added
+- **The platform tier** at `/platform` and `/platform/usage`, in its own `(platform)` route group
+  with its own shell. Deliberately not under `(app)`: that layout requires a workspace, and the
+  operator may not have one. Open a firm (name + first owner's email -> workspace, owner account,
+  temp password shown once), suspend/resume it, and reset a firm owner's password — the one
+  per-person action the platform tier keeps, because a firm's owner is the top of that firm and
+  nobody inside it can unlock them. `lib/platform/aggregate-only.test.ts` asserts every platform
+  route 404s for a non-admin and that no response body, recursively, contains question text,
+  document text, or a per-user activity row.
 - **Firm provisioning** (`web/lib/platform/firms.ts`, engine `POST /workspaces/{id}/bootstrap`).
   `createFirm` creates the workspace, its first owner and the membership in one transaction — a
   half-created firm is invisible in the UI and needs a database client to clean up, which is exactly
@@ -126,6 +134,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fallback.
 
 ### Removed
+- `/dashboard/admin`, `AdminPanel.tsx` and all of `/api/admin/*`. Their two halves moved in opposite
+  directions — usage and the firm list up to `/platform`, account creation down to the firm owner —
+  so nothing was left for the page to be. **`POST /api/admin/users` is deleted, not moved**: it let
+  the platform operator mint an account inside any firm, which is the firm's job. That deletion is
+  the point of the tier split.
 - The rejected first-run panel. `ProgressStrip.tsx` (a dismissible strip listing "Add documents /
   Sort them / Ask a question") is deleted outright, and `GetStarted.tsx`'s `workspaceEmpty` branch
   no longer renders the same three-item numbered instruction list — the founder's own verdict on

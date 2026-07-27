@@ -41,7 +41,9 @@ export function Rail({
     // link would be a dead end.
     ...(isOwner ? [{ href: '/dashboard/integrations', label: 'Integrations' }] : []),
     ...(isOwner ? [{ href: '/dashboard/atlas', label: 'Atlas' }] : []),
-    ...(isSuperAdmin ? [{ href: '/dashboard/admin', label: 'Admin' }] : []),
+    // The platform tier lives outside this shell entirely — it needs no
+    // workspace, and its surfaces are firms and usage, not Ask/Sources.
+    ...(isSuperAdmin ? [{ href: '/platform', label: 'Platform' }] : []),
   ]
   // Two of NAV's entries are tour anchors. Hooks can't be called inside the
   // `.map()` below (NAV's length varies with isOwner/isSuperAdmin, which
