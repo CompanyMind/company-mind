@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Light/dark theming across the whole app. Every design token in
+  `web/styles/tokens.css` is now a CSS `light-dark()` pair, so the entire
+  product themes without a single `dark:` variant — Tailwind already resolved
+  every colour through `var(--token)`. The theme is stamped on `<html>`
+  server-side from a cookie, which means no inline script and no flash. A
+  reduced-motion preference rides the same path, for people on a machine whose
+  OS setting they cannot change.
+- `web/lib/tokens-contrast.test.ts` — the contrast law in `tokens.css` has
+  always been a comment, and a comment cannot fail. It is now parsed and every
+  WCAG ratio recomputed, in both themes.
+- `theme` and `motion` columns on `users`, and `PATCH /api/me` to change them
+  along with name and locale.
+
 ### Security
 - **The control plane was open to every member.** Sixteen mutating API routes were gated by
   `getCurrentUser()` alone, so any signed-in member could `PUT /api/documents/<id>/groups` to retag
