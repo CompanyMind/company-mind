@@ -72,6 +72,23 @@ export async function chatOwned(
   return !!row
 }
 
+/**
+ * The chat itself, scoped like every other read here. Used by the thread route,
+ * which needs the title for its header AND needs to know the chat exists —
+ * one query instead of a chatOwned() check followed by a second lookup.
+ */
+export async function getChat(
+  chatId: string,
+  workspaceId: string,
+  userId: string,
+): Promise<{ id: string; title: string | null } | null> {
+  const row = await db.query.chats.findFirst({
+    where: and(eq(chats.id, chatId), eq(chats.workspaceId, workspaceId), eq(chats.userId, userId)),
+    columns: { id: true, title: true },
+  })
+  return row ?? null
+}
+
 export async function getChatMessages(
   chatId: string,
   workspaceId: string,

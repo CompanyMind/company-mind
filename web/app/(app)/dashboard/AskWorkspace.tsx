@@ -58,8 +58,11 @@ export function AskWorkspace({
     [router],
   )
 
+  // h-full, not h-dvh: on a thread route this sits under ThreadHeader inside a
+  // flex column that already owns the viewport height, and h-dvh here would
+  // push the composer below the fold by exactly the header's height.
   return (
-    <div ref={askPaneRef} className="h-dvh min-w-0 max-md:h-[calc(100dvh-3.5rem)]">
+    <div ref={askPaneRef} className="h-full min-w-0">
       <AskChat
         csrf={csrf}
         chatId={chatId}
