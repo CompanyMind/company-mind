@@ -11,13 +11,23 @@ import { useCallback, useState } from 'react'
  * that's the caller's business, and Sources and the tour do different things
  * once an upload finishes.
  */
+/** The document record `POST /api/documents` returns for an accepted file. */
+export type UploadedDoc = { id: string; filename: string; status: string }
+
 export function useDocumentUpload(csrf: string) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [accepted, setAccepted] = useState(0)
 
   const upload = useCallback(
-    async (files: FileList | File[]): Promise<number> => {
+    async (
+      files: FileList | File[],
+      /** Called once per accepted file, as soon as the server confirms it.
+       *  Optional and additive: the Sources page and the tour both ignore the
+       *  result entirely, while the composer needs each document's id so it can
+       *  show a card per file and follow it from uploaded to indexed. */
+      onFile?: (doc: UploadedDoc) => void,
+    ): Promise<number> => {
       const list = Array.from(files)
       if (!list.length) return 0
       setBusy(true)
@@ -32,10 +42,12 @@ export function useDocumentUpload(csrf: string) {
             headers: { 'x-csrf-token': csrf },
             body,
           })
+          const payload = await r.json().catch(() => ({}))
           if (r.ok) {
             acceptedNow++
+            if (payload.document) onFile?.(payload.document as UploadedDoc)
           } else {
-            setError((await r.json().catch(() => ({}))).error ?? 'upload failed')
+            setError(payload.error ?? 'upload failed')
           }
         }
         return acceptedNow

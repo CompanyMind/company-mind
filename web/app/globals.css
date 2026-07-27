@@ -56,29 +56,56 @@
 }
 
 @layer components {
-  /* App rail navigation — the authed instrument panel. An active item is marked
-     by a teal (--brain) spine, echoing "indexed / connected knowledge". */
-  .rail-link {
+  /* Sidebar navigation. An active item is filled rather than spined: the
+     sidebar now also holds the chat list, and a violet spine repeated down two
+     different kinds of list stopped reading as "you are here" and started
+     reading as decoration. The fill is the same colour language, applied once. */
+  .nav-link {
     display: flex;
     align-items: center;
     gap: 0.625rem;
-    padding: 0.5rem 0.75rem;
-    border-radius: 0.375rem;
+    padding: 0.4375rem 0.625rem;
+    border-radius: 0.5rem;
     color: var(--ink-soft);
     font-size: 0.9375rem;
-    border-left: 2px solid transparent;
+    transition: background-color 120ms var(--ease-out-paper), color 120ms var(--ease-out-paper);
   }
-  .rail-link:hover {
+  .nav-link:hover {
     color: var(--ink);
-    background-color: color-mix(in srgb, var(--paper-raised) 60%, transparent);
+    background-color: color-mix(in srgb, var(--paper-raised) 70%, transparent);
   }
-  .rail-link[data-active='true'] {
+  .nav-link[data-active='true'] {
     color: var(--ink);
-    border-left-color: var(--brain);
-    background-color: color-mix(in srgb, var(--paper-raised) 80%, transparent);
+    background-color: color-mix(in srgb, var(--paper-raised) 95%, transparent);
+  }
+  .nav-link[data-active='true'] svg {
+    color: var(--brain);
+  }
+
+  /* A row in the Recents list. Same grammar as .nav-link, one step quieter —
+     a conversation title is content, not navigation chrome. */
+  .recent-link {
+    display: block;
+    width: 100%;
+    border-radius: 0.5rem;
+    padding: 0.375rem 0.625rem;
+    color: var(--ink-soft);
+    font-size: 0.875rem;
+    text-align: left;
+  }
+  .recent-link:hover {
+    color: var(--ink);
+    background-color: color-mix(in srgb, var(--paper-raised) 70%, transparent);
+  }
+  .recent-link[data-active='true'] {
+    color: var(--ink);
+    background-color: color-mix(in srgb, var(--paper-raised) 95%, transparent);
   }
 }
 
+/* Two triggers, one rule: the OS preference, and an explicit in-product choice
+   for someone who cannot change their OS setting — a shared or locked-down
+   machine, which is common in exactly the regulated firms this ships to. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -87,4 +114,12 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+[data-motion='reduced'] *,
+[data-motion='reduced'] *::before,
+[data-motion='reduced'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
 }

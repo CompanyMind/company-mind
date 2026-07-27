@@ -72,6 +72,23 @@ export async function chatOwned(
   return !!row
 }
 
+/**
+ * The chat itself, scoped like every other read here. Used by the thread route,
+ * which needs the title for its header AND needs to know the chat exists —
+ * one query instead of a chatOwned() check followed by a second lookup.
+ */
+export async function getChat(
+  chatId: string,
+  workspaceId: string,
+  userId: string,
+): Promise<{ id: string; title: string | null } | null> {
+  const row = await db.query.chats.findFirst({
+    where: and(eq(chats.id, chatId), eq(chats.workspaceId, workspaceId), eq(chats.userId, userId)),
+    columns: { id: true, title: true },
+  })
+  return row ?? null
+}
+
 export async function getChatMessages(
   chatId: string,
   workspaceId: string,
@@ -124,6 +141,20 @@ export async function deleteChat(
   if (!(await chatOwned(chatId, workspaceId, userId))) return false
   await db.delete(chats).where(eq(chats.id, chatId)) // cascades to messages/citations
   return true
+}
+
+/**
+ * Every chat this user owns in this workspace. Scoped to BOTH ids for the same
+ * reason every other read here is: a chat belongs to exactly one
+ * (workspaceId, userId) pair, and "delete my history" must never be able to
+ * mean anyone else's. Messages and citations cascade.
+ */
+export async function deleteAllChats(workspaceId: string, userId: string): Promise<number> {
+  const deleted = await db
+    .delete(chats)
+    .where(and(eq(chats.workspaceId, workspaceId), eq(chats.userId, userId)))
+    .returning({ id: chats.id })
+  return deleted.length
 }
 
 export async function saveTurn(opts: {

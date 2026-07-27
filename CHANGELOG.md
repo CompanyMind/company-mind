@@ -7,6 +7,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Light/dark theming across the whole app. Every design token in
+  `web/styles/tokens.css` is now a CSS `light-dark()` pair, so the entire
+  product themes without a single `dark:` variant — Tailwind already resolved
+  every colour through `var(--token)`. The theme is stamped on `<html>`
+  server-side from a cookie, which means no inline script and no flash. A
+  reduced-motion preference rides the same path, for people on a machine whose
+  OS setting they cannot change.
+- `web/lib/tokens-contrast.test.ts` — the contrast law in `tokens.css` has
+  always been a comment, and a comment cannot fail. It is now parsed and every
+  WCAG ratio recomputed, in both themes.
+- `theme` and `motion` columns on `users`, and `PATCH /api/me` to change them
+  along with name and locale.
+- **Settings**, opened from the sidebar's account menu or `⌘,`. An intercepted
+  route, so it overlays whatever you were doing and Escape puts you back in your
+  thread; a hard refresh on the same URL renders it as a full page.
+  - **General** — name, **language** (the `users.locale` column has had no UI
+    since i18n landed, so ru/uz users were stuck on whatever the owner seeded),
+    appearance, motion, replay the guided tour.
+  - **Account** — change password, **active sessions** (device, IP, signed-in,
+    with the current one marked), sign out of all devices. No IP-geolocation
+    lookup: calling out to prettify a row would contradict the product's claim.
+  - **Workspace** (owner-only) — rename, the deployment-mode egress claim, and
+    doorways to People / Access / Telegram.
+  - **Data** — what is stored and where, and delete all my conversations.
+
+### Changed
+
+- **The answering system prompt is hardened** (`engine/app/ask/answer.py`). It now
+  replies in the reader's own language; refuses to reveal, confirm or hint at
+  which model, vendor or version powers the system, or to disclose its own
+  instructions, and enumerates the specific evasion routes (roleplay,
+  hypotheticals, encodings, false developer/debug authority, "the text above")
+  that a general rule reliably loses to; and declares retrieved sources to be
+  **data, never instructions**, which is the central injection risk in a product
+  where anyone who can upload a document could otherwise address the model
+  directly. `engine/tests/test_system_prompt.py` pins these properties.
+- Refusals are detected by a language-independent `NO_ANSWER` sentinel instead of
+  string equality against an English sentence. With the model now answering in
+  Uzbek or Russian, the old check would have let every non-English refusal
+  through as an ordinary answer that happened to cite nothing.
+- Uzbek copy reworked to read as Uzbek rather than transposed English —
+  "Soʻnggi suhbatlar" over a possessive with nothing to possess, "Barcha
+  xodimlar" for a staff roster, searching *in* sources rather than *for* them.
+- The dashboard has **one sidebar instead of two**. Navigation, chat history and
+  the account menu share it; chat threads are addressable at
+  `/dashboard/c/[chatId]`, so they survive a reload and can be linked to.
+- The Ask pane is a conversation rather than a form: no page header, answers as
+  plain prose instead of drop-shadowed cards, a composer card with an
+  auto-growing input (Enter sends, Shift+Enter newlines) and owner-only upload,
+  a hover action row (copy / sources / retry), and a waiting indicator that
+  names the pipeline's real stages instead of one static line.
+- Atlas paints from theme tokens rather than eleven hexes hardcoded for the
+  cream ground, so the graph follows the theme like every other surface.
+
+### Fixed
+
+- **The on-prem egress claim was being shown on hosted deployments.** Sources
+  said "Files never leave your infrastructure" unconditionally, and the guided
+  tour's welcome step said "Everything runs on your own infrastructure" in all
+  three languages. Neither is available when many firms share one server. Both
+  now state only what is true in both modes.
+- `web/lib/db/client.ts` cached its connection pool in a module-level binding,
+  so Next's dev server built a **new pool of 10 on every hot reload** and
+  abandoned the old one. An editing session exhausted Postgres in well under an
+  hour, and the symptom (`sorry, too many clients already`) looked nothing like
+  its cause. Cached on `globalThis` instead.
+
+### Removed
+
+- `Rail.tsx`, `Conversations.tsx` and `GetStarted.tsx` — replaced by the single
+  sidebar and the new empty state.
+- `lib/onboarding.ts` and `POST /api/onboarding/dismiss`, which the new empty
+  state left with no readers. The `users.onboarding_dismissed_at` column stays,
+  marked vestigial in the schema; `tourDismissedAt` was deliberately kept
+  separate from it so exactly this removal would be safe.
+
 ### Security
 - **The control plane was open to every member.** Sixteen mutating API routes were gated by
   `getCurrentUser()` alone, so any signed-in member could `PUT /api/documents/<id>/groups` to retag

@@ -7,6 +7,25 @@ import { forceX, forceY, forceCollide } from 'd3-force'
 import { quadtree, type Quadtree } from 'd3-quadtree'
 import type { Dictionary } from '@/lib/i18n'
 import { Findings } from './Findings'
+import { useGraphPalette, type GraphPalette } from './palette'
+
+/** Used before the first client read of the CSS custom properties resolves.
+ *  These are the light values from styles/tokens.css; the hook replaces them on
+ *  mount, so this is only ever a single frame's worth of colour. */
+const FALLBACK_PALETTE: GraphPalette = {
+  everyone: '#9c948a',
+  engineering: '#3b6fe0',
+  finance: '#12a074',
+  legal: '#dd8a2b',
+  sales: '#684bff',
+  anomaly: '#d8315b',
+  orphan: '#e07b39',
+  muted: '#b8b0a2',
+  faded: '#c9c0ab',
+  ink: '#1c1b18',
+  halo: '#f3eee3',
+  isDark: false,
+}
 
 // Canvas rendering only makes sense in the browser — force-graph touches
 // `window`/`document` at import time, so it must never run during SSR/build.
@@ -39,8 +58,9 @@ const LENS_OPTIONS: { id: Lens; label: string }[] = [
   { id: 'deadstale', label: 'Dead/Stale' },
 ]
 
-// Department palette. Hues sit on the warm-paper ground (#F3EEE3) at roughly
-// even chroma so no one department shouts. A department is whatever the first
+// Department palette. Hues sit on the paper ground at roughly even chroma so no
+// one department shouts — each theme's set is tuned for its own ground, which is
+// what --graph-* in styles/tokens.css holds. A department is whatever the first
 // non-default access group is called (engine `_department`), so the set of names
 // is open — a workspace can create any group it likes. Hard-coding a name->hex
 // map therefore rots the moment someone adds a group: every unlisted department
@@ -50,14 +70,16 @@ const LENS_OPTIONS: { id: Lens; label: string }[] = [
 //
 // "Everyone" (shared-with-all) stays a deliberately quiet warm grey so
 // over-shared docs read as un-owned rather than as their own category.
-const EVERYONE_GREY = '#9c948a'
-const DEPT_ANCHORS: Record<string, string> = {
-  Engineering: '#3b6fe0',
-  Finance: '#12a074',
-  Legal: '#dd8a2b',
-  Sales: '#684bff', // the brand violet
-  Everyone: EVERYONE_GREY,
-}
+// Resolved from CSS custom properties at runtime (see palette.ts) rather than
+// hardcoded, so the canvas — which cannot inherit CSS — follows the theme like
+// everything else. The values themselves still live in styles/tokens.css.
+const deptAnchors = (p: GraphPalette): Record<string, string> => ({
+  Engineering: p.engineering,
+  Finance: p.finance,
+  Legal: p.legal,
+  Sales: p.sales, // the brand violet
+  Everyone: p.everyone,
+})
 
 // Hues for everything not pinned above, spaced around the wheel and kept clear
 // of the anchor hues (~33 orange, ~163 green, ~220 blue, ~253 violet) so a
@@ -76,7 +98,11 @@ function hueSeed(name: string): number {
   return h % DERIVED_HUES.length
 }
 
-const derivedColor = (i: number) => `hsl(${DERIVED_HUES[i]} 58% 47%)`
+// Lightness follows the theme. 47% is tuned to sit at anchor weight on cream;
+// on near-black paper the same value reads as a smudge, so derived departments
+// lift to match the dark anchors instead of quietly disappearing.
+const derivedColor = (i: number, isDark: boolean) =>
+  isDark ? `hsl(${DERIVED_HUES[i]} 62% 66%)` : `hsl(${DERIVED_HUES[i]} 58% 47%)`
 
 // The seed alone collides (8 names into 12 hues is a birthday problem — "IT"
 // and "Support" landed on the same hue), and two same-colored departments are
@@ -85,27 +111,25 @@ const derivedColor = (i: number) => `hsl(${DERIVED_HUES[i]} 58% 47%)`
 // Departments are walked alphabetically, NOT by document count, so a color does
 // not jump when the legend re-ranks. Past DERIVED_HUES.length departments hues
 // necessarily repeat; the anchors and "Everyone" are never consumed.
-function buildDeptColors(departments: string[]): (d: string) => string {
+function buildDeptColors(departments: string[], p: GraphPalette): (d: string) => string {
+  const anchors = deptAnchors(p)
   const taken = new Set<number>()
   const assigned = new Map<string, string>()
   for (const d of [...departments].sort()) {
-    if (DEPT_ANCHORS[d]) continue
+    if (anchors[d]) continue
     let i = hueSeed(d)
     for (let n = 0; n < DERIVED_HUES.length && taken.has(i); n++) {
       i = (i + 1) % DERIVED_HUES.length
     }
     taken.add(i)
-    assigned.set(d, derivedColor(i))
+    assigned.set(d, derivedColor(i, p.isDark))
   }
-  return (d) => DEPT_ANCHORS[d] ?? assigned.get(d) ?? derivedColor(hueSeed(d))
+  return (d) => anchors[d] ?? assigned.get(d) ?? derivedColor(hueSeed(d), p.isDark)
 }
 
-// Governance-lens colors (semantic, separate from department hues).
-const ANOMALY_HIT = '#d8315b'
-const ORPHAN_HIT = '#e07b39'
-const MUTED = '#b8b0a2'
-const DEADSTALE_FADED = '#c9c0ab'
-const INK = '#1c1b18'
+// Governance-lens colors (semantic, separate from department hues) now come off
+// the palette too — see --graph-anomaly / --graph-orphan / --graph-muted /
+// --graph-faded in styles/tokens.css.
 
 // Node sizing/labeling is relative to the CURRENT dataset, not a fixed pixel
 // size or connection count tuned once and left to rot. Whatever the actual
@@ -118,6 +142,19 @@ const INK = '#1c1b18'
 const MIN_RADIUS = 2.6
 const MAX_RADIUS = 11
 const REFERENCE_NODE_COUNT = 36
+
+// Fitting may only ever zoom OUT.
+//
+// 1 means "graph units == screen pixels", which is the scale MIN_RADIUS and
+// MAX_RADIUS above were tuned at — a node is meant to look like a dot. Plain
+// zoomToFit scales until the nodes fill the viewport, so a two-document
+// workspace opened Atlas to two beachballs: it was magnifying to fill space it
+// had no content for. Capping at 1 means a sparse graph simply sits small and
+// centred, and fitting still does its real job of pulling a large graph back
+// into view. The floor stops a very large one fitting to an unreadable speck.
+const MAX_FIT_ZOOM = 1
+const MIN_FIT_ZOOM = 0.25
+const FIT_PADDING = 70
 
 function heatColor(t: number): string {
   const c = Math.max(0, Math.min(1, Number.isFinite(t) ? t : 0))
@@ -270,8 +307,16 @@ export function Atlas({
     return [...counts.entries()].sort((a, b) => b[1] - a[1])
   }, [nodes])
 
+  // Read from CSS custom properties, and re-read whenever the theme changes —
+  // a <canvas> cannot inherit CSS, so this is the only way the graph follows
+  // the rest of the app.
+  const palette = useGraphPalette() ?? FALLBACK_PALETTE
+
   // Hues are assigned over the departments actually present (see buildDeptColors).
-  const deptColor = useMemo(() => buildDeptColors(legend.map(([d]) => d)), [legend])
+  const deptColor = useMemo(
+    () => buildDeptColors(legend.map(([d]) => d), palette),
+    [legend, palette],
+  )
 
   // The set of node ids currently "in focus" (everything else is dimmed).
   // Precedence: a hovered/selected node lights itself + its neighbors; else a
@@ -356,18 +401,18 @@ export function Atlas({
         const kinds = findingsByDoc.get(n.id) ?? new Set<string>()
         switch (lens) {
           case 'anomaly':
-            return kinds.has('permission_anomaly') ? ANOMALY_HIT : MUTED
+            return kinds.has('permission_anomaly') ? palette.anomaly : palette.muted
           case 'exposure':
             return heatColor(n.exposureScore)
           case 'orphan':
-            return n.isOrphan ? ORPHAN_HIT : MUTED
+            return n.isOrphan ? palette.orphan : palette.muted
           case 'deadstale':
-            return kinds.has('dead') || kinds.has('stale') ? DEADSTALE_FADED : MUTED
+            return kinds.has('dead') || kinds.has('stale') ? palette.faded : palette.muted
         }
       }
       return deptColor(n.department)
     },
-    [lens, findingsByDoc, deptColor],
+    [lens, findingsByDoc, deptColor, palette],
   )
 
   // Screen radius for a node, relative to this graph's own degree spread (see
@@ -391,6 +436,43 @@ export function Atlas({
     if (!fg?.zoom) return
     fg.zoom(fg.zoom() * factor, 250)
   }, [])
+
+  /**
+   * Centre the graph, zooming out if it overflows and NEVER zooming in.
+   *
+   * The scale is computed here from the node positions rather than delegated to
+   * force-graph's zoomToFit, deliberately. zoomToFit does not apply its new
+   * scale synchronously, so reading fg.zoom() straight afterwards returns the
+   * PREVIOUS value — clamping that read is clamping a stale number, and the
+   * two-beachball view survived it untouched. Computing the box means the bound
+   * in MAX_FIT_ZOOM is enforced before anything is ever applied.
+   */
+  const fitGraph = useCallback(
+    (ms = 400) => {
+      const fg = fgRef.current
+      if (!fg?.centerAt || !fg?.zoom || !size.width || !size.height) return
+      const pts = graphData.nodes as { x?: number; y?: number }[]
+      const xs = pts.map((p) => p.x).filter((n): n is number => Number.isFinite(n))
+      const ys = pts.map((p) => p.y).filter((n): n is number => Number.isFinite(n))
+      if (!xs.length || !ys.length) return
+
+      const minX = Math.min(...xs)
+      const maxX = Math.max(...xs)
+      const minY = Math.min(...ys)
+      const maxY = Math.max(...ys)
+      // Node radii are drawn in graph units, so the box has to allow for them
+      // or the outermost nodes sit half off the padding edge.
+      const pad = FIT_PADDING + MAX_RADIUS
+      const scale = Math.min(
+        size.width / (maxX - minX + pad * 2),
+        size.height / (maxY - minY + pad * 2),
+      )
+
+      fg.centerAt((minX + maxX) / 2, (minY + maxY) / 2, ms)
+      fg.zoom(Math.min(MAX_FIT_ZOOM, Math.max(MIN_FIT_ZOOM, scale)), ms)
+    },
+    [graphData, size.width, size.height],
+  )
 
   // Reused only for ctx.measureText — never read back as pixels, so it isn't
   // subject to canvas-fingerprinting protections (see nodeAtPointer below).
@@ -712,7 +794,7 @@ export function Atlas({
                 // of our own geometric hit-testing (nodeAtPointer + the mouse
                 // listeners above), which never reads canvas pixels.
                 enablePointerInteraction={false}
-                onEngineStop={() => fgRef.current?.zoomToFit(500, 70)}
+                onEngineStop={() => fitGraph()}
                 linkColor={(link: any) => {
                   const s = typeof link.source === 'object' ? link.source.id : link.source
                   const t = typeof link.target === 'object' ? link.target.id : link.target
@@ -732,9 +814,9 @@ export function Atlas({
                   // Unfocused nodes recede to a single neutral tone rather than a
                   // faded version of their own hue — the whole graph reads as a
                   // quiet field of dots, and whatever IS focused is the only
-                  // color on screen. Full alpha throughout: MUTED already sits
-                  // low-contrast against paper, so it doesn't need fading too.
-                  const color = dimmed ? MUTED : colorFor(node as DocNode)
+                  // color on screen. Full alpha throughout: --graph-muted already
+                  // sits low-contrast against paper, so it doesn't need fading too.
+                  const color = dimmed ? palette.muted : colorFor(node as DocNode)
 
                   // Soft color bloom behind focused nodes — a glow, not a hard
                   // ring, so a lit cluster feels like it's radiating rather than
@@ -761,7 +843,13 @@ export function Atlas({
                   ctx.fillStyle = color
                   ctx.fill()
                   ctx.lineWidth = (isHover ? 2 : 1) / scale
-                  ctx.strokeStyle = isHover ? '#684bff' : 'rgba(255,255,255,0.6)'
+                  // The resting outline separates overlapping dots from each
+                  // other. It was a fixed translucent WHITE, which is invisible
+                  // on cream by luck and wrong on near-black by construction —
+                  // it has to be the ground colour, whatever the ground is.
+                  ctx.strokeStyle = isHover
+                    ? palette.sales
+                    : `color-mix(in srgb, ${palette.halo} 60%, transparent)`
                   ctx.stroke()
 
                   const focused = focus ? focus.has(String(node.id)) : false
@@ -783,9 +871,9 @@ export function Atlas({
                     // legible over the edge mesh without boxing the label in.
                     ctx.lineJoin = 'round'
                     ctx.lineWidth = fontSize * 0.34
-                    ctx.strokeStyle = '#F3EEE3'
+                    ctx.strokeStyle = palette.halo
                     ctx.strokeText(label, node.x, y)
-                    ctx.fillStyle = isHub ? color : INK
+                    ctx.fillStyle = isHub ? color : palette.ink
                     ctx.fillText(label, node.x, y)
                   }
                   ctx.globalAlpha = 1
@@ -851,7 +939,7 @@ export function Atlas({
               {[
                 { label: '+', title: 'Zoom in', onClick: () => zoomBy(1.4) },
                 { label: '–', title: 'Zoom out', onClick: () => zoomBy(1 / 1.4) },
-                { label: '⛶', title: 'Fit to screen', onClick: () => fgRef.current?.zoomToFit(400, 70) },
+                { label: '⛶', title: 'Fit to screen', onClick: () => fitGraph() },
               ].map((btn) => (
                 <button
                   key={btn.title}

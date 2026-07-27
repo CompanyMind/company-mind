@@ -1,11 +1,13 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import type { Dictionary } from '@/lib/i18n'
 
 type WsUser = { id: string; email: string; name: string | null }
 type Group = { id: string; name: string; isDefault: boolean; memberUserIds: string[] }
 
-export function AccessManager({ csrf }: { csrf: string }) {
+export function AccessManager({ csrf, dict }: { csrf: string; dict: Dictionary }) {
+  const t = dict.panels.access
   const [groups, setGroups] = useState<Group[]>([])
   const [users, setUsers] = useState<WsUser[]>([])
   const [newName, setNewName] = useState('')
@@ -63,19 +65,18 @@ export function AccessManager({ csrf }: { csrf: string }) {
   return (
     <div className="mt-6">
       <p className="mb-4 text-body-sm text-ink-soft">
-        Groups control which documents a person can see. Owners always see everything; members see
-        only documents shared with a group they belong to.
+        {t.intro}
       </p>
 
       <form onSubmit={create} className="mb-6 flex gap-2">
         <input
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
-          placeholder="New group name (e.g. Finance)"
+          placeholder={t.newGroupPlaceholder}
           className="min-w-0 flex-1 rounded-md border border-line-control bg-paper-raised px-3 py-2 text-body text-ink"
         />
         <button className="rounded-md bg-ink px-4 py-2 text-body-sm text-paper disabled:opacity-50" disabled={!newName.trim()}>
-          Add group
+          {t.addGroup}
         </button>
       </form>
       {error && <p className="mb-4 text-body-sm text-sovereign-text">{error}</p>}
@@ -86,21 +87,21 @@ export function AccessManager({ csrf }: { csrf: string }) {
             <div className="flex items-center justify-between">
               <span className="font-mono text-[0.8125rem] uppercase tracking-[0.08em] text-ink">
                 {g.name}
-                {g.isDefault && <span className="ml-2 text-ink-soft">(default · everyone)</span>}
+                {g.isDefault && <span className="ml-2 text-ink-soft">{t.defaultEveryone}</span>}
               </span>
               {!g.isDefault && (
                 <button
                   onClick={() => remove(g)}
                   className="text-body-sm text-ink-soft underline underline-offset-2 hover:text-sovereign-text"
                 >
-                  Delete
+                  {t.delete}
                 </button>
               )}
             </div>
             {!g.isDefault && (
               <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
                 {users.length === 0 && (
-                  <span className="text-body-sm text-ink-soft">No members in this workspace yet.</span>
+                  <span className="text-body-sm text-ink-soft">{t.noMembers}</span>
                 )}
                 {users.map((u) => {
                   const on = g.memberUserIds.includes(u.id)

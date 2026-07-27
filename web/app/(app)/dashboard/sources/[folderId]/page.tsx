@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth/current-user'
 import { issueCsrf } from '@/lib/csrf'
+import { getDictionary, isLocale } from '@/lib/i18n'
 import { listFolders } from '@/lib/folders'
 import { DocumentList } from '../DocumentList'
 import { FolderHeader } from './FolderHeader'
@@ -20,6 +21,7 @@ export default async function FolderPage({
   const { folderId } = await params
   const { doc } = await searchParams
   const csrf = await issueCsrf()
+  const dict = getDictionary(auth && isLocale(auth.user.locale) ? auth.user.locale : 'en')
 
   const { folders } = await listFolders(auth.workspace.id, {
     userId: auth.user.id,
@@ -44,13 +46,14 @@ export default async function FolderPage({
           canManage={auth.role === 'owner'}
         />
       ) : (
-        <h1 className="mt-3 font-display text-2xl text-ink">Unfiled</h1>
+        <h1 className="mt-3 font-display text-2xl text-ink">{dict.panels.sources.unfiled}</h1>
       )}
       <DocumentList
         csrf={csrf}
         folder={folderId}
         initialDoc={doc}
         canManage={auth.role === 'owner'}
+        dict={dict}
       />
     </div>
   )

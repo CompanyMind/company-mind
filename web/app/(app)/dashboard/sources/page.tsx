@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth/current-user'
 import { issueCsrf } from '@/lib/csrf'
+import { getDictionary, isLocale } from '@/lib/i18n'
+import { env } from '@/lib/env'
 import { listDocuments } from '@/lib/documents'
 import { Sources } from '../Sources'
 
@@ -13,6 +15,7 @@ export default async function SourcesPage({
 }) {
   const auth = await getCurrentUser()
   const csrf = await issueCsrf()
+  const dict = getDictionary(auth && isLocale(auth.user.locale) ? auth.user.locale : 'en')
   const { doc } = await searchParams
 
   // Deep link from Atlas: send the caller to wherever that document actually lives.
@@ -26,10 +29,17 @@ export default async function SourcesPage({
   return (
     <div className="mx-auto max-w-5xl px-6 py-6">
       <header className="mb-2">
-        <h1 className="font-display text-2xl text-ink">Sources</h1>
+        <h1 className="font-display text-2xl text-ink">{dict.pages.sources.title}</h1>
+        {/* The egress claim is mode-dependent and must stay true in both. This
+            line asserted the ON-PREM claim unconditionally, so a hosted
+            deployment was telling a regulated buyer its files never leave their
+            infrastructure — which is not available when many firms share one
+            server. Same two strings the sidebar and Settings use. */}
         <p className="mt-1 text-body-sm text-ink-soft">
-          Everything in <strong className="text-ink">{auth?.workspace.name}</strong>’s brain. Files
-          never leave your infrastructure.
+          {dict.pages.sources.body.replace('{workspace}', auth?.workspace.name ?? '')}{' '}
+          {env.DEPLOYMENT_MODE === 'onprem'
+            ? dict.pages.sources.onprem
+            : dict.pages.sources.hosted}
         </p>
       </header>
       <Sources

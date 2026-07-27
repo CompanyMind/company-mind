@@ -4,9 +4,10 @@ import { getCurrentUser } from '@/lib/auth/current-user'
 import { getSuperAdmin } from '@/lib/auth/require-super-admin'
 import { issueCsrf } from '@/lib/csrf'
 import { env } from '@/lib/env'
+import { getDictionary, isLocale } from '@/lib/i18n'
 import { db } from '@/lib/db/client'
 import { userTourSteps } from '@/lib/db/schema'
-import { Rail } from './_components/Rail'
+import { Sidebar } from './_components/Sidebar'
 import { TourProvider } from './_components/tour/TourProvider'
 
 export const runtime = 'nodejs'
@@ -52,9 +53,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       tourDismissed={auth.user.tourDismissedAt !== null}
     >
       <div className="flex min-h-dvh max-md:flex-col">
-        <Rail
+        <Sidebar
+          csrf={csrf}
+          dict={getDictionary(isLocale(auth.user.locale) ? auth.user.locale : 'en')}
           workspace={auth.workspace.name}
           userName={auth.user.name}
+          userEmail={auth.user.email}
           isOwner={auth.role === 'owner'}
           isSuperAdmin={admin !== null}
           locale={auth.user.locale}

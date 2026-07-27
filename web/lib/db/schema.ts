@@ -24,8 +24,13 @@ export const users = pgTable('users', {
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
   name: text('name'),
-  // Set when the user dismisses the first-run strip. Onboarding PROGRESS is
-  // derived from real data every render; only the dismissal is stored.
+  // VESTIGIAL. Written by the first-run strip, which the guided tour replaced
+  // and the chat-pane redesign finished removing — nothing reads it now. Kept
+  // rather than dropped because a destructive migration to delete a nullable
+  // timestamp buys nothing, and because `tourDismissedAt` below was
+  // deliberately kept separate from it precisely so this column could die
+  // without taking the tour's dismissal with it. Do not start reading it again;
+  // add a new column instead.
   onboardingDismissedAt: timestamp('onboarding_dismissed_at', { withTimezone: true }),
   // Platform-level, above workspaces — NOT a membership role. Seed-only on
   // purpose: a panel that can mint its own super-admins has no floor.
@@ -36,6 +41,13 @@ export const users = pgTable('users', {
   // 'en' | 'ru' | 'uz'. Per-user rather than per-workspace: a bank's Russian-speaking
   // analyst and its English-speaking admin share one workspace.
   locale: text('locale').notNull().default('en'),
+  // Appearance, per user for the same reason locale is per user: one firm, many
+  // people, one shared workspace row. 'system' means "follow the OS" and is a
+  // real stored choice, not an absence — see lib/theme.ts. Mirrored into a
+  // cookie on write so the root layout can pick a palette before the session is
+  // resolved (it also wraps /login, where there is no session at all).
+  theme: text('theme').notNull().default('system'),
+  motion: text('motion').notNull().default('system'),
   // Set on every admin-created account. Without it, the admin who generated the
   // temp password knows that person's password forever, which destroys any
   // claim about per-user attribution. Enforced by a redirect in the (app)

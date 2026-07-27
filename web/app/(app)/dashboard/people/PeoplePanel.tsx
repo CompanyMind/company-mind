@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { PersonRow } from '@/lib/people'
+import type { Dictionary } from '@/lib/i18n'
 
 type Serialised = Omit<PersonRow, 'createdAt' | 'lastSeenAt'> & {
   createdAt: string | Date
@@ -11,8 +12,8 @@ type Serialised = Omit<PersonRow, 'createdAt' | 'lastSeenAt'> & {
 
 type Handover = { heading: string; email: string; password: string }
 
-function when(value: string | Date | null): string {
-  if (!value) return 'never'
+function when(value: string | Date | null, never: string): string {
+  if (!value) return never
   return new Date(value).toLocaleDateString()
 }
 
@@ -20,11 +21,14 @@ export function PeoplePanel({
   csrf,
   initialPeople,
   currentUserId,
+  dict,
 }: {
   csrf: string
   initialPeople: Serialised[]
   currentUserId: string
+  dict: Dictionary
 }) {
+  const t = dict.panels.people
   const router = useRouter()
   const [people, setPeople] = useState(initialPeople)
   const [email, setEmail] = useState('')
@@ -56,7 +60,7 @@ export function PeoplePanel({
         setError(d.error ?? 'could not create that account')
         return
       }
-      setHandover({ heading: 'Account created', email, password: d.tempPassword })
+      setHandover({ heading: t.accountCreated, email, password: d.tempPassword })
       setEmail('')
       setName('')
       setRole('member')
@@ -100,7 +104,11 @@ export function PeoplePanel({
       setError(d.error ?? 'could not reset that password')
       return
     }
-    setHandover({ heading: `New password for ${p.email}`, email: p.email, password: d.tempPassword })
+    setHandover({
+      heading: t.newPasswordFor.replace('{email}', p.email),
+      email: p.email,
+      password: d.tempPassword,
+    })
   }
 
   return (
@@ -109,21 +117,21 @@ export function PeoplePanel({
         onSubmit={create}
         className="rounded-lg border border-line bg-paper-raised p-4 shadow-card"
       >
-        <h2 className="font-display text-lg text-ink">Add someone</h2>
+        <h2 className="font-display text-lg text-ink">{t.addSomeone}</h2>
         <div className="mt-3 grid grid-cols-3 gap-3 max-md:grid-cols-1">
           <label className="block">
-            <span className="text-body-sm text-ink-soft">Email</span>
+            <span className="text-body-sm text-ink-soft">{t.email}</span>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="person@yourfirm.example"
+              placeholder={t.emailPlaceholder}
               className="mt-1 w-full rounded-md border border-line-control bg-paper px-3 py-2 text-body text-ink"
             />
           </label>
           <label className="block">
-            <span className="text-body-sm text-ink-soft">Name (optional)</span>
+            <span className="text-body-sm text-ink-soft">{t.nameOptional}</span>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -131,14 +139,14 @@ export function PeoplePanel({
             />
           </label>
           <label className="block">
-            <span className="text-body-sm text-ink-soft">Role</span>
+            <span className="text-body-sm text-ink-soft">{t.role}</span>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value === 'owner' ? 'owner' : 'member')}
               className="mt-1 w-full rounded-md border border-line-control bg-paper px-3 py-2 text-body text-ink"
             >
-              <option value="member">Member — sees only their access groups</option>
-              <option value="owner">Owner — sees everything, can manage people</option>
+              <option value="member">{t.roleMember}</option>
+              <option value="owner">{t.roleOwner}</option>
             </select>
           </label>
         </div>
@@ -147,7 +155,7 @@ export function PeoplePanel({
           disabled={busy}
           className="mt-4 rounded-md bg-ink px-4 py-2 text-body-sm text-paper disabled:opacity-60"
         >
-          {busy ? 'Creating…' : 'Create account'}
+          {busy ? t.creating : t.createAccount}
         </button>
       </form>
 
@@ -161,10 +169,8 @@ export function PeoplePanel({
         <div className="mt-4 rounded-lg border border-brain bg-paper-sunk p-4">
           <h3 className="font-display text-lg text-ink">{handover.heading}</h3>
           <p className="mt-1 text-body-sm text-ink-soft">
-            Hand these over directly.{' '}
-            <strong className="text-ink">This password is shown once</strong> and cannot be retrieved
-            — there is no email delivery yet. They will be asked to choose their own the first time
-            they sign in.
+            {t.handover}{' '}
+            <strong className="text-ink">{t.shownOnce}</strong> {t.handoverRest}
           </p>
           <dl className="mt-3 grid grid-cols-[auto,1fr] gap-x-4 gap-y-1 font-mono text-body-sm">
             <dt className="text-ink-soft">email</dt>
@@ -176,12 +182,12 @@ export function PeoplePanel({
             onClick={() => setHandover(null)}
             className="mt-3 text-body-sm text-ink-soft underline underline-offset-2 hover:text-ink"
           >
-            I&rsquo;ve saved it
+            {t.saved}
           </button>
         </div>
       )}
 
-      <h2 className="mt-8 font-display text-lg text-ink">Everyone here</h2>
+      <h2 className="mt-8 font-display text-lg text-ink">{t.everyoneHere}</h2>
       <ul className="mt-3 space-y-2">
         {people.map((p) => (
           <li key={p.id} className="rounded-lg border border-line bg-paper-raised p-4">
@@ -191,12 +197,13 @@ export function PeoplePanel({
                   {p.name ? `${p.name} · ${p.email}` : p.email}
                   {p.blocked && (
                     <span className="ml-2 font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-sovereign-text">
-                      blocked
+                      {t.blocked}
                     </span>
                   )}
                 </p>
                 <p className="mt-0.5 text-body-sm text-ink-soft">
-                  {p.role} · last seen {when(p.lastSeenAt)}
+                  {p.role === 'owner' ? t.roleOwnerShort : t.roleMemberShort} ·{' '}
+                  {t.lastSeen.replace('{when}', when(p.lastSeenAt, t.never))}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-3 text-body-sm">
@@ -204,7 +211,7 @@ export function PeoplePanel({
                   onClick={() => resetPassword(p)}
                   className="text-ink-soft underline underline-offset-2 hover:text-ink"
                 >
-                  Reset password
+                  {t.resetPassword}
                 </button>
                 {/* No self-block control at all: the API refuses it, and an
                     offered button that always fails is worse than its absence. */}
@@ -213,7 +220,7 @@ export function PeoplePanel({
                     onClick={() => toggleBlock(p)}
                     className="text-ink-soft underline underline-offset-2 hover:text-sovereign-text"
                   >
-                    {p.blocked ? 'Unblock' : 'Block'}
+                    {p.blocked ? t.unblock : t.block}
                   </button>
                 )}
               </div>

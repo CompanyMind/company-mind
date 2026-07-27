@@ -18,6 +18,7 @@ export function FolderGrid({
   unfiledCount,
   csrf,
   onChanged,
+  dict,
   emptyState,
   onUploadClick,
   canManage,
@@ -26,6 +27,7 @@ export function FolderGrid({
   unfiledCount: number
   csrf: string
   onChanged: () => void
+  dict: Dictionary
   /** Copy for the empty-workspace message below — real orientation plus one
    * action, not a description on its own (spec §4 "Real empty states"). */
   emptyState: Dictionary['emptyStates']['sourcesEmpty']
@@ -43,6 +45,7 @@ export function FolderGrid({
   const [organizing, setOrganizing] = useState(false)
   const [note, setNote] = useState<string | null>(null)
   const organiseRef = useTourTarget('organise-button')
+  const t = dict.panels.sources
 
   async function create(e: React.FormEvent) {
     e.preventDefault()
@@ -77,9 +80,15 @@ export function FolderGrid({
         setError(d.error ?? 'could not organise')
         return
       }
-      setNote(
-        `Organised ${d.organized} ${d.organized === 1 ? 'document' : 'documents'} into ${d.folders.length} ${d.folders.length === 1 ? 'folder' : 'folders'}.`,
+      const docs = (d.organized === 1 ? t.documentsOne : t.documents).replace(
+        '{count}',
+        String(d.organized),
       )
+      const folders = (d.folders.length === 1 ? t.folderCountOne : t.folderCount).replace(
+        '{count}',
+        String(d.folders.length),
+      )
+      setNote(t.organised.replace('{docs}', docs).replace('{folders}', folders))
       onChanged()
     } finally {
       setOrganizing(false)
@@ -89,7 +98,7 @@ export function FolderGrid({
   return (
     <section className="mt-6">
       <div className="flex items-center justify-between">
-        <h2 className="font-display text-lg text-ink">Folders</h2>
+        <h2 className="font-display text-lg text-ink">{t.folders}</h2>
         <div className="flex items-center">
           {canManage && unfiledCount > 0 && (
             <button
@@ -99,7 +108,7 @@ export function FolderGrid({
               disabled={organizing}
               className="mr-3 rounded-md border border-brain px-3 py-1 text-body-sm text-brain-text disabled:opacity-60"
             >
-              {organizing ? 'Organising…' : 'Organise with AI'}
+              {organizing ? t.organising : t.organise}
             </button>
           )}
           {canManage && (
@@ -108,7 +117,7 @@ export function FolderGrid({
               onClick={() => setCreating((c) => !c)}
               className="text-body-sm text-ink-soft underline underline-offset-2 hover:text-ink"
             >
-              {creating ? 'Cancel' : 'New folder'}
+              {creating ? t.cancel : t.newFolder}
             </button>
           )}
         </div>
@@ -120,11 +129,11 @@ export function FolderGrid({
             autoFocus
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Folder name"
+            placeholder={t.folderName}
             maxLength={60}
             className="flex-1 rounded-md border border-line-control bg-paper px-3 py-2 text-body text-ink"
           />
-          <button className="rounded-md bg-ink px-4 py-2 text-body-sm text-paper">Create</button>
+          <button className="rounded-md bg-ink px-4 py-2 text-body-sm text-paper">{t.create}</button>
         </form>
       )}
       {error && <p className="mt-2 text-body-sm text-sovereign-text">{error}</p>}
@@ -161,12 +170,15 @@ export function FolderGrid({
                 <span className="truncate text-body text-ink">{f.name}</span>
                 {f.origin === 'ai' && !f.reviewed && (
                   <span className="shrink-0 rounded-sm bg-[color-mix(in_srgb,var(--brain)_14%,transparent)] px-1.5 py-0.5 font-mono text-[0.625rem] uppercase tracking-[0.08em] text-brain-text">
-                    suggested
+                    {t.suggested}
                   </span>
                 )}
               </div>
               <span className="mt-2 block font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-ink-soft">
-                {f.documentCount} {f.documentCount === 1 ? 'document' : 'documents'}
+                {(f.documentCount === 1 ? t.documentsOne : t.documents).replace(
+                  '{count}',
+                  String(f.documentCount),
+                )}
               </span>
             </Link>
           </li>
@@ -177,9 +189,12 @@ export function FolderGrid({
               href="/dashboard/sources/unfiled"
               className="block rounded-lg border border-dashed border-line bg-paper p-4 hover:border-brain"
             >
-              <span className="text-body text-ink-soft">Unfiled</span>
+              <span className="text-body text-ink-soft">{t.unfiled}</span>
               <span className="mt-2 block font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-ink-soft">
-                {unfiledCount} {unfiledCount === 1 ? 'document' : 'documents'}
+                {(unfiledCount === 1 ? t.documentsOne : t.documents).replace(
+                  '{count}',
+                  String(unfiledCount),
+                )}
               </span>
             </Link>
           </li>

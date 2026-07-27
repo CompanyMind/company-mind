@@ -1,43 +1,27 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import type { Dictionary } from '@/lib/i18n'
-import { useTourTarget } from '@/lib/tour/targets'
 import { CitationHint } from '@/app/(app)/_components/tour/CitationHint'
+import { Composer } from './Composer'
+import { Message, type Msg } from './Message'
+import { Thinking } from './Thinking'
 
-type Cite = {
-  marker: number
-  chunkId: string | null
-  filename: string
-  page: number | null
-  snippet: string
-}
-type Msg = { id: string; role: 'user' | 'assistant'; content: string; citations: Cite[] }
-
-// Render answer text with [n] turned into inline citation buttons.
-function AnswerBody({ msg, onCite }: { msg: Msg; onCite: (m: number) => void }) {
-  const parts = msg.content.split(/(\[\d+\])/g)
-  return (
-    <p className="text-body leading-[1.7] text-ink">
-      {parts.map((p, i) => {
-        const m = /^\[(\d+)\]$/.exec(p)
-        if (m && msg.citations.some((c) => c.marker === Number(m[1]))) {
-          const n = Number(m[1])
-          return (
-            <button
-              key={i}
-              onClick={() => onCite(n)}
-              className="mx-0.5 inline-flex -translate-y-0.5 items-center rounded-sm bg-[color-mix(in_srgb,var(--brain)_16%,transparent)] px-1 font-mono text-[0.7rem] text-brain-text hover:bg-[color-mix(in_srgb,var(--brain)_28%,transparent)]"
-              aria-label={`Source ${n}`}
-            >
-              {n}
-            </button>
-          )
-        }
-        return <span key={i}>{p}</span>
-      })}
-    </p>
-  )
+/**
+ * Which greeting applies, from the CLIENT's own clock. The server's timezone is
+ * not the reader's, and wishing someone good morning at 9pm is a small,
+ * avoidable lie. `null` until the effect runs, which is what the neutral
+ * `anonymous` string covers.
+ */
+function useTimeOfDay(): 'morning' | 'afternoon' | 'evening' | null {
+  const [t, setT] = useState<'morning' | 'afternoon' | 'evening' | null>(null)
+  useEffect(() => {
+    const h = new Date().getHours()
+    setT(h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'evening')
+  }, [])
+  return t
 }
 
 export function AskChat({
@@ -46,39 +30,49 @@ export function AskChat({
   onFirstMessage,
   initialQuestion,
   citationHint,
+  dict,
+  userName,
+  canManage,
+  workspaceEmpty,
+  suggestions,
+  emptyState,
 }: {
   csrf: string
   chatId: string | null
   onFirstMessage: (chatId: string, title: string | null) => void
   initialQuestion?: string | null
-  /** Copy for the just-in-time citation hint (spec §4 "Deliberately not
-   * tour steps") — see CitationHint.tsx. */
+  /** Copy for the just-in-time citation hint (guided-tour spec §4
+   * "Deliberately not tour steps") — see CitationHint.tsx. */
   citationHint: Dictionary['tour']['citationHint']
+  dict: Dictionary['chat']
+  userName: string | null
+  /** Owner. Gates the composer's upload control and which empty-state copy
+   *  applies — see `emptyState` below. */
+  canManage: boolean
+  workspaceEmpty: boolean
+  suggestions: string[]
+  emptyState: Dictionary['emptyStates']['askNoDocuments']
 }) {
+  const router = useRouter()
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [q, setQ] = useState('')
   const [busy, setBusy] = useState(false)
   const [open, setOpen] = useState<Record<string, number | null>>({})
   const endRef = useRef<HTMLDivElement>(null)
+  const timeOfDay = useTimeOfDay()
   // Mirrors `chatId` but updates synchronously the moment a new thread is
-  // created, so a rapid second send (before the parent's re-render lands)
-  // still targets the right chat instead of creating a duplicate thread.
+  // created, so a rapid second send (before the route change lands) still
+  // targets the right chat instead of creating a duplicate thread.
   const activeChatId = useRef<string | null>(chatId)
-  const composerRef = useTourTarget('ask-composer')
-  // The DOM node of the first citation chip button (the `[1] filename ·
-  // p.4` footer button below an answer, the same one steps.ts's static
-  // `citationReplica()` mirrors) in the first cited answer this chat pane
-  // has rendered — CitationHint's anchor. `null` until (and unless) such an
-  // answer exists.
+  // The DOM node of the first citation chip in the first cited answer this
+  // pane has rendered — CitationHint's anchor. `null` until such an answer
+  // exists.
   const [citationAnchor, setCitationAnchor] = useState<HTMLButtonElement | null>(null)
-  // The earliest message (in this open chat's own order) that has at least
-  // one citation — its citations footer is guaranteed to exist whenever
-  // `citations.length > 0`, unlike an inline `[n]` marker in the answer
-  // text, which depends on the model's own wording. Recomputed on every
-  // render rather than memoised — `msgs` is small (one open conversation)
-  // and this is a single `.find`, cheap enough that memoising it would cost
-  // more than it saves.
-  const firstCitedMessageId = msgs.find((m) => m.role === 'assistant' && m.citations.length > 0)?.id ?? null
+  // The earliest message with at least one citation — its citations footer is
+  // guaranteed to exist whenever `citations.length > 0`, unlike an inline `[n]`
+  // marker in the answer text, which depends on the model's own wording.
+  const firstCitedMessageId =
+    msgs.find((m) => m.role === 'assistant' && m.citations.length > 0)?.id ?? null
 
   useEffect(() => {
     activeChatId.current = chatId
@@ -102,181 +96,179 @@ export function AskChat({
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [msgs, busy])
 
-  // The actual submit logic, taking the question text as an argument rather
-  // than reading `q` directly, so it can be driven either by the form
-  // (current input value) or by a starter question that never touched the
-  // input at all.
-  async function send(text: string) {
-    const question = text.trim()
-    if (!question || busy) return
-    setQ('')
-    setBusy(true)
-    setMsgs((m) => [
-      ...m,
-      { id: `u-${Date.now()}`, role: 'user', content: question, citations: [] },
-    ])
-    try {
-      const r = await fetch('/api/ask', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-csrf-token': csrf },
-        body: JSON.stringify({ question, chatId: activeChatId.current }),
-      })
-      const d = await r.json()
-      if (r.ok) {
-        setMsgs((m) => [...m, d.message])
-        if (d.chatId && d.chatId !== activeChatId.current) {
-          activeChatId.current = d.chatId
-          onFirstMessage(d.chatId, d.title ?? null)
+  // Takes the question as an argument rather than reading `q`, so it can be
+  // driven either by the composer (current input value), by a starter question
+  // that never touched the input, or by Retry.
+  const send = useCallback(
+    async (text: string) => {
+      const question = text.trim()
+      if (!question || busy) return
+      setQ('')
+      setBusy(true)
+      setMsgs((m) => [
+        ...m,
+        { id: `u-${Date.now()}`, role: 'user', content: question, citations: [] },
+      ])
+      try {
+        const r = await fetch('/api/ask', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-csrf-token': csrf },
+          body: JSON.stringify({ question, chatId: activeChatId.current }),
+        })
+        const d = await r.json()
+        if (r.ok) {
+          setMsgs((m) => [...m, d.message])
+          if (d.chatId && d.chatId !== activeChatId.current) {
+            activeChatId.current = d.chatId
+            onFirstMessage(d.chatId, d.title ?? null)
+          }
+        } else {
+          setMsgs((m) => [
+            ...m,
+            {
+              id: `e-${Date.now()}`,
+              role: 'assistant',
+              content: d.error ?? 'Something went wrong.',
+              citations: [],
+            },
+          ])
         }
-      } else {
-        setMsgs((m) => [
-          ...m,
-          {
-            id: `e-${Date.now()}`,
-            role: 'assistant',
-            content: d.error ?? 'Something went wrong.',
-            citations: [],
-          },
-        ])
+      } finally {
+        setBusy(false)
       }
-    } finally {
-      setBusy(false)
-    }
-  }
+    },
+    [busy, csrf, onFirstMessage],
+  )
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    void send(q)
-  }
-
-  // A starter question picked on the empty state: prefill and send once.
-  // The ref (not state) survives React 19 StrictMode's double-invoke of
-  // effects in development, so a second mount pass doesn't fire a second
-  // /api/ask call and create a duplicate chat thread.
+  // A starter question picked on the empty state: send once. The ref (not
+  // state) survives React 19 StrictMode's double-invoke of effects in
+  // development, so a second mount pass doesn't fire a second /api/ask call
+  // and create a duplicate chat thread.
   const sentInitial = useRef(false)
   useEffect(() => {
     if (initialQuestion && !sentInitial.current) {
       sentInitial.current = true
-      setQ(initialQuestion)
       void send(initialQuestion)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialQuestion])
 
-  return (
-    <div className="mx-auto flex h-full max-w-3xl flex-col px-6">
-      <header className="py-6">
-        <h1 className="font-display text-2xl text-ink">Ask</h1>
-        <p className="mt-1 text-body-sm text-ink-soft">
-          Answers come only from your sources — every claim traces back to where it’s from.
-        </p>
-      </header>
+  /** The user message immediately before `msg` — what Retry re-sends. */
+  function previousQuestion(index: number): string | null {
+    for (let i = index - 1; i >= 0; i--) if (msgs[i].role === 'user') return msgs[i].content
+    return null
+  }
 
-      <div className="flex-1 space-y-6 overflow-y-auto pb-4">
-        {msgs.length === 0 && (
-          <p className="mt-16 text-center text-body text-ink-soft">
-            Ask anything about your company’s knowledge.
-          </p>
-        )}
-        {msgs.map((m) =>
-          m.role === 'user' ? (
-            <div key={m.id} className="flex justify-end">
-              <p className="max-w-[85%] rounded-lg rounded-br-sm bg-paper-sunk px-4 py-2 text-body text-ink">
-                {m.content}
+  const composer = (
+    <Composer
+      csrf={csrf}
+      value={q}
+      onChange={setQ}
+      onSubmit={() => void send(q)}
+      busy={busy}
+      canManage={canManage}
+      dict={dict}
+      autoFocus={msgs.length === 0}
+      // A file added here joins the workspace's Sources, so the server-derived
+      // state this pane was rendered with (is the workspace empty, what are the
+      // starter suggestions) is stale the moment one lands.
+      onUploaded={() => router.refresh()}
+    />
+  )
+
+  // ---- Empty state: greeting, composer, suggestions ----
+  if (msgs.length === 0 && !busy) {
+    const greeting = timeOfDay
+      ? dict.greeting[timeOfDay].replace('{name}', userName ?? '')
+      : dict.greeting.anonymous
+    return (
+      <div className="flex h-full flex-col overflow-y-auto px-6">
+        <div className="mx-auto flex w-full max-w-[var(--chat-measure)] flex-1 flex-col justify-center py-16">
+          <h1 className="mb-6 text-center font-display text-display-sm text-ink">
+            {/* Trailing ", " when the account has no name yet — trim it rather
+                than greeting "Good afternoon, ". */}
+            {greeting.replace(/,\s*$/, '')}
+          </h1>
+
+          {composer}
+
+          {workspaceEmpty ? (
+            <div className="mt-6 text-center">
+              {/* For a member, "empty" means "nothing in YOUR access groups",
+                  not "the workspace is empty" — and the owner copy would be an
+                  instruction they have no permission to follow. */}
+              <p className="mx-auto max-w-prose text-body text-ink-soft">
+                {canManage ? emptyState.body : emptyState.memberBody}
               </p>
+              {canManage && (
+                <Link
+                  href="/dashboard/sources"
+                  className="mt-4 inline-block rounded-lg bg-ink px-4 py-2 text-body-sm text-paper"
+                >
+                  {emptyState.cta}
+                </Link>
+              )}
             </div>
           ) : (
-            <div
+            suggestions.length > 0 && (
+              <ul className="mt-4 flex flex-wrap justify-center gap-2">
+                {suggestions.map((s) => (
+                  <li key={s}>
+                    <button
+                      onClick={() => void send(s)}
+                      className="rounded-full border border-line bg-paper-raised px-3.5 py-1.5 text-body-sm text-ink-soft hover:border-brain hover:text-ink"
+                    >
+                      {s}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )
+          )}
+
+          <p className="mt-8 text-center text-body-sm text-ink-soft">{dict.footer}</p>
+        </div>
+      </div>
+    )
+  }
+
+  // ---- Thread ----
+  return (
+    <div className="flex h-full flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto px-6">
+        <div className="mx-auto flex w-full max-w-[var(--chat-measure)] flex-col gap-7 py-8">
+          {msgs.map((m, i) => (
+            <Message
               key={m.id}
-              className="rounded-lg bg-paper-raised p-4 shadow-artifact motion-safe:animate-fade-in"
-            >
-              <AnswerBody
-                msg={m}
-                onCite={(n) => setOpen((o) => ({ ...o, [m.id]: o[m.id] === n ? null : n }))}
-              />
-              {m.citations.length > 0 && (
-                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3">
-                  {m.citations.map((c) => (
-                    <span key={c.marker} className="inline-flex items-center">
-                      <button
-                        ref={
-                          m.id === firstCitedMessageId && c.marker === m.citations[0].marker
-                            ? setCitationAnchor
-                            : undefined
-                        }
-                        onClick={() =>
-                          setOpen((o) => ({ ...o, [m.id]: o[m.id] === c.marker ? null : c.marker }))
-                        }
-                        data-active={open[m.id] === c.marker}
-                        className="rounded-l-md border border-line px-2 py-1 font-mono text-[0.7rem] text-ink-soft data-[active=true]:border-brain data-[active=true]:text-brain-text"
-                      >
-                        [{c.marker}] {c.filename}
-                        {c.page ? ` · p.${c.page}` : ''}
-                      </button>
-                      {c.chunkId ? (
-                        <a
-                          href={`/s/${c.chunkId}`}
-                          target="_blank"
-                          rel="noopener"
-                          title="Open source"
-                          className="rounded-r-md border border-l-0 border-line px-1.5 py-1 font-mono text-[0.7rem] text-ink-soft hover:border-brain hover:text-brain-text"
-                        >
-                          ↗
-                        </a>
-                      ) : (
-                        <span
-                          className="rounded-r-md border border-l-0 border-line px-1.5 py-1 font-mono text-[0.7rem] text-ink-soft"
-                          title="The source document has been re-ingested; the quoted text is preserved."
-                        >
-                          ↗
-                        </span>
-                      )}
-                    </span>
-                  ))}
-                </div>
-              )}
-              {open[m.id] != null &&
-                (() => {
-                  const c = m.citations.find((x) => x.marker === open[m.id])
-                  if (!c) return null
-                  return (
-                    <figure className="mt-3 rounded-md border-l-2 border-brain bg-paper px-4 py-3">
-                      <figcaption className="mb-1 font-mono text-[0.6875rem] uppercase tracking-[0.1em] text-ink-soft">
-                        {c.filename}
-                        {c.page ? ` · page ${c.page}` : ''}
-                      </figcaption>
-                      <blockquote className="text-body-sm leading-[1.7] text-ink">
-                        {c.snippet}
-                      </blockquote>
-                    </figure>
-                  )
-                })()}
-            </div>
-          ),
-        )}
-        {busy && (
-          <p className="text-body-sm text-query-text motion-safe:animate-pulse">
-            Searching your sources…
-          </p>
-        )}
-        <div ref={endRef} />
+              msg={m}
+              dict={dict}
+              openMarker={open[m.id] ?? null}
+              onToggleCite={(n) => setOpen((o) => ({ ...o, [m.id]: o[m.id] === n ? null : n }))}
+              onToggleAll={() =>
+                setOpen((o) => ({
+                  ...o,
+                  [m.id]: o[m.id] == null ? (m.citations[0]?.marker ?? null) : null,
+                }))
+              }
+              onRetry={
+                m.role === 'assistant' && previousQuestion(i)
+                  ? () => void send(previousQuestion(i)!)
+                  : undefined
+              }
+              citationAnchorRef={m.id === firstCitedMessageId ? setCitationAnchor : undefined}
+            />
+          ))}
+          {busy && <Thinking dict={dict.thinking} />}
+          <div ref={endRef} />
+        </div>
       </div>
 
-      <form ref={composerRef} onSubmit={handleSubmit} className="sticky bottom-0 flex gap-2 bg-paper py-4">
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Ask your company’s knowledge…"
-          className="min-w-0 flex-1 rounded-md border border-line-control bg-paper-raised px-4 py-2.5 text-body text-ink"
-        />
-        <button
-          type="submit"
-          disabled={busy || !q.trim()}
-          className="rounded-md bg-ink px-5 py-2.5 text-body text-paper disabled:opacity-50"
-        >
-          Ask
-        </button>
-      </form>
+      <div className="px-6 pb-4">
+        <div className="mx-auto w-full max-w-[var(--chat-measure)]">
+          {composer}
+          <p className="mt-2 text-center text-[0.75rem] text-ink-soft">{dict.footer}</p>
+        </div>
+      </div>
 
       <CitationHint anchorEl={citationAnchor} dict={citationHint} />
     </div>

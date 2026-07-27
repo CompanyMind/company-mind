@@ -58,7 +58,7 @@ export function Sources({
               chooser (WCAG 2.1 SC 2.1.1, Level A). Same fix already applied to
               the tour's UploadStep; this was the last instance of the bug. */}
           <label className="cursor-pointer rounded-md bg-ink px-4 py-2 text-body-sm text-paper has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ink">
-            {busy ? 'Uploading…' : 'Upload documents'}
+            {busy ? dict.panels.sources.uploading : dict.panels.sources.upload}
             <input
               ref={inputRef}
               type="file"
@@ -77,6 +77,7 @@ export function Sources({
         unfiledCount={unfiledCount}
         csrf={csrf}
         onChanged={refresh}
+        dict={dict}
         emptyState={dict.emptyStates.sourcesEmpty}
         onUploadClick={() => inputRef.current?.click()}
         canManage={canManage}
