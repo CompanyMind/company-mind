@@ -5,7 +5,11 @@ export const en = {
   tour: {
     welcome: {
       heading: "This is your company's memory.",
-      body: 'Upload documents, ask a question in plain language, and get an answer with the exact source cited. Everything runs on your own infrastructure — nothing leaves this server.',
+      // Deliberately says "this server" and not "your own infrastructure". The
+      // dictionary is static and the tour is shown in both deployment modes;
+      // the on-prem claim is not available on a hosted install, where many
+      // firms share one server. This wording is true in both.
+      body: 'Upload documents, ask a question in plain language, and get an answer with the exact source cited. Nothing leaves this server, and nothing is ever used for training.',
     },
     upload: {
       heading: 'Bring in your first documents',

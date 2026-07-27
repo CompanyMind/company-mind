@@ -34,13 +34,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     doorways to People / Access / Telegram.
   - **Data** — what is stored and where, and delete all my conversations.
 
+### Changed
+
+- The dashboard has **one sidebar instead of two**. Navigation, chat history and
+  the account menu share it; chat threads are addressable at
+  `/dashboard/c/[chatId]`, so they survive a reload and can be linked to.
+- The Ask pane is a conversation rather than a form: no page header, answers as
+  plain prose instead of drop-shadowed cards, a composer card with an
+  auto-growing input (Enter sends, Shift+Enter newlines) and owner-only upload,
+  a hover action row (copy / sources / retry), and a waiting indicator that
+  names the pipeline's real stages instead of one static line.
+- Atlas paints from theme tokens rather than eleven hexes hardcoded for the
+  cream ground, so the graph follows the theme like every other surface.
+
 ### Fixed
 
+- **The on-prem egress claim was being shown on hosted deployments.** Sources
+  said "Files never leave your infrastructure" unconditionally, and the guided
+  tour's welcome step said "Everything runs on your own infrastructure" in all
+  three languages. Neither is available when many firms share one server. Both
+  now state only what is true in both modes.
 - `web/lib/db/client.ts` cached its connection pool in a module-level binding,
   so Next's dev server built a **new pool of 10 on every hot reload** and
   abandoned the old one. An editing session exhausted Postgres in well under an
   hour, and the symptom (`sorry, too many clients already`) looked nothing like
   its cause. Cached on `globalThis` instead.
+
+### Removed
+
+- `Rail.tsx`, `Conversations.tsx` and `GetStarted.tsx` — replaced by the single
+  sidebar and the new empty state.
+- `lib/onboarding.ts` and `POST /api/onboarding/dismiss`, which the new empty
+  state left with no readers. The `users.onboarding_dismissed_at` column stays,
+  marked vestigial in the schema; `tourDismissedAt` was deliberately kept
+  separate from it so exactly this removal would be safe.
 
 ### Security
 - **The control plane was open to every member.** Sixteen mutating API routes were gated by

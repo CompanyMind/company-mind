@@ -9,7 +9,7 @@ export const uz: Dictionary = {
   tour: {
     welcome: {
       heading: 'Bu — kompaniyangizning xotirasi.',
-      body: 'Hujjatlarni yuklang, savolingizni oddiy tilda bering va aniq manbaga havola qilingan javob oling. Hammasi oʻz infratuzilmangizda ishlaydi — hech narsa serverdan tashqariga chiqmaydi.',
+      body: 'Hujjatlarni yuklang, savolingizni oddiy tilda bering va aniq manbaga havola qilingan javob oling. Hech narsa bu serverdan tashqariga chiqmaydi va hech qachon oʻqitish uchun ishlatilmaydi.',
     },
     upload: {
       heading: 'Birinchi hujjatlaringizni yuklang',
