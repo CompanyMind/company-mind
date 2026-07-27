@@ -85,6 +85,112 @@ export const en = {
       body: 'Atlas maps what your company knows: documents clustered by topic, coloured by department, with lenses for permission anomalies, over-exposure, orphans and stale content. It needs documents to show anything — upload some in Sources, then rebuild the map.',
     },
   },
+  chat: {
+    greeting: {
+      morning: 'Good morning, {name}',
+      afternoon: 'Good afternoon, {name}',
+      evening: 'Good evening, {name}',
+      // Rendered until the client's own clock has resolved which of the three
+      // applies — the server's timezone is not the reader's, and greeting
+      // someone "Good morning" at 9pm is a small, avoidable lie.
+      anonymous: 'What would you like to know?',
+    },
+    // The three real stages of the ask pipeline, in order. None of them states
+    // a count: the request is one-shot, so the client does not know how many
+    // documents were read until the answer lands, and inventing a number in a
+    // product whose whole claim is traceability would be indefensible.
+    thinking: {
+      searching: 'Searching your sources…',
+      reading: 'Reading the matches…',
+      writing: 'Writing the answer…',
+    },
+    footer: 'Every answer cites its source. Nothing leaves this server.',
+    placeholder: 'Ask your company’s knowledge…',
+    copy: 'Copy',
+    copied: 'Copied',
+    sources: 'Sources',
+    retry: 'Retry',
+    send: 'Send',
+    attach: 'Add documents',
+  },
+  settings: {
+    title: 'Settings',
+    close: 'Close settings',
+    saveFailed: 'Could not save that. Nothing was changed.',
+    sections: {
+      general: 'General',
+      account: 'Account',
+      workspace: 'Workspace',
+      data: 'Data',
+    },
+    general: {
+      profile: 'Profile',
+      name: 'Name',
+      email: 'Email',
+      emailNote: 'Your email is your sign-in and cannot be changed here.',
+      preferences: 'Preferences',
+      language: 'Language',
+      languageNote: 'Changes the product’s own wording. Your documents are untouched.',
+      appearance: 'Appearance',
+      motion: 'Motion',
+      motionNote: 'Reduce animation across the interface.',
+      system: 'System',
+      light: 'Light',
+      dark: 'Dark',
+      reduced: 'Reduced',
+      help: 'Help',
+      replayTour: 'Replay the guided tour',
+      replayTourNote: 'Walk through the product from the beginning.',
+      replayTourCta: 'Start',
+    },
+    account: {
+      heading: 'Account',
+      password: 'Password',
+      currentPassword: 'Current password',
+      newPassword: 'New password',
+      confirmPassword: 'Confirm new password',
+      passwordHint: 'At least 12 characters. Length beats punctuation.',
+      changePassword: 'Change password',
+      passwordChanged: 'Password changed. Your other sessions were signed out.',
+      sessions: 'Active sessions',
+      sessionsNote: 'Where you are signed in. Locations are not looked up — that would mean calling out.',
+      device: 'Device',
+      ip: 'IP',
+      signedIn: 'Signed in',
+      thisDevice: 'This device',
+      signOutAll: 'Sign out of all devices',
+      signOutAllNote: 'Ends every session, including this one.',
+      signOut: 'Sign out',
+    },
+    workspace: {
+      heading: 'Workspace',
+      name: 'Name',
+      deployment: 'Deployment',
+      onprem: 'On-premise — nothing leaves your infrastructure.',
+      hosted: 'Hosted — nothing leaves this server, and nothing is used for training.',
+      manage: 'Manage',
+      people: 'People',
+      peopleNote: 'Add colleagues and choose what they can open.',
+      access: 'Access groups',
+      accessNote: 'Groups decide which documents build whose answers.',
+      integrations: 'Telegram',
+      integrationsNote: 'One bot for your workspace, ask-only.',
+      open: 'Open',
+    },
+    data: {
+      heading: 'Your data',
+      stored: 'What is stored',
+      storedBody:
+        'Your documents and the passages indexed from them, your questions and answers with the sources each one cited, and your sign-in sessions. All of it lives in this deployment’s own database and is never sent anywhere else.',
+      conversations: 'Conversations',
+      deleteChats: 'Delete all my conversations',
+      deleteChatsNote: 'Removes every question and answer in your history. Your documents stay.',
+      deleteChatsConfirm:
+        'Delete all {count} of your conversations?\n\nThis cannot be undone. Your documents are not affected.',
+      deleteChatsNone: 'You have no conversations to delete.',
+      delete: 'Delete',
+    },
+  },
 }
 
 // Inferred, not hand-written, so ru.ts and uz.ts are checked against this
