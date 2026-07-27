@@ -31,11 +31,10 @@ export default async function ThreadPage({ params }: { params: Promise<{ chatId:
           dict={dict}
           userName={auth.user.name}
           canManage={auth.role === 'owner'}
-          // An open thread renders messages, not the empty state, so neither of
-          // these is reachable — and deriving them would cost a document listing
-          // and a suggestions round-trip on every thread open for nothing.
+          // An open thread renders messages, not the empty state, so this is not
+          // reachable — and deriving it would cost a document listing on every
+          // thread open for nothing.
           workspaceEmpty={false}
-          suggestions={[]}
         />
       </div>
     </div>

@@ -65,6 +65,29 @@ def documents_list(workspace_id: str, folder: str = "", user_id: str = "", role:
         }
 
 
+# Download's server half. Same access rule as the listing — see get_document.
+@app.get("/documents/{document_id}", dependencies=[Depends(require_secret)])
+def document_get(document_id: str, workspace_id: str, user_id: str = "", role: str = "member"):
+    with get_conn() as conn:
+        gids, all_access = resolve_access(conn, workspace_id, user_id, role)
+        doc = lib_documents.get_document(conn, workspace_id, document_id, gids, all_access)
+    if doc is None:
+        raise HTTPException(status_code=404, detail="not found")
+    return {"document": doc}
+
+
+# Owner-only, gated at the web route. Returns the storage key so web — which
+# owns the file bytes — can delete them; the record and the bytes are two
+# different systems' property and both have to go.
+@app.delete("/documents/{document_id}", dependencies=[Depends(require_secret)])
+def document_delete(document_id: str, workspace_id: str):
+    with get_conn() as conn:
+        storage_key = lib_documents.delete_document(conn, workspace_id, document_id)
+    if storage_key is None:
+        raise HTTPException(status_code=404, detail="not found")
+    return {"ok": True, "storage_key": storage_key}
+
+
 @app.post("/workspaces/{workspace_id}/bootstrap", dependencies=[Depends(require_secret)])
 def workspace_bootstrap(workspace_id: str):
     """Prepare a brand-new firm's knowledge-side state.

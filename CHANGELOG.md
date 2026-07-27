@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Download and delete for documents in Sources.** The library could show you
+  a document and tell you who could see it, but never hand it back or let it go.
+  - **Download** (`GET /api/documents/[id]/file`) is offered to anyone the
+    document is visible to — a member who can already read its text in a cited
+    answer gains nothing from being denied the file. The gate is the access
+    model: the new `get_document` applies the same predicate as the listing and
+    returns nothing for a document you may not see, so a document id lifted
+    from a colleague's citation link 404s instead of yielding the file. Served
+    `attachment` + `nosniff`, never inline.
+  - **Delete** (`DELETE /api/documents/[id]`) is owner-only and enumerated in
+    `web/lib/control-plane-gates.test.ts` — revoking everyone's access to a
+    document permanently is the same power as retagging it into nobody's group,
+    exercised once and irreversibly. It removes the record, its chunks, its
+    ingestion job, its group tags and the stored file. Citations deliberately
+    survive with their frozen filename and snippet: an audit trail that rewrites
+    itself when the source is deleted is not an audit trail.
+  - Confirmation is inline rather than `window.confirm`, so it can be
+    translated, can say what deleting actually costs, and keeps the filename
+    you are about to destroy readable while you decide.
+- `web/lib/content-disposition.ts` — uploads here are routinely Uzbek and
+  Russian, and a non-latin-1 filename either throws when the response is built
+  or arrives mangled. Emits the RFC 6266 pair (degraded ASCII + RFC 5987
+  `filename*`), and strips CR/LF so a filename cannot inject a second header.
+
 - Light/dark theming across the whole app. Every design token in
   `web/styles/tokens.css` is now a CSS `light-dark()` pair, so the entire
   product themes without a single `dark:` variant — Tailwind already resolved
@@ -82,6 +106,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Opening Ask waited on the language model before drawing the composer.** The
+  Ask page awaited `getSuggestions()` in its server component, and the engine
+  writes those starter questions with one model call per folder, in sequence —
+  measured at ~1.0–1.8s each, so up to ~3–5s of blank screen on the way in from
+  Sources, for decoration that disappears the moment you type. They are now
+  fetched by `AskChat` from `/api/suggestions` once the composer is on screen:
+  measured locally, the composer appears after **34ms** and the suggestion chip
+  arrives at 1290ms, where before nothing appeared until the latter. Scoping is
+  unchanged — `suggest_questions` still resolves access first, because a
+  suggested question discloses the document it was drawn from.
+- `/api/suggestions` no longer re-queries the membership row for the caller's
+  role; it rides on the session, as everywhere else.
 - **The on-prem egress claim was being shown on hosted deployments.** Sources
   said "Files never leave your infrastructure" unconditionally, and the guided
   tour's welcome step said "Everything runs on your own infrastructure" in all

@@ -203,6 +203,17 @@ export const en = {
       indexed: 'Indexed',
       failed: 'Failed',
       noGroups: 'No one',
+      download: 'Download',
+      downloadAria: 'Download {filename}',
+      delete: 'Delete',
+      deleteAria: 'Delete {filename}',
+      // Said plainly because it is true and cannot be undone from the product.
+      // The second half is the part an owner in a regulated firm needs before
+      // they press it: deleting the source does not rewrite answers already given.
+      deleteConfirm: 'Delete for good? Past answers keep their citations.',
+      deleteYes: 'Delete',
+      deleting: 'Deleting…',
+      deleteFailed: 'Could not delete. Try again.',
     },
     access: {
       intro:

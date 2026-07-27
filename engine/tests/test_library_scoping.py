@@ -115,6 +115,36 @@ def test_owner_document_list_sees_every_document():
         _cleanup(ws, [owner])
 
 
+def test_member_cannot_fetch_a_document_outside_their_groups_by_id():
+    """Download's access check. Listing scoping is not enough on its own: the id
+    of an invisible document is guessable-in-practice (it travels in citation
+    links and Atlas deep links), so get_document — which yields the storage key,
+    and therefore the whole file — must apply the predicate itself."""
+    with psycopg.connect(DB) as conn:
+        with conn.transaction():
+            ws = _ws(conn)
+            member = _user(conn)
+            owner = _user(conn)
+            hr = _group(conn, ws, "HR")
+            execs = _group(conn, ws, "Exec")
+            _join(conn, ws, hr, member)
+            mine = _doc(conn, ws, "handbook.pdf", hr)
+            theirs = _doc(conn, ws, "redundancy-list.xlsx", execs)
+        gids, all_access = resolve_access(conn, ws, member, "member")
+        visible = lib_docs.get_document(conn, ws, mine, gids, all_access)
+        hidden = lib_docs.get_document(conn, ws, theirs, gids, all_access)
+        o_gids, o_all = resolve_access(conn, ws, owner, "owner")
+        as_owner = lib_docs.get_document(conn, ws, theirs, o_gids, o_all)
+    try:
+        # Non-vacuous: the member's own document comes back with what download needs.
+        assert visible is not None and visible["storage_key"] == "k"
+        assert hidden is None, "a member could download a document outside their groups"
+        # And the row is genuinely there — `None` above was the predicate, not a bad id.
+        assert as_owner is not None and as_owner["filename"] == "redundancy-list.xlsx"
+    finally:
+        _cleanup(ws, [member, owner])
+
+
 def test_folder_counts_exclude_invisible_documents_and_empty_folders_are_hidden():
     """A folder holding only documents the member cannot open must not render at
     all. An empty "Board Minutes" folder still discloses that board minutes exist."""

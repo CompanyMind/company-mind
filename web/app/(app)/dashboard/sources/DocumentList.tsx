@@ -42,6 +42,12 @@ export function DocumentList({
   const [groups, setGroups] = useState<Group[]>([])
   const [folders, setFolders] = useState<FolderOption[]>([])
   const [editing, setEditing] = useState<string | null>(initialDoc ?? null)
+  // The document whose Delete has been armed but not confirmed. Inline rather
+  // than window.confirm: a native dialog is untestable in a browser session, it
+  // cannot be translated, and it cannot say what deleting actually costs.
+  const [confirming, setConfirming] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const t = dict.panels.sources
   const STATUS_LABEL = statusLabel(t)
 
@@ -82,6 +88,26 @@ export function DocumentList({
     await refresh()
   }
 
+  async function remove(doc: Doc) {
+    setDeleting(doc.id)
+    setDeleteError(null)
+    const r = await fetch(`/api/documents/${doc.id}`, {
+      method: 'DELETE',
+      headers: { 'x-csrf-token': csrf },
+    })
+    setDeleting(null)
+    if (!r.ok) {
+      setDeleteError(doc.id)
+      return
+    }
+    // Drop it locally first. refresh() is on a 2.5s timer, and leaving a
+    // just-deleted row on screen until the next tick reads as "nothing
+    // happened" — which invites a second press.
+    setDocs((ds) => ds.filter((d) => d.id !== doc.id))
+    setConfirming(null)
+    await refresh()
+  }
+
   function visibleLabel(doc: Doc) {
     const names = groups.filter((g) => doc.groupIds.includes(g.id)).map((g) => g.name)
     return names.length ? names.join(', ') : t.noGroups
@@ -94,21 +120,69 @@ export function DocumentList({
       )}
       {docs.map((d) => (
         <li key={d.id} id={`doc-${d.id}`} className="px-4 py-3">
-          <div className="flex items-center justify-between">
-            <span className="truncate text-body text-ink">{d.filename}</span>
+          <div className="flex items-center gap-3">
+            <span className="min-w-0 flex-1 truncate text-body text-ink">{d.filename}</span>
+            {/* Download is offered to everyone the document is visible to — a
+                member who can already read its text in an answer gains nothing
+                from being denied the file. Delete is owner-only, matching the
+                API gate; rendering it for a member would only produce a 403. */}
+            <a
+              href={`/api/documents/${d.id}/file`}
+              download={d.filename}
+              aria-label={t.downloadAria.replace('{filename}', d.filename)}
+              className="shrink-0 text-body-sm text-ink-soft underline underline-offset-2 hover:text-ink"
+            >
+              {t.download}
+            </a>
+            {canManage && confirming !== d.id && (
+              <button
+                onClick={() => {
+                  setDeleteError(null)
+                  setConfirming(d.id)
+                }}
+                aria-label={t.deleteAria.replace('{filename}', d.filename)}
+                className="shrink-0 text-body-sm text-ink-soft underline underline-offset-2 hover:text-sovereign-text"
+              >
+                {t.delete}
+              </button>
+            )}
             <span
               className={
                 d.status === 'indexed'
-                  ? 'text-body-sm text-brain-text'
+                  ? 'shrink-0 text-body-sm text-brain-text'
                   : d.status === 'failed'
-                    ? 'text-body-sm text-sovereign-text'
-                    : 'text-body-sm text-ink-soft'
+                    ? 'shrink-0 text-body-sm text-sovereign-text'
+                    : 'shrink-0 text-body-sm text-ink-soft'
               }
               title={d.error ?? undefined}
             >
               {STATUS_LABEL[d.status]}
             </span>
           </div>
+          {/* The confirm gets its own line: the warning is a sentence, and
+              squeezing it into the row above would truncate the filename the
+              owner is about to destroy — the one thing they must be able to read. */}
+          {canManage && confirming === d.id && (
+            <div className="mt-2 flex flex-wrap items-center gap-2 rounded-md border border-sovereign bg-[color-mix(in_srgb,var(--sovereign)_8%,transparent)] px-3 py-2 text-body-sm">
+              <span className="text-ink">{t.deleteConfirm}</span>
+              <button
+                onClick={() => void remove(d)}
+                disabled={deleting === d.id}
+                className="ml-auto rounded-md bg-sovereign px-2.5 py-1 text-paper disabled:opacity-60"
+              >
+                {deleting === d.id ? t.deleting : t.deleteYes}
+              </button>
+              <button
+                onClick={() => setConfirming(null)}
+                className="text-ink-soft underline underline-offset-2 hover:text-ink"
+              >
+                {t.cancel}
+              </button>
+            </div>
+          )}
+          {deleteError === d.id && (
+            <p className="mt-1 text-body-sm text-sovereign-text">{t.deleteFailed}</p>
+          )}
           {canManage && (
           <div className="mt-1 flex flex-wrap items-center gap-2 text-body-sm text-ink-soft">
             <span className="font-mono text-[0.6875rem] uppercase tracking-[0.08em]">

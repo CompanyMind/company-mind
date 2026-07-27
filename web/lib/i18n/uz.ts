@@ -174,6 +174,14 @@ export const uz: Dictionary = {
       indexed: 'Indekslandi',
       failed: 'Xato',
       noGroups: 'Hech kim',
+      download: 'Yuklab olish',
+      downloadAria: '{filename} faylini yuklab olish',
+      delete: 'Oʻchirish',
+      deleteAria: '{filename} faylini oʻchirish',
+      deleteConfirm: 'Butunlay oʻchirilsinmi? Avvalgi javoblarda manba havolalari qoladi.',
+      deleteYes: 'Oʻchirish',
+      deleting: 'Oʻchirilmoqda…',
+      deleteFailed: 'Oʻchirib boʻlmadi. Qaytadan urinib koʻring.',
     },
     access: {
       intro:

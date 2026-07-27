@@ -19,9 +19,11 @@ import { verifyCsrf } from '@/lib/csrf'
 import * as groupsLib from '@/lib/groups'
 import * as foldersLib from '@/lib/folders'
 import * as telegramLib from '@/lib/telegram'
+import * as documentsLib from '@/lib/documents'
 import * as engineLib from '@/lib/engine'
 
 import { POST as documentsPOST } from '@/app/api/documents/route'
+import { DELETE as documentDELETE } from '@/app/api/documents/[id]/route'
 import { PUT as documentFolderPUT } from '@/app/api/documents/[id]/folder/route'
 import { PUT as documentGroupsPUT } from '@/app/api/documents/[id]/groups/route'
 import { GET as groupsGET, POST as groupsPOST } from '@/app/api/groups/route'
@@ -65,8 +67,12 @@ vi.mock('@/lib/telegram', () => ({
   setLinkStatus: vi.fn(),
   setTelegramLinkGroups: vi.fn(),
 }))
-vi.mock('@/lib/documents', () => ({ listDocuments: vi.fn() }))
-vi.mock('@/lib/storage', () => ({ saveFile: vi.fn() }))
+vi.mock('@/lib/documents', () => ({
+  listDocuments: vi.fn(),
+  getDocument: vi.fn(),
+  deleteDocument: vi.fn(),
+}))
+vi.mock('@/lib/storage', () => ({ saveFile: vi.fn(), readFile: vi.fn(), deleteFile: vi.fn() }))
 vi.mock('@/lib/engine', () => ({ uploadDocument: vi.fn() }))
 vi.mock('@/lib/db/client', () => ({
   db: { query: { memberships: { findFirst: vi.fn() } }, select: vi.fn(), insert: vi.fn() },
@@ -124,6 +130,13 @@ const CONTROL_PLANE: Array<{ name: string; run: () => Promise<Response>; effect:
     name: 'POST /api/documents — upload (defaults to Everyone, i.e. publish to the firm)',
     run: () => documentsPOST(req()),
     effect: () => engineLib.uploadDocument,
+  },
+  {
+    // Revoking everyone's access to a document, permanently, in one call — the
+    // same power as retagging it into nobody's group, but irreversible.
+    name: 'DELETE /api/documents/[id] — delete a document and its stored file',
+    run: () => documentDELETE(req(), params('d1')),
+    effect: () => documentsLib.deleteDocument,
   },
   {
     name: 'PUT /api/documents/[id]/folder — move a document',
@@ -200,7 +213,7 @@ describe('the control plane rejects members', () => {
   }
 
   it('covers every mutating control-plane route (guard against silent additions)', () => {
-    expect(CONTROL_PLANE).toHaveLength(17)
+    expect(CONTROL_PLANE).toHaveLength(18)
   })
 })
 
