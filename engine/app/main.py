@@ -51,16 +51,25 @@ async def ingest(
     return {"document": doc}
 
 
+# user_id/role default to a member with no id — safe-by-default, matching
+# graph_documents below. A caller that forgets them must get LESS access, never
+# more, which is why neither defaults to owner.
 @app.get("/documents", dependencies=[Depends(require_secret)])
-def documents_list(workspace_id: str, folder: str = ""):
+def documents_list(workspace_id: str, folder: str = "", user_id: str = "", role: str = "member"):
     with get_conn() as conn:
-        return {"documents": lib_documents.list_documents(conn, workspace_id, folder or None)}
+        gids, all_access = resolve_access(conn, workspace_id, user_id, role)
+        return {
+            "documents": lib_documents.list_documents(
+                conn, workspace_id, folder or None, gids, all_access
+            )
+        }
 
 
 @app.get("/folders", dependencies=[Depends(require_secret)])
-def folders_list(workspace_id: str):
+def folders_list(workspace_id: str, user_id: str = "", role: str = "member"):
     with get_conn() as conn:
-        return lib_folders.list_folders(conn, workspace_id)
+        gids, all_access = resolve_access(conn, workspace_id, user_id, role)
+        return lib_folders.list_folders(conn, workspace_id, gids, all_access)
 
 
 class FolderNameBody(BaseModel):

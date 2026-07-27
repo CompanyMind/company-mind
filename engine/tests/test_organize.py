@@ -53,7 +53,7 @@ def test_organize_files_every_unfiled_document_and_is_deterministic():
         # Everything is filed now, so a second run has nothing left to do.
         with pytest.raises(NothingToOrganize):
             organize_unfiled(conn, ws)
-        listing = lib_folders.list_folders(conn, ws)
+        listing = lib_folders.list_folders(conn, ws, [], True)
     try:
         assert first["organized"] == 8
         assert listing["unfiled_count"] == 0
@@ -107,7 +107,7 @@ def test_documents_without_embeddings_are_skipped():
                 (ws,),
             )
         out = organize_unfiled(conn, ws)
-        listing = lib_folders.list_folders(conn, ws)
+        listing = lib_folders.list_folders(conn, ws, [], True)
     try:
         assert out["organized"] == 4
         assert listing["unfiled_count"] == 1, "the unembeddable document stays unfiled"

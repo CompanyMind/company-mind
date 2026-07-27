@@ -46,9 +46,11 @@ Postgres 16 + pgvector · vitest + pytest
 - Test: `engine/tests/test_library_scoping.py` (create)
 
 **Interfaces:**
-- Produces: `list_documents(conn, workspace_id, folder=None, group_ids=None, all_access=True)` and
-  `list_folders(conn, workspace_id, group_ids=None, all_access=True)`. Defaults preserve today's
-  behaviour for existing internal callers; the HTTP layer always passes real values.
+- Produces: `list_documents(conn, workspace_id, folder, group_ids, all_access)` and
+  `list_folders(conn, workspace_id, group_ids, all_access)`. **All parameters required, no
+  defaults** — there are only two production call sites (`main.py:57,63`), so a required parameter
+  costs nothing and makes a forgetful caller a hard error rather than a silent full-access read.
+  Defaulting `all_access=True` would reintroduce exactly the bug this task fixes.
 
 - [ ] **Step 1: Write the failing test**
 

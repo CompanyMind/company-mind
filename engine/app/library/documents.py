@@ -1,19 +1,34 @@
+from ..access import document_perm_sql
 from .groups import get_everyone, set_document_groups
 
 
-def list_documents(conn, workspace_id: str, folder: str | None = None) -> list[dict]:
-    """`folder` is a folder id, the literal 'unfiled', or None for every document."""
+def list_documents(
+    conn,
+    workspace_id: str,
+    folder: str | None,
+    group_ids: list[str],
+    all_access: bool,
+) -> list[dict]:
+    """`folder` is a folder id, the literal 'unfiled', or None for every document.
+
+    `group_ids` / `all_access` come from access.py::resolve_access and are NOT
+    optional: filenames disclose what the access model exists to protect, so a
+    caller that forgets them must be a hard error rather than a silent full read.
+    """
     sql = (
-        "SELECT id, filename, mime, bytes, status, error, created_at, folder_id "
-        "FROM documents WHERE workspace_id=%s"
+        "SELECT d.id, d.filename, d.mime, d.bytes, d.status, d.error, d.created_at, d.folder_id "
+        "FROM documents d WHERE d.workspace_id=%s"
     )
     params: list = [workspace_id]
+    if not all_access:
+        sql += " AND " + document_perm_sql("d.id")
+        params.append(list(group_ids))
     if folder == "unfiled":
-        sql += " AND folder_id IS NULL"
+        sql += " AND d.folder_id IS NULL"
     elif folder:
-        sql += " AND folder_id=%s"
+        sql += " AND d.folder_id=%s"
         params.append(folder)
-    sql += " ORDER BY created_at DESC"
+    sql += " ORDER BY d.created_at DESC"
     rows = conn.execute(sql, tuple(params)).fetchall()
     dg = conn.execute(
         "SELECT document_id, group_id FROM document_groups WHERE workspace_id=%s",

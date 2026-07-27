@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from ..access import document_perm_sql
 from ..db import get_conn
 from ..ingest.embed import get_provider
 from ..settings import settings
@@ -22,11 +23,9 @@ class Retrieved:
 
 
 def _perm_sql() -> str:
-    # ONE permission predicate, reused by both retrievers. Params: (all_access, gids).
-    return (
-        "( %s OR EXISTS (SELECT 1 FROM document_groups dg "
-        "WHERE dg.document_id = c.document_id AND dg.group_id = ANY(%s::uuid[])) )"
-    )
+    # ONE permission predicate, reused by both retrievers AND by the library
+    # listings (app/access.py::document_perm_sql). Params: (all_access, gids).
+    return "( %s OR " + document_perm_sql("c.document_id") + " )"
 
 
 def contextualize_query(query: str) -> str:

@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+- The library listings ignored the access model. `engine/app/library/documents.py::list_documents`
+  and `folders.py::list_folders` took only a workspace id — no `group_ids`, no `all_access` —
+  while `get_source` three files away took both. Since `/dashboard/sources` is reachable by any
+  member, every member saw **every filename in the workspace**, including documents they could
+  never open, under a header reading "Everything in <workspace>'s brain". Filenames are not
+  neutral metadata here: `redundancy-list.xlsx` discloses precisely what the access model exists
+  to protect. Folder names and per-folder counts leaked the same way. Both functions now take
+  `group_ids` + `all_access` as **required** parameters (there were only two production call
+  sites, so a forgetful caller is now a hard error rather than a silent full-access read —
+  defaulting `all_access=True` would have reintroduced the bug). A folder with no visible
+  documents is omitted entirely for a non-owner rather than rendered as empty, since an empty
+  "Board Minutes" still discloses that board minutes exist.
+
+### Changed
+- The document-level permission predicate now lives once, in
+  `engine/app/access.py::document_perm_sql(doc_expr)`, and is used by retrieval
+  (`ask/retrieve.py::_perm_sql`, via `c.document_id`) and by both library listings (via `d.id`).
+  CLAUDE.md already stated the aim — one predicate, reused by every surface — and the listings
+  were where it had not been applied.
+
 ### Fixed
 - Guided tour: `UploadStep.tsx`'s dropzone file input used `className="hidden"` (`display:none`),
   which removes an element from the tab order entirely — a keyboard-only user could never reach or
