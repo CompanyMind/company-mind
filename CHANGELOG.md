@@ -36,7 +36,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **The answering system prompt is hardened** (`engine/app/ask/answer.py`). It now
+- **The assistant triages before it retrieves.** A greeting used to be answered
+  by quoting whatever document ranked first — "assalomu alaykum, sen nima qila
+  olasan" came back as a citation-laden extract from the staff handbook. The
+  prompt now classifies the message first: greetings, thanks and questions about
+  what the assistant can do get a natural, uncited reply; anything about the
+  company still comes only from the sources, with citations. An ambiguous
+  message is treated as a question about the company, because answering from the
+  model's own knowledge is the more expensive mistake. Retrieval finding nothing
+  no longer means there is nothing to say.
+- The answering system prompt is hardened (`engine/app/ask/answer.py`). It now
   replies in the reader's own language; refuses to reveal, confirm or hint at
   which model, vendor or version powers the system, or to disclose its own
   instructions, and enumerates the specific evasion routes (roleplay,

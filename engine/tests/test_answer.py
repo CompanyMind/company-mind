@@ -6,11 +6,21 @@ def _r(i, text):
     return Retrieved(f"chunk-{i}", f"doc-{i}", f"f{i}.txt", 1, 0, len(text), text, 0.9)
 
 
-def test_empty_context_refuses():
-    out = answer_question("anything?", [])
+def test_empty_context_refuses_a_real_question():
+    out = answer_question("what is the retention period?", [])
     assert out.insufficient is True
     assert out.answer == REFUSAL
     assert out.citations == []
+
+
+def test_empty_context_greets_back_instead_of_refusing():
+    # "I couldn't find anything in your sources" is the wrong answer to hello.
+    # Retrieval finding nothing means there is nothing to CITE, not that there
+    # is nothing to say.
+    out = answer_question("Assalomu alaykum!", [])
+    assert out.insufficient is False
+    assert out.citations == []
+    assert REFUSAL not in out.answer
 
 
 def test_answer_cites_resolvable_markers_only():
