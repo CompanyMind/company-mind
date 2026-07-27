@@ -23,7 +23,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ chatId:
   const dict = getDictionary(isLocale(auth.user.locale) ? auth.user.locale : 'en')
   return (
     <div className="flex h-dvh flex-col max-md:h-[calc(100dvh-3.5rem)]">
-      <ThreadHeader csrf={csrf} chatId={chat.id} title={chat.title} />
+      <ThreadHeader csrf={csrf} dict={dict.thread} chatId={chat.id} title={chat.title} />
       <div className="min-h-0 flex-1">
         <AskWorkspace
           csrf={csrf}

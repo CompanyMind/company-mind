@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import type { Dictionary } from '@/lib/i18n'
 import { useTourTarget } from '@/lib/tour/targets'
 
 /**
@@ -39,11 +40,13 @@ function Icon({ label }: { label: string }) {
 }
 
 export function SidebarNav({
+  dict,
   isOwner,
   isSuperAdmin,
   deploymentMode,
   collapsed,
 }: {
+  dict: Dictionary['nav']
   isOwner: boolean
   isSuperAdmin: boolean
   /** Presentation only — see lib/env.ts. Authorization is unchanged in both
@@ -53,22 +56,26 @@ export function SidebarNav({
   collapsed: boolean
 }) {
   const path = usePathname()
+  // `icon` keys ICONS below and never changes with locale; `label` is what the
+  // reader sees and does.
   const NAV = [
-    { href: '/dashboard', label: 'Ask' },
-    { href: '/dashboard/sources', label: 'Sources' },
+    { href: '/dashboard', icon: 'Ask', label: dict.ask },
+    { href: '/dashboard/sources', icon: 'Sources', label: dict.sources },
     // Access stays for members: it is where the permanent explanation of the
     // access model lives, and a member needs to be able to read why an answer
     // was scoped. The page itself is read-only for them.
-    { href: '/dashboard/access', label: 'Access' },
+    { href: '/dashboard/access', icon: 'Access', label: dict.access },
     // Owner-only, like Integrations and Atlas — the pages notFound() for
     // members, so the links would be dead ends.
-    ...(isOwner ? [{ href: '/dashboard/people', label: 'People' }] : []),
-    ...(isOwner ? [{ href: '/dashboard/integrations', label: 'Integrations' }] : []),
-    ...(isOwner ? [{ href: '/dashboard/atlas', label: 'Atlas' }] : []),
+    ...(isOwner ? [{ href: '/dashboard/people', icon: 'People', label: dict.people }] : []),
+    ...(isOwner
+      ? [{ href: '/dashboard/integrations', icon: 'Integrations', label: dict.integrations }]
+      : []),
+    ...(isOwner ? [{ href: '/dashboard/atlas', icon: 'Atlas', label: dict.atlas }] : []),
     // The platform tier lives outside this shell entirely — it needs no
     // workspace, and its surfaces are firms and usage, not Ask/Sources.
     ...(isSuperAdmin && deploymentMode === 'hosted'
-      ? [{ href: '/platform', label: 'Platform' }]
+      ? [{ href: '/platform', icon: 'Platform', label: dict.platform }]
       : []),
   ]
   // Two of NAV's entries are tour anchors. Hooks can't be called inside the
@@ -102,7 +109,7 @@ export function SidebarNav({
           className="nav-link"
           title={collapsed ? n.label : undefined}
         >
-          <Icon label={n.label} />
+          <Icon label={n.icon} />
           <span className={collapsed ? 'sr-only' : ''}>{n.label}</span>
         </Link>
       ))}

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import type { Dictionary } from '@/lib/i18n'
 
 type Chat = { id: string; title: string | null; updatedAt: string }
 
@@ -24,7 +25,15 @@ function relativeTime(iso: string): string {
  * link to /dashboard/c/[id] and the active row is read from the pathname, so
  * this component works identically on every route in the shell.
  */
-export function Recents({ csrf, searchOpen }: { csrf: string; searchOpen: boolean }) {
+export function Recents({
+  csrf,
+  dict,
+  searchOpen,
+}: {
+  csrf: string
+  dict: Dictionary
+  searchOpen: boolean
+}) {
   const router = useRouter()
   const path = usePathname()
   const [chats, setChats] = useState<Chat[]>([])
@@ -87,7 +96,7 @@ export function Recents({ csrf, searchOpen }: { csrf: string; searchOpen: boolea
   async function handleDelete(id: string, e: React.MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
-    if (!window.confirm('Delete this conversation?')) return
+    if (!window.confirm(dict.thread.deleteConfirm)) return
     const r = await fetch(`/api/chats/${id}`, {
       method: 'DELETE',
       headers: { 'x-csrf-token': csrf },
@@ -106,17 +115,17 @@ export function Recents({ csrf, searchOpen }: { csrf: string; searchOpen: boolea
           autoFocus
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search chats…"
+          placeholder={dict.nav.searchChats}
           className="mb-2 w-full rounded-lg border border-line-control bg-paper px-3 py-1.5 text-body-sm text-ink placeholder:text-ink-soft"
         />
       )}
       <p className="px-2.5 pb-1 font-mono text-[0.6875rem] uppercase tracking-[0.12em] text-ink-soft">
-        Recents
+        {dict.nav.recents}
       </p>
       <ul className="min-h-0 flex-1 space-y-0.5 overflow-y-auto">
         {loaded && chats.length === 0 && (
           <li className="px-2.5 py-4 text-body-sm text-ink-soft">
-            {query.trim() ? 'No matches.' : 'No conversations yet.'}
+            {query.trim() ? dict.nav.noMatches : dict.nav.noConversations}
           </li>
         )}
         {chats.map((c) => {
@@ -152,16 +161,16 @@ export function Recents({ csrf, searchOpen }: { csrf: string; searchOpen: boolea
                     href={`/dashboard/c/${c.id}`}
                     data-active={c.id === openId}
                     onDoubleClick={(e) => startEdit(c, e)}
-                    title={c.title ?? 'New chat'}
+                    title={c.title ?? dict.thread.untitled}
                     className="recent-link truncate pr-7"
                   >
-                    {c.title || 'New chat'}
+                    {c.title || dict.thread.untitled}
                     <span className="sr-only"> — {relativeTime(c.updatedAt)}</span>
                   </Link>
                   <button
                     type="button"
                     onClick={(e) => handleDelete(c.id, e)}
-                    aria-label={`Delete conversation: ${c.title ?? 'New chat'}`}
+                    aria-label={`${dict.thread.deleteAria}: ${c.title ?? dict.thread.untitled}`}
                     className={`absolute right-1.5 top-1.5 hidden h-5 w-5 items-center justify-center rounded text-ink-soft hover:text-sovereign-text focus-visible:flex group-hover:flex ${
                       c.id === openId ? 'flex' : ''
                     }`}

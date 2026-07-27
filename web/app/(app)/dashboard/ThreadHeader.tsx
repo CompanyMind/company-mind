@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import type { Dictionary } from '@/lib/i18n'
 
 /**
  * The bar above an open thread: its title, renamable in place, and a delete
@@ -11,10 +12,12 @@ import { useRouter } from 'next/navigation'
  */
 export function ThreadHeader({
   csrf,
+  dict,
   chatId,
   title,
 }: {
   csrf: string
+  dict: Dictionary['thread']
   chatId: string
   title: string | null
 }) {
@@ -41,7 +44,7 @@ export function ThreadHeader({
   }
 
   async function remove() {
-    if (!window.confirm('Delete this conversation?')) return
+    if (!window.confirm(dict.deleteConfirm)) return
     setBusy(true)
     const r = await fetch(`/api/chats/${chatId}`, {
       method: 'DELETE',
@@ -74,27 +77,27 @@ export function ThreadHeader({
                 setEditing(false)
               }
             }}
-            aria-label="Conversation title"
+            aria-label={dict.titleLabel}
             className="min-w-0 flex-1 rounded-md border border-brain bg-paper px-2 py-1 text-body-sm text-ink"
           />
         ) : (
           <button
             type="button"
             onClick={() => setEditing(true)}
-            title="Rename this conversation"
+            title={dict.rename}
             className="min-w-0 flex-1 truncate rounded-md px-2 py-1 text-left text-body-sm text-ink hover:bg-paper-raised"
           >
-            {title || 'New chat'}
+            {title || dict.untitled}
           </button>
         )}
         <button
           type="button"
           onClick={remove}
           disabled={busy}
-          aria-label="Delete this conversation"
+          aria-label={dict.deleteAria}
           className="shrink-0 rounded-md px-2 py-1 text-body-sm text-ink-soft hover:text-sovereign-text disabled:opacity-50"
         >
-          Delete
+          {dict.delete}
         </button>
       </div>
     </header>

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import type { Dictionary } from '@/lib/i18n'
 import { CitationHint } from '@/app/(app)/_components/tour/CitationHint'
 import { Composer } from './Composer'
@@ -52,6 +53,7 @@ export function AskChat({
   suggestions: string[]
   emptyState: Dictionary['emptyStates']['askNoDocuments']
 }) {
+  const router = useRouter()
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [q, setQ] = useState('')
   const [busy, setBusy] = useState(false)
@@ -167,6 +169,10 @@ export function AskChat({
       canManage={canManage}
       dict={dict}
       autoFocus={msgs.length === 0}
+      // A file added here joins the workspace's Sources, so the server-derived
+      // state this pane was rendered with (is the workspace empty, what are the
+      // starter suggestions) is stale the moment one lands.
+      onUploaded={() => router.refresh()}
     />
   )
 

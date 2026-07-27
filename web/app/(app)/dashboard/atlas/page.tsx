@@ -25,10 +25,8 @@ export default async function AtlasPage() {
   return (
     <div className="flex h-dvh flex-col">
       <header className="border-b border-line px-6 py-4">
-        <h1 className="font-display text-2xl text-ink">Atlas</h1>
-        <p className="mt-1 text-body-sm text-ink-soft">
-          What your company knows, who can see it, and what needs fixing.
-        </p>
+        <h1 className="font-display text-2xl text-ink">{dict.pages.atlas.title}</h1>
+        <p className="mt-1 text-body-sm text-ink-soft">{dict.pages.atlas.body}</p>
       </header>
       <Atlas
         csrf={csrf}

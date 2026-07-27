@@ -116,6 +116,62 @@ export const en = {
     retry: 'Retry',
     send: 'Send',
     attach: 'Add documents',
+    uploading: 'Uploading…',
+    // A file added from the composer joins the whole workspace's Sources, not
+    // this one conversation — so the confirmation says where it went.
+    uploaded: '{count} added to Sources, and being indexed now.',
+    openSources: 'Open Sources',
+  },
+  nav: {
+    newChat: 'New chat',
+    recents: 'Recents',
+    searchChats: 'Search chats…',
+    noConversations: 'No conversations yet.',
+    noMatches: 'No matches.',
+    openNavigation: 'Open navigation',
+    collapseSidebar: 'Collapse sidebar',
+    expandSidebar: 'Expand sidebar',
+    ask: 'Ask',
+    sources: 'Sources',
+    access: 'Access',
+    people: 'People',
+    integrations: 'Integrations',
+    atlas: 'Atlas',
+    platform: 'Platform',
+  },
+  thread: {
+    untitled: 'New chat',
+    rename: 'Rename this conversation',
+    titleLabel: 'Conversation title',
+    delete: 'Delete',
+    deleteAria: 'Delete this conversation',
+    deleteConfirm: 'Delete this conversation?',
+  },
+  pages: {
+    sources: {
+      title: 'Sources',
+      // {workspace} is the firm's name; the egress half is chosen by
+      // DEPLOYMENT_MODE, because the on-prem claim is not available on hosted.
+      body: 'Everything in {workspace}’s brain.',
+      onprem: 'Files never leave your infrastructure.',
+      hosted: 'Files never leave this server, and are never used for training.',
+    },
+    access: {
+      title: 'Access',
+      body: 'Who can see which knowledge. Tag documents with groups in Sources.',
+    },
+    people: {
+      title: 'People',
+      body: 'Everyone at your organisation. Create an account here, then decide what they can read on the Access page — a new person starts in the default group only.',
+    },
+    integrations: {
+      title: 'Integrations',
+      body: 'Reach your brain where your team already works.',
+    },
+    atlas: {
+      title: 'Atlas',
+      body: 'What your company knows, who can see it, and what needs fixing.',
+    },
   },
   settings: {
     title: 'Settings',

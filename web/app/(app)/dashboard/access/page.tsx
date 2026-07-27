@@ -12,10 +12,8 @@ export default async function AccessPage() {
   return (
     <div className="mx-auto max-w-3xl px-6 py-6">
       <header>
-        <h1 className="font-display text-2xl text-ink">Access</h1>
-        <p className="mt-1 text-body-sm text-ink-soft">
-          Who can see which knowledge. Tag documents with groups in Sources.
-        </p>
+        <h1 className="font-display text-2xl text-ink">{dict.pages.access.title}</h1>
+        <p className="mt-1 text-body-sm text-ink-soft">{dict.pages.access.body}</p>
       </header>
       {/* Permanent prose on the access model, deliberately living on the page
           itself rather than only inside the tour's access-v1 card — spec §4:

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import type { Dictionary } from '@/lib/i18n'
 import { Wordmark } from './Wordmark'
 import { SidebarNav } from './SidebarNav'
 import { Recents } from './Recents'
@@ -20,6 +21,7 @@ const COLLAPSE_KEY = 'cm.sidebar.collapsed'
  */
 export function Sidebar({
   csrf,
+  dict,
   workspace,
   userName,
   userEmail,
@@ -29,6 +31,9 @@ export function Sidebar({
   deploymentMode,
 }: {
   csrf: string
+  /** Resolved once, server-side, in the (app) layout. Forwarded in slices to
+   *  whichever child needs copy rather than each re-resolving its own. */
+  dict: Dictionary
   workspace: string
   userName: string | null
   userEmail: string
@@ -68,7 +73,7 @@ export function Sidebar({
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
-          aria-label="Open navigation"
+          aria-label={dict.nav.openNavigation}
           className="rounded-lg p-1.5 text-ink-soft hover:bg-paper-raised hover:text-ink"
         >
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" aria-hidden="true">
@@ -98,7 +103,7 @@ export function Sidebar({
             <button
               type="button"
               onClick={() => setSearchOpen((v) => !v)}
-              aria-label="Search chats"
+              aria-label={dict.nav.searchChats}
               aria-pressed={searchOpen}
               className="rounded-lg p-1.5 text-ink-soft hover:bg-paper-raised hover:text-ink"
             >
@@ -110,7 +115,7 @@ export function Sidebar({
             <button
               type="button"
               onClick={toggleCollapsed}
-              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-label={collapsed ? dict.nav.expandSidebar : dict.nav.collapseSidebar}
               className="rounded-lg p-1.5 text-ink-soft hover:bg-paper-raised hover:text-ink max-md:hidden"
             >
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -124,15 +129,16 @@ export function Sidebar({
         <Link
           href="/dashboard"
           className="flex items-center gap-2 rounded-lg bg-ink px-2.5 py-2 text-body-sm text-paper hover:opacity-90"
-          title={collapsed ? 'New chat' : undefined}
+          title={collapsed ? dict.nav.newChat : undefined}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true" className="shrink-0">
             <path d="M8 3.5v9M3.5 8h9" />
           </svg>
-          <span className={collapsed ? 'sr-only' : ''}>New chat</span>
+          <span className={collapsed ? 'sr-only' : ''}>{dict.nav.newChat}</span>
         </Link>
 
         <SidebarNav
+          dict={dict.nav}
           isOwner={isOwner}
           isSuperAdmin={isSuperAdmin}
           deploymentMode={deploymentMode}
@@ -145,7 +151,7 @@ export function Sidebar({
         {!collapsed && (
           <>
             <div className="h-px bg-line" />
-            <Recents csrf={csrf} searchOpen={searchOpen} />
+            <Recents csrf={csrf} dict={dict} searchOpen={searchOpen} />
           </>
         )}
 

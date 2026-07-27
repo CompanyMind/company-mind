@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import type { Dictionary } from '@/lib/i18n'
 import { useTourTarget } from '@/lib/tour/targets'
 import { useDocumentUpload } from '@/lib/useDocumentUpload'
@@ -36,6 +37,10 @@ export function Composer({
   const fileRef = useRef<HTMLInputElement>(null)
   const composerRef = useTourTarget('ask-composer')
   const { upload, busy: uploading, error } = useDocumentUpload(csrf)
+  // How many files the last upload accepted. The upload always worked — it just
+  // said nothing, so it read as broken. It also needs saying that a file added
+  // here joins the whole workspace's Sources, not this one conversation.
+  const [added, setAdded] = useState(0)
 
   // Grow to fit the content, up to MAX_ROWS. Reset to 'auto' first or
   // scrollHeight only ever reports the current (already grown) height and the
@@ -62,9 +67,13 @@ export function Composer({
 
   async function onFiles(files: FileList | null) {
     if (!files?.length) return
+    setAdded(0)
     try {
-      await upload(files)
-      onUploaded?.()
+      const n = await upload(files)
+      if (n > 0) {
+        setAdded(n)
+        onUploaded?.()
+      }
     } finally {
       if (fileRef.current) fileRef.current.value = ''
     }
@@ -131,6 +140,19 @@ export function Composer({
       {error && (
         <p role="alert" className="mt-2 text-body-sm text-sovereign-text">
           {error}
+        </p>
+      )}
+      {uploading && (
+        <p role="status" className="mt-2 text-body-sm text-ink-soft">
+          {dict.uploading}
+        </p>
+      )}
+      {!uploading && added > 0 && (
+        <p role="status" className="mt-2 text-body-sm text-ink-soft">
+          {dict.uploaded.replace('{count}', String(added))}{' '}
+          <Link href="/dashboard/sources" className="text-brain-text underline underline-offset-2">
+            {dict.openSources}
+          </Link>
         </p>
       )}
     </div>

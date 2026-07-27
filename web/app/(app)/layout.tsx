@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth/current-user'
 import { getSuperAdmin } from '@/lib/auth/require-super-admin'
 import { issueCsrf } from '@/lib/csrf'
 import { env } from '@/lib/env'
+import { getDictionary, isLocale } from '@/lib/i18n'
 import { db } from '@/lib/db/client'
 import { userTourSteps } from '@/lib/db/schema'
 import { Sidebar } from './_components/Sidebar'
@@ -54,6 +55,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="flex min-h-dvh max-md:flex-col">
         <Sidebar
           csrf={csrf}
+          dict={getDictionary(isLocale(auth.user.locale) ? auth.user.locale : 'en')}
           workspace={auth.workspace.name}
           userName={auth.user.name}
           userEmail={auth.user.email}
