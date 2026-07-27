@@ -143,6 +143,19 @@ const MIN_RADIUS = 2.6
 const MAX_RADIUS = 11
 const REFERENCE_NODE_COUNT = 36
 
+// Fitting may only ever zoom OUT.
+//
+// 1 means "graph units == screen pixels", which is the scale MIN_RADIUS and
+// MAX_RADIUS above were tuned at — a node is meant to look like a dot. Plain
+// zoomToFit scales until the nodes fill the viewport, so a two-document
+// workspace opened Atlas to two beachballs: it was magnifying to fill space it
+// had no content for. Capping at 1 means a sparse graph simply sits small and
+// centred, and fitting still does its real job of pulling a large graph back
+// into view. The floor stops a very large one fitting to an unreadable speck.
+const MAX_FIT_ZOOM = 1
+const MIN_FIT_ZOOM = 0.25
+const FIT_PADDING = 70
+
 function heatColor(t: number): string {
   const c = Math.max(0, Math.min(1, Number.isFinite(t) ? t : 0))
   const cool = [90, 128, 160]
@@ -423,6 +436,43 @@ export function Atlas({
     if (!fg?.zoom) return
     fg.zoom(fg.zoom() * factor, 250)
   }, [])
+
+  /**
+   * Centre the graph, zooming out if it overflows and NEVER zooming in.
+   *
+   * The scale is computed here from the node positions rather than delegated to
+   * force-graph's zoomToFit, deliberately. zoomToFit does not apply its new
+   * scale synchronously, so reading fg.zoom() straight afterwards returns the
+   * PREVIOUS value — clamping that read is clamping a stale number, and the
+   * two-beachball view survived it untouched. Computing the box means the bound
+   * in MAX_FIT_ZOOM is enforced before anything is ever applied.
+   */
+  const fitGraph = useCallback(
+    (ms = 400) => {
+      const fg = fgRef.current
+      if (!fg?.centerAt || !fg?.zoom || !size.width || !size.height) return
+      const pts = graphData.nodes as { x?: number; y?: number }[]
+      const xs = pts.map((p) => p.x).filter((n): n is number => Number.isFinite(n))
+      const ys = pts.map((p) => p.y).filter((n): n is number => Number.isFinite(n))
+      if (!xs.length || !ys.length) return
+
+      const minX = Math.min(...xs)
+      const maxX = Math.max(...xs)
+      const minY = Math.min(...ys)
+      const maxY = Math.max(...ys)
+      // Node radii are drawn in graph units, so the box has to allow for them
+      // or the outermost nodes sit half off the padding edge.
+      const pad = FIT_PADDING + MAX_RADIUS
+      const scale = Math.min(
+        size.width / (maxX - minX + pad * 2),
+        size.height / (maxY - minY + pad * 2),
+      )
+
+      fg.centerAt((minX + maxX) / 2, (minY + maxY) / 2, ms)
+      fg.zoom(Math.min(MAX_FIT_ZOOM, Math.max(MIN_FIT_ZOOM, scale)), ms)
+    },
+    [graphData, size.width, size.height],
+  )
 
   // Reused only for ctx.measureText — never read back as pixels, so it isn't
   // subject to canvas-fingerprinting protections (see nodeAtPointer below).
@@ -744,7 +794,7 @@ export function Atlas({
                 // of our own geometric hit-testing (nodeAtPointer + the mouse
                 // listeners above), which never reads canvas pixels.
                 enablePointerInteraction={false}
-                onEngineStop={() => fgRef.current?.zoomToFit(500, 70)}
+                onEngineStop={() => fitGraph()}
                 linkColor={(link: any) => {
                   const s = typeof link.source === 'object' ? link.source.id : link.source
                   const t = typeof link.target === 'object' ? link.target.id : link.target
@@ -889,7 +939,7 @@ export function Atlas({
               {[
                 { label: '+', title: 'Zoom in', onClick: () => zoomBy(1.4) },
                 { label: '–', title: 'Zoom out', onClick: () => zoomBy(1 / 1.4) },
-                { label: '⛶', title: 'Fit to screen', onClick: () => fgRef.current?.zoomToFit(400, 70) },
+                { label: '⛶', title: 'Fit to screen', onClick: () => fitGraph() },
               ].map((btn) => (
                 <button
                   key={btn.title}

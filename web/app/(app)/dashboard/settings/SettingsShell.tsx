@@ -68,6 +68,13 @@ export function SettingsShell({
               data-active={s === active}
               className="nav-link text-body-sm"
               scroll={false}
+              // replace, not push. Each section is a route, so pushing stacked a
+              // history entry per section visited — and the close button, which
+              // is a router.back(), then walked back through General → Account →
+              // Workspace one press at a time instead of leaving Settings. With
+              // replace, the entry behind Settings is always whatever you were
+              // doing when you opened it, which is what close() has to return to.
+              replace
             >
               {dict.sections[s]}
             </Link>
