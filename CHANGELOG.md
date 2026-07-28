@@ -86,6 +86,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   price summary matches. The $1,500 comparison (a hundred Individual seats) is
   unchanged, and the claim that Team is cheaper per person than a single seat
   still holds at $13 against $15.
+- **The Uzbek marketing copy stops over-translating.** The file claimed to be
+  rewritten rather than translated, but three habits gave it away as calque, and
+  all three are now fixed across the site (founder review, 2026-07-28):
+  - **`uskuna` → `server`** (14 places). `uskuna` is a hand tool. Computing
+    hardware in Uzbek is a `server` or a `jihoz`; "runs on your own uskuna" read
+    roughly like "runs on your own wrench".
+  - **`Egalik paneli` → `Admin panel`.** Nobody in Uzbekistan calls it an
+    ownership panel. It is an admin panel and always has been. The rule this
+    stands for: a term with no real Uzbek equivalent keeps its loanword.
+  - **`miya` is no longer a common noun for the software.** CompanyMind is the
+    brand and stays English; calquing "mind" into "miya" produced sentences that
+    do not parse, the worst being the Team plan's "for a company ready to put the
+    brain in front of every employee who has a question". Body prose says
+    `tizim`; the two headline slots keep the metaphor on purpose.
+  - Plus the calques around them: "two sizes of one program" (`ikki oʻlcham`),
+    "knows permissions" (`Ruxsatlarni biladi`), "get it calculated"
+    (`hisoblatish`).
 - **The Uzbek landing headline says "maʼlumotlar", not "bilim"** — data rather
   than knowledge. Applied to the hero headline and to the identical sentence
   used as the page tagline, so the two cannot drift. English and Russian are
