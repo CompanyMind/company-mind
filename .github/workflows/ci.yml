@@ -76,6 +76,8 @@ jobs:
           cache-dependency-path: marketing/package-lock.json
       - run: npm ci
         working-directory: marketing
+      - run: npm test
+        working-directory: marketing
       - run: npm run typecheck
         working-directory: marketing
       - run: npm run build

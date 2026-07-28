@@ -107,6 +107,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **The contact form delivers again — by email.** Enquiries now go to
+  `LEAD_EMAIL_TO` via Resend, with `reply_to` set to the person who wrote in, so
+  answering is one keystroke and the thread starts in the right place. The
+  generic `WAITLIST_WEBHOOK_URL` still works and is used when no email key is
+  set. Delivery moved out of the route into `marketing/lib/lead-delivery.ts`
+  because it is the one path on this site where a bug costs money, and it had no
+  test — `marketing` now has vitest and 13 of them, and CI runs it.
+- The fail-closed behaviour is unchanged and now covered: with nothing
+  configured the route answers 503 and the form shows its mailto, rather than
+  thanking someone whose message it dropped. A half-finished setup (a key with
+  no recipient) is reported as unconfigured instead of silently falling through
+  to a webhook.
+
 - **The evidence rail.** The citation was the product and the least designed
   thing on screen: a 0.7rem grey monospace chip, with the quoted passage hidden
   behind a click. A thread now carries a rail on its right showing the sources

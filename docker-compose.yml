@@ -86,6 +86,16 @@ services:
     build: ./marketing
     environment:
       NODE_ENV: production
+      # Design-partner enquiries. With none of these set the contact form fails
+      # CLOSED (503 + the form's mailto fallback) rather than thanking someone
+      # whose message it dropped — see marketing/lib/lead-delivery.ts.
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      LEAD_EMAIL_TO: ${LEAD_EMAIL_TO:-}
+      # Optional: only once companymind.uz is verified in Resend. Until then the
+      # code's default sender works with no DNS at all.
+      LEAD_EMAIL_FROM: ${LEAD_EMAIL_FROM:-}
+      # Optional alternative to email: a Zapier/Make hook or CRM intake.
+      WAITLIST_WEBHOOK_URL: ${WAITLIST_WEBHOOK_URL:-}
     ports:
       - "3001:3001"
 
