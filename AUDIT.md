@@ -395,7 +395,35 @@ audit fix. Deliberately **not** added to CI either: a step that fails on the
 first commit teaches everyone to ignore it. Sequence it as its own piece of
 work, then add `npm run lint` to CI in the same change that makes it pass.
 
-### D2. Phase 1 named the wrong file for C4
+### D2. `_get_pool()` is an unguarded lazy singleton — found in production, during this deploy
+**`engine/app/db.py`.**
+
+Surfaced by deploying the fixes and reading the logs rather than by reading the
+code:
+
+```
+Exception ignored in: <function ConnectionPool.__del__>
+  File ".../psycopg_pool/pool.py", line 126, in __del__
+RuntimeError: cannot join current thread
+```
+
+`_get_pool()` did `if _pool is None: _pool = ConnectionPool(...)` with no lock.
+FastAPI runs every sync endpoint in a threadpool, so the first requests after a
+boot genuinely race: both see `None`, both construct a pool — each opening
+connections and spawning worker threads — and the loser is orphaned. Its
+`__del__` then tries to join a worker from inside that worker, which is the
+error above. The orphaned connection is reclaimed at GC, so the effect is small.
+
+Pre-existing, but **B12 made it more reachable**: `health.py` now goes through
+the pool, so the container healthcheck races the first real request at boot.
+Fired once, in the boot window, on the 2026-07-28 deploy.
+
+- [x] **Fixed** — double-checked locking (`threading.Lock`), so the common path
+  stays lock-free. `tests/test_db_pool.py` reproduces the race with eight
+  concurrent first-callers; **verified by removing the lock**, which yields 8
+  pools where the fix yields 1.
+
+### D3. Phase 1 named the wrong file for C4
 The linear page scan is in `engine/app/ingest/chunk.py`, not `parse.py`. Fixed
 in the C4 entry above; noting it because the Phase 1 report is the artefact
 someone else would read.
