@@ -1,5 +1,6 @@
 import 'server-only'
 import { env } from '@/lib/env'
+import { enginePath } from '@/lib/engine-url'
 
 export type SourceView = {
   filename: string
@@ -18,7 +19,9 @@ export async function getSource(
   userId: string,
   role: string,
 ): Promise<SourceView | null> {
-  const url = new URL(`${env.ENGINE_BASE_URL}/source/${chunkId}`)
+  // `chunkId` is a route parameter, already decoded by Next — enginePath encodes
+  // it back so a `../` in it cannot walk out of /source/ into another endpoint.
+  const url = new URL(`${env.ENGINE_BASE_URL}${enginePath`/source/${chunkId}`}`)
   url.searchParams.set('workspace_id', workspaceId)
   url.searchParams.set('user_id', userId)
   url.searchParams.set('role', role)

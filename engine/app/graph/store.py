@@ -55,19 +55,31 @@ def load_docs(conn, ws: str) -> list[DocInfo]:
     ).fetchall():
         grp.setdefault(str(did), set()).add(str(gid))
     # Retrieved chunk ids ever logged -> the set of doc ids that own them.
-    retrieved_docs: set[str] = set()
+    #
+    # ONE query, not one per log row. This used to issue a chunks lookup inside
+    # the loop over query_log, so a workspace with 10k logged questions ran 10k
+    # queries to compute a single boolean per document — and load_docs is called
+    # twice per document-graph request. Unioning the ids first is the whole fix;
+    # the chunk id set is bounded by final_k (8) per query and de-duplicates
+    # heavily across questions, so it stays small even when the log does not.
+    all_chunk_ids: set[str] = set()
     for (chunk_ids,) in conn.execute(
         "SELECT retrieved_chunk_ids FROM query_log "
         "WHERE workspace_id=%s AND retrieved_chunk_ids IS NOT NULL",
         (ws,),
     ).fetchall():
         if chunk_ids:
-            for did in conn.execute(
+            all_chunk_ids.update(str(c) for c in chunk_ids)
+    retrieved_docs: set[str] = set()
+    if all_chunk_ids:
+        retrieved_docs = {
+            str(r[0])
+            for r in conn.execute(
                 "SELECT DISTINCT document_id FROM chunks "
                 "WHERE workspace_id=%s AND id = ANY(%s::uuid[])",
-                (ws, list(chunk_ids)),
-            ).fetchall():
-                retrieved_docs.add(str(did[0]))
+                (ws, list(all_chunk_ids)),
+            ).fetchall()
+        }
     now = _now()
     out: list[DocInfo] = []
     for did, mean in means.items():
@@ -127,21 +139,26 @@ def write_build(conn, ws, topics: list[dict], doc_meta: dict, findings: list[Fin
             ).fetchone()
             tid = str(row[0])
             topic_ids.append(tid)
-            for did in t["doc_ids"]:
-                conn.execute(
+            if t["doc_ids"]:
+                conn.cursor().executemany(
                     "INSERT INTO graph_topic_members (topic_id,document_id,workspace_id) "
-                    "VALUES (%s,%s,%s)", (tid, did, ws))
-        for did, m in doc_meta.items():
-            conn.execute(
+                    "VALUES (%s,%s,%s)",
+                    [(tid, did, ws) for did in t["doc_ids"]])
+        # executemany for the three bulk tables: an Atlas build writes one row
+        # per document and one per finding, and a loop of execute() made each of
+        # those a separate round-trip inside the same transaction.
+        if doc_meta:
+            conn.cursor().executemany(
                 "INSERT INTO graph_doc_meta (document_id,workspace_id,topic_id,degree,"
                 "exposure_score,is_orphan,last_retrieved_at) VALUES (%s,%s,%s,%s,%s,%s,%s)",
-                (did, ws, topic_ids[m["topic"]] if m["topic"] is not None else None,
-                 m["degree"], m["exposure"], m["orphan"], m["last_retrieved_at"]))
-        for f in findings:
-            conn.execute(
+                [(did, ws, topic_ids[m["topic"]] if m["topic"] is not None else None,
+                  m["degree"], m["exposure"], m["orphan"], m["last_retrieved_at"])
+                 for did, m in doc_meta.items()])
+        if findings:
+            conn.cursor().executemany(
                 "INSERT INTO graph_findings (workspace_id,kind,document_id,severity,detail,status) "
                 "VALUES (%s,%s,%s,%s,%s,'open')",
-                (ws, f.kind, f.document_id, f.severity, json.dumps(f.detail)))
+                [(ws, f.kind, f.document_id, f.severity, json.dumps(f.detail)) for f in findings])
 
 
 def read_topics(conn, ws: str, visible: set[str]) -> list[dict]:

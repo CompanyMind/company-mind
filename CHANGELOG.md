@@ -7,6 +7,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **A member could reach any engine endpoint, in any firm, through a route
+  parameter.** `/s/[chunkId]` interpolated the chunk id straight into the engine
+  URL, and Next hands route parameters over already URL-decoded while `new URL()`
+  and `fetch()` both normalise `..` segments — so `../usage/summary` walked out
+  of `/source/` and hit the platform-wide usage endpoint, carrying the
+  `x-engine-secret` header that authorises the whole internal API. Adding
+  `?workspace_id=<other firm>` reached another firm's documents, folders and
+  Atlas. Thirteen more call sites had the same shape (owner-gated, so a smaller
+  blast radius, but the same break in per-firm isolation). Every interpolated
+  path segment now goes through `enginePath`/`seg` in `web/lib/engine-url.ts`,
+  and `lib/engine-path-traversal.test.ts` drives a traversal through all 14 and
+  asserts on the URL `fetch` actually resolves.
+- **`/health` phoned OpenAI on every poll.** `models_ok()` did an
+  unauthenticated `GET {models_base_url}/models` unconditionally, so on the
+  default configuration the container healthcheck was a request to
+  api.openai.com every few seconds — from the product whose central claim is
+  that nothing leaves the customer's network. It now reports the hosted default
+  from configuration and probes only a self-hosted `MODELS_BASE_URL`, which is
+  inside the customer's own network. `test_no_egress.py` covers it.
+- **Telegram link approval was scoped by a SELECT, not by the write.** Both
+  `UPDATE`s in `set_link_status` matched on `id` alone and ran outside the
+  existence check's transaction. Approving a Telegram identity grants document
+  access, so both now carry `workspace_id` and share the check's transaction.
+- **Removed the dead cross-firm `createUser`.** It, `listAdminUsers`,
+  `blockUser` and `unblockUser` had no callers left after the three-tier split,
+  and a working `createUser({ workspaceId, role })` in the tree is exactly the
+  route that split exists to remove. It was also the only user-creation path
+  that was not transactional.
+
+### Fixed
+
+- **The engine held a pooled connection across model calls in three places** —
+  AI organise, starter suggestions, and the whole Atlas build — an invariant the
+  codebase states in prose three times and enforced nowhere. With ten
+  connections shared by ask, ingest, Telegram and Atlas, three owners clicking
+  "AI organise" was enough to starve the ask path. Each is now split into
+  load / call-models / write phases that release the connection around the
+  network work, with `test_no_conn_across_models.py` asserting it.
+- **The Telegram worker pinned a connection across the entire ask path, on the
+  event loop.** `handle_update` ran inside `with get_conn()` and called
+  `answer_query`, which opens two more connections and makes an embedding call
+  plus a 120s chat call in between — a re-entrant acquisition held across a
+  network round-trip, blocking every other workspace's bot for the duration.
+  Split into `resolve_principal` (DB) and `answer_for` (model), dispatched via
+  `asyncio.to_thread`.
+- **A failed Telegram answer vanished silently.** Three bare `except` clauses
+  with no logging, and the update offset advanced *before* handling, so a message
+  that raised was acked and lost with no trace anywhere. Now logged with
+  workspace and update id, acked only after the attempt, and the person gets an
+  apology instead of silence.
+- **The Ask page 500'd when the engine was down.** `getSuggestions` documented a
+  network fallback it did not have — only the non-2xx half was implemented.
+- **N+1 queries removed** on the two paths that had them: Atlas's `load_docs`
+  ran one chunk lookup per row of `query_log` (25 logged questions → 25 queries;
+  verified by reverting), and retrieval's neighbour expansion ran one query per
+  result, inside the latency a person is waiting through.
+- `validateSessionToken` made four sequential round-trips per authenticated
+  request; it is now one join. `listPeople` aggregated every session on the
+  deployment to annotate one firm. `list_documents` read the workspace's whole
+  `document_groups` table on every listing. Chunk and Atlas writes now use
+  `executemany` instead of a round-trip per row. `_page_for` is a bisect rather
+  than a linear scan per chunk.
+- `Atlas` ignored the rebuild request's status, leaving the button spinning on a
+  rejected rebuild, and left an uncancelled poll timer on unmount.
+- The login rate-limiter's key map never evicted, so it grew by one entry per
+  distinct ip/email forever — a denial of service against the process, reachable
+  by rotating the email field.
+
+### Changed
+
+- `web` now has a `typecheck` script and runs it in CI. `tsc` had been red at 44
+  errors, which neither `next build` (it does not typecheck test files) nor
+  `vitest` (it does not typecheck) reported. A shared `fakeSession()` helper
+  replaces five hand-rolled copies of a `Session` that had drifted from its type.
+- CI now builds and typechecks `marketing`, which it never did.
+- Full audit written up in `AUDIT.md`, including what was deliberately left
+  alone and why.
+
 ### Added
 
 - **The evidence rail.** The citation was the product and the least designed

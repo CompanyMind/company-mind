@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
-import { and, eq } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { getCurrentUser } from '@/lib/auth/current-user'
 import { verifyCsrf } from '@/lib/csrf'
 import { askEngine, generateTitle } from '@/lib/engine'
 import { db } from '@/lib/db/client'
-import { memberships, chats } from '@/lib/db/schema'
+import { chats } from '@/lib/db/schema'
 import { chatOwned, createChat, saveTurn } from '@/lib/chat'
 
 export const runtime = 'nodejs'
@@ -31,18 +31,15 @@ export async function POST(req: Request) {
     chatId = (await createChat(auth.workspace.id, auth.user.id)).id
   }
 
-  // Role is an auth-table fact (memberships); the engine resolves the group-level
-  // access itself from the principal.
-  const mem = await db.query.memberships.findFirst({
-    where: and(
-      eq(memberships.userId, auth.user.id),
-      eq(memberships.workspaceId, auth.workspace.id),
-    ),
-  })
-
+  // Role rides on the session: validateSessionToken already read the membership
+  // row to resolve the workspace and carries `role` alongside it. Re-querying
+  // here was a second round-trip on the hottest authenticated path for a value
+  // already in hand — and it read as if the session's own role were somehow
+  // less trustworthy than a fresh SELECT of the same row. The engine resolves
+  // the group-level access itself from the principal.
   let result
   try {
-    result = await askEngine(auth.workspace.id, q, auth.user.id, mem?.role ?? 'member')
+    result = await askEngine(auth.workspace.id, q, auth.user.id, auth.role)
   } catch {
     return NextResponse.json({ error: 'the answer engine is unavailable' }, { status: 502 })
   }

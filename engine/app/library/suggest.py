@@ -8,6 +8,7 @@ and what it is about.
 
 from ..access import resolve_access
 from ..ask.answer import get_chat_call
+from ..db import get_conn
 
 _PROMPT = (
     "Write one short question an employee might ask about a folder of company "
@@ -23,9 +24,11 @@ def _fallback(name: str, keywords: list[str]) -> str:
     return f"What is in our {name} documents?"
 
 
-def suggest_questions(
+def visible_folders(
     conn, workspace_id: str, user_id: str, role: str, limit: int = 3
-) -> list[str]:
+) -> list[tuple[str, list[str]]]:
+    """Phase 1 — (name, keywords) for the folders this caller can actually see.
+    Pure DB, no network."""
     group_ids, all_access = resolve_access(conn, workspace_id, user_id, role)
 
     # Folders ranked by how many documents this caller can actually see. Ties
@@ -42,13 +45,18 @@ def suggest_questions(
         "LIMIT %s",
         (workspace_id, all_access, group_ids, limit),
     ).fetchall()
-    if not rows:
-        return []
+    return [(name, list(keywords or [])) for name, keywords, _count in rows]
 
+
+def render_questions(folders: list[tuple[str, list[str]]]) -> list[str]:
+    """Phase 2 — one chat call per folder. Takes NO connection: three sequential
+    60s-timeout calls behind a held connection is three of ten gone for the
+    duration, on a decorative surface."""
+    if not folders:
+        return []
     call = get_chat_call()
     out: list[str] = []
-    for name, keywords, _count in rows:
-        kws = list(keywords or [])
+    for name, kws in folders:
         if call is None:
             out.append(_fallback(name, kws))
             continue
@@ -59,3 +67,20 @@ def suggest_questions(
             q = ""
         out.append(q[:160] or _fallback(name, kws))
     return out
+
+
+def suggest_questions(
+    conn, workspace_id: str, user_id: str, role: str, limit: int = 3
+) -> list[str]:
+    """Both phases on a caller-supplied connection. For direct/test callers; the
+    API path uses suggest_questions_pooled."""
+    return render_questions(visible_folders(conn, workspace_id, user_id, role, limit))
+
+
+def suggest_questions_pooled(
+    workspace_id: str, user_id: str, role: str, limit: int = 3
+) -> list[str]:
+    """The API path: read, release, then call the model."""
+    with get_conn() as conn:
+        folders = visible_folders(conn, workspace_id, user_id, role, limit)
+    return render_questions(folders)

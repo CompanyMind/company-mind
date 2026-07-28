@@ -55,11 +55,14 @@ def process_document(
                     "DELETE FROM chunks WHERE document_id=%s AND workspace_id=%s",
                     (document_id, workspace_id),
                 )
-                for c, vec in zip(prepared.chunks, prepared.vectors):
-                    conn.execute(
-                        "INSERT INTO chunks (document_id, workspace_id, ordinal, text, page, "
-                        "char_start, char_end, token_count, embedding) "
-                        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s::vector)",
+                # executemany, not a Python loop of execute: psycopg3 pipelines
+                # it into far fewer round-trips. A 200-page PDF is ~600 chunks,
+                # which was ~600 sequential round-trips inside one transaction.
+                conn.cursor().executemany(
+                    "INSERT INTO chunks (document_id, workspace_id, ordinal, text, page, "
+                    "char_start, char_end, token_count, embedding) "
+                    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s::vector)",
+                    [
                         (
                             document_id,
                             workspace_id,
@@ -70,8 +73,10 @@ def process_document(
                             c.char_end,
                             c.token_count,
                             _vec_literal(vec),
-                        ),
-                    )
+                        )
+                        for c, vec in zip(prepared.chunks, prepared.vectors)
+                    ],
+                )
                 conn.execute(
                     "UPDATE documents SET status='indexed', error=NULL, extracted_text=%s "
                     "WHERE id=%s AND workspace_id=%s",

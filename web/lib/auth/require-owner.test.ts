@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { fakeSession } from '@/test/session'
 import { getCurrentUser } from '@/lib/auth/current-user'
 import { getOwner } from './require-owner'
 
@@ -20,20 +21,12 @@ describe('getOwner', () => {
   })
 
   it('returns null when the caller is a member, not an owner', async () => {
-    mockGetCurrentUser.mockResolvedValue({
-      user: { id: 'u1' } as never,
-      workspace: { id: 'w1' } as never,
-      role: 'member',
-    })
+    mockGetCurrentUser.mockResolvedValue(fakeSession({ role: 'member' }))
     expect(await getOwner()).toBeNull()
   })
 
   it('returns userId + workspaceId when the caller is an owner', async () => {
-    mockGetCurrentUser.mockResolvedValue({
-      user: { id: 'u1' } as never,
-      workspace: { id: 'w1' } as never,
-      role: 'owner',
-    })
+    mockGetCurrentUser.mockResolvedValue(fakeSession({ role: 'owner' }))
     expect(await getOwner()).toEqual({ userId: 'u1', workspaceId: 'w1' })
   })
 

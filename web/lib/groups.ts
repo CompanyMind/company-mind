@@ -1,5 +1,6 @@
 import 'server-only'
 import { env } from '@/lib/env'
+import { enginePath, seg } from '@/lib/engine-url'
 
 // The engine owns the knowledge tables (groups, group_members, document_groups).
 // These are thin clients over its internal API.
@@ -37,7 +38,7 @@ type EngineGroup = {
 }
 
 export async function listGroups(workspaceId: string): Promise<GroupRow[]> {
-  const data = (await engineJson(`/groups?workspace_id=${workspaceId}`)) as { groups: EngineGroup[] }
+  const data = (await engineJson(`/groups?workspace_id=${seg(workspaceId)}`)) as { groups: EngineGroup[] }
   return data.groups.map((g) => ({
     id: g.id,
     name: g.name,
@@ -73,7 +74,7 @@ export async function renameGroup(
   id: string,
   name: string,
 ): Promise<boolean> {
-  const res = await engineFetch(`/groups/${id}`, {
+  const res = await engineFetch(enginePath`/groups/${id}`, {
     method: 'PATCH',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ workspace_id: workspaceId, name }),
@@ -87,7 +88,7 @@ export async function deleteGroup(
   workspaceId: string,
   id: string,
 ): Promise<'ok' | 'notfound' | 'default'> {
-  const res = await engineFetch(`/groups/${id}?workspace_id=${workspaceId}`, { method: 'DELETE' })
+  const res = await engineFetch(`${enginePath`/groups/${id}`}?workspace_id=${seg(workspaceId)}`, { method: 'DELETE' })
   if (res.status === 404) return 'notfound'
   if (res.status === 400) return 'default'
   if (!res.ok) throw new Error(`engine DELETE /groups responded ${res.status}`)
@@ -99,7 +100,7 @@ export async function setGroupMembers(
   workspaceId: string,
   userIds: string[],
 ): Promise<void> {
-  await engineJson(`/groups/${id}/members`, {
+  await engineJson(enginePath`/groups/${id}/members`, {
     method: 'PUT',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ workspace_id: workspaceId, user_ids: userIds }),
@@ -111,17 +112,10 @@ export async function setDocumentGroups(
   workspaceId: string,
   groupIds: string[],
 ): Promise<void> {
-  await engineJson(`/documents/${documentId}/groups`, {
+  await engineJson(enginePath`/documents/${documentId}/groups`, {
     method: 'PUT',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ workspace_id: workspaceId, group_ids: groupIds }),
   })
-}
-
-export async function documentGroupIds(documentId: string, workspaceId: string): Promise<string[]> {
-  const data = (await engineJson(
-    `/documents/${documentId}/groups?workspace_id=${workspaceId}`,
-  )) as { group_ids: string[] }
-  return data.group_ids ?? []
 }
 

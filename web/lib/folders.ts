@@ -1,5 +1,6 @@
 import 'server-only'
 import { env } from '@/lib/env'
+import { enginePath, seg } from '@/lib/engine-url'
 import type { Caller } from '@/lib/documents'
 
 // The engine owns the knowledge tables. These are thin clients over its internal API.
@@ -76,7 +77,7 @@ export async function renameFolder(
   id: string,
   name: string,
 ): Promise<'ok' | 'notfound' | 'conflict'> {
-  const res = await engineFetch(`/folders/${id}`, {
+  const res = await engineFetch(enginePath`/folders/${id}`, {
     method: 'PATCH',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ workspace_id: workspaceId, name }),
@@ -88,7 +89,7 @@ export async function renameFolder(
 }
 
 export async function deleteFolder(workspaceId: string, id: string): Promise<boolean> {
-  const res = await engineFetch(`/folders/${id}?workspace_id=${workspaceId}`, { method: 'DELETE' })
+  const res = await engineFetch(`${enginePath`/folders/${id}`}?workspace_id=${seg(workspaceId)}`, { method: 'DELETE' })
   if (res.status === 404) return false
   if (!res.ok) throw new Error(`engine DELETE /folders responded ${res.status}`)
   return true
@@ -99,7 +100,7 @@ export async function setDocumentFolder(
   workspaceId: string,
   folderId: string | null,
 ): Promise<boolean> {
-  const res = await engineFetch(`/documents/${documentId}/folder`, {
+  const res = await engineFetch(enginePath`/documents/${documentId}/folder`, {
     method: 'PUT',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ workspace_id: workspaceId, folder_id: folderId }),

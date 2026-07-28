@@ -5,6 +5,11 @@ from ..db import get_conn
 from ..settings import settings
 from . import cluster, label, layout, lenses, store
 
+# Rows of the similarity matrix computed at a time in document_graph. Peak
+# memory is EDGE_BLOCK x n floats instead of n x n. Module-level so a test can
+# shrink it and actually exercise the multi-block path on a small fixture.
+EDGE_BLOCK = 512
+
 
 def _visible(conn, ws, user_id: str, role: str, as_group) -> set[str]:
     """Doc ids the principal may see. Atlas is an owner-only surface;
@@ -54,7 +59,15 @@ def build_graph(ws: str, job_id: str | None = None) -> dict:
     starting a second one — the caller (POST /graph/rebuild) already created
     it synchronously before backgrounding this call, so the client's first
     poll is guaranteed to observe a 'running' job instead of racing this
-    background task's own start_job."""
+    background task's own start_job.
+
+    THREE CONNECTION PHASES, mirroring retrieve.py and ingest's
+    process_document. Phase B labels every topic with one chat call each — up
+    to 50 of them at 60s timeout — and MUST NOT hold a connection: the pool has
+    ten, shared with ask, ingest and the Telegram worker, and an Atlas rebuild
+    that pinned one for the whole build is the pool-starvation failure this
+    codebase has already paid for. See tests/test_no_conn_across_models.py."""
+    # Phase A: start/reuse the job row and load everything the build needs.
     with get_conn() as conn:
         if job_id is None:
             job_id = store.start_job(conn, ws)
@@ -62,60 +75,79 @@ def build_graph(ws: str, job_id: str | None = None) -> dict:
             docs = store.load_docs(conn, ws)
             ev = store.everyone_id(conn, ws)
             gcount = store.group_count(conn, ws)
-            if not docs:
-                store.write_build(conn, ws, [], {}, [])
-                store.finish_job(conn, ws, job_id)
-                return store.latest_job(conn, ws)
+            texts = _doc_texts(conn, ws, [d.id for d in docs]) if docs else []
+        except Exception as e:  # noqa: BLE001 — job row records the failure, then re-raise
+            store.finish_job(conn, ws, job_id, error=str(e)[:500])
+            raise
+        if not docs:
+            store.write_build(conn, ws, [], {}, [])
+            store.finish_job(conn, ws, job_id)
+            return store.latest_job(conn, ws)
 
-            vectors = np.vstack([d.vector for d in docs])
-            labels = cluster.cluster_docs(vectors, seed=settings.graph_seed)
-            for d, lab in zip(docs, labels):
-                d.cluster = int(lab)
+    # Phase B: cluster, label (network), lay out, run the lenses. No connection
+    # held. A failure here still has to be recorded, so it is re-raised into the
+    # phase-C connection below rather than swallowed.
+    error: Exception | None = None
+    topics: list[dict] = []
+    doc_meta: dict = {}
+    findings: list = []
+    try:
+        vectors = np.vstack([d.vector for d in docs])
+        labels = cluster.cluster_docs(vectors, seed=settings.graph_seed)
+        for d, lab in zip(docs, labels):
+            d.cluster = int(lab)
 
-            texts = _doc_texts(conn, ws, [d.id for d in docs])
-            kw = cluster.keywords_per_cluster(texts, labels)
-            call = get_chat_call()
+        kw = cluster.keywords_per_cluster(texts, labels)
+        call = get_chat_call()
 
-            order = sorted(set(int(x) for x in labels))
-            centroids = np.vstack([vectors[labels == c].mean(axis=0) for c in order])
-            pos = layout.layout_positions(centroids, seed=settings.graph_seed)
+        order = sorted(set(int(x) for x in labels))
+        centroids = np.vstack([vectors[labels == c].mean(axis=0) for c in order])
+        pos = layout.layout_positions(centroids, seed=settings.graph_seed)
 
-            cluster_to_idx = {c: i for i, c in enumerate(order)}
-            topics = []
-            for i, c in enumerate(order):
-                member_ids = [d.id for d in docs if d.cluster == c]
-                titles = [t for d, t in zip(docs, texts) if d.cluster == c][:5]
-                topics.append(
-                    {
-                        "label": label.label_cluster(kw.get(c, []), titles, call=call),
-                        "keywords": kw.get(c, []),
-                        "centroid": centroids[i],
-                        "x": float(pos[i][0]),
-                        "y": float(pos[i][1]),
-                        "doc_ids": member_ids,
-                    }
-                )
-
-            deg = lenses.degrees(docs, settings.graph_orphan_threshold)
-            findings = (
-                lenses.permission_findings(docs, ev)
-                + lenses.orphan_docs(docs, settings.graph_orphan_threshold)
-                + lenses.dead_stale_findings(docs, settings.graph_stale_days)
-                + lenses.over_exposure_findings(
-                    docs, ev, gcount, settings.graph_overexposed_threshold
-                )
-            )
-            orphan_ids = {f.document_id for f in findings if f.kind == "orphan"}
-            doc_meta = {
-                d.id: {
-                    "topic": cluster_to_idx[d.cluster],
-                    "degree": deg.get(d.id, 0),
-                    "exposure": lenses.exposure_score(d.groups, ev, gcount),
-                    "orphan": d.id in orphan_ids,
-                    "last_retrieved_at": None,
+        cluster_to_idx = {c: i for i, c in enumerate(order)}
+        for i, c in enumerate(order):
+            member_ids = [d.id for d in docs if d.cluster == c]
+            titles = [t for d, t in zip(docs, texts) if d.cluster == c][:5]
+            topics.append(
+                {
+                    "label": label.label_cluster(kw.get(c, []), titles, call=call),
+                    "keywords": kw.get(c, []),
+                    "centroid": centroids[i],
+                    "x": float(pos[i][0]),
+                    "y": float(pos[i][1]),
+                    "doc_ids": member_ids,
                 }
-                for d in docs
+            )
+
+        deg = lenses.degrees(docs, settings.graph_orphan_threshold)
+        findings = (
+            lenses.permission_findings(docs, ev)
+            + lenses.orphan_docs(docs, settings.graph_orphan_threshold)
+            + lenses.dead_stale_findings(docs, settings.graph_stale_days)
+            + lenses.over_exposure_findings(
+                docs, ev, gcount, settings.graph_overexposed_threshold
+            )
+        )
+        orphan_ids = {f.document_id for f in findings if f.kind == "orphan"}
+        doc_meta = {
+            d.id: {
+                "topic": cluster_to_idx[d.cluster],
+                "degree": deg.get(d.id, 0),
+                "exposure": lenses.exposure_score(d.groups, ev, gcount),
+                "orphan": d.id in orphan_ids,
+                "last_retrieved_at": None,
             }
+            for d in docs
+        }
+    except Exception as e:  # noqa: BLE001 — recorded on the job row in phase C, then re-raised
+        error = e
+
+    # Phase C: persist (or record the failure) on a fresh connection.
+    with get_conn() as conn:
+        if error is not None:
+            store.finish_job(conn, ws, job_id, error=str(error)[:500])
+            raise error
+        try:
             store.write_build(conn, ws, topics, doc_meta, findings)
             store.finish_job(conn, ws, job_id)
         except Exception as e:  # noqa: BLE001 — job row records the failure, then re-raise
@@ -176,28 +208,44 @@ def document_graph(ws, user_id, role, as_group) -> dict:
             ).fetchall()
         }
 
-    # Cosine similarity matrix over the kept docs' mean vectors.
+    # Cosine similarity kNN over the kept docs' mean vectors.
+    #
+    # Computed in ROW BLOCKS rather than as one dense `unit @ unit.T`. The full
+    # matrix is n x n float64 — 800 MB at 10 000 documents, materialised on a
+    # request path — while only `topk` (5) neighbours per row survive. Blocking
+    # caps peak memory at BLOCK x n and leaves the arithmetic identical.
+    #
+    # The per-row selection is left as a stable `argsort`, deliberately. An
+    # `argpartition` would be O(n) instead of O(n log n), but it does not
+    # preserve stable order across an exact tie at the k-th position, so it can
+    # pick a DIFFERENT neighbour than argsort when two documents sit at
+    # identical cosine — and the edge set is part of what this surface is read
+    # for. The sort is not the cost here anyway: the matmul is O(n^2 * 1024) and
+    # dwarfs it. Memory was the actual defect, and blocking is what fixes it.
     vectors = np.vstack([d.vector for d in docs])
     norms = np.linalg.norm(vectors, axis=1, keepdims=True)
     norms[norms == 0] = 1.0
     unit = vectors / norms
-    sim = unit @ unit.T
 
     topk = settings.graph_edge_topk
     threshold = settings.graph_edge_threshold
+    n = len(docs)
     edge_weight: dict[tuple[str, str], float] = {}
-    for i, d in enumerate(docs):
-        row = sim[i].copy()
-        row[i] = -1.0  # exclude self
-        neighbors = np.argsort(-row)[:topk]
-        for j in neighbors:
-            c = float(row[j])
-            if c < threshold:
-                continue
-            a, b = d.id, docs[j].id
-            key = (a, b) if a < b else (b, a)
-            if key not in edge_weight or c > edge_weight[key]:
-                edge_weight[key] = c
+    for start in range(0, n, EDGE_BLOCK):
+        stop = min(start + EDGE_BLOCK, n)
+        sim_block = unit[start:stop] @ unit.T
+        for local_i, i in enumerate(range(start, stop)):
+            row = sim_block[local_i].copy()
+            row[i] = -1.0  # exclude self
+            neighbors = np.argsort(-row)[:topk]
+            for j in neighbors:
+                c = float(row[j])
+                if c < threshold:
+                    continue
+                a, b = docs[i].id, docs[j].id
+                key = (a, b) if a < b else (b, a)
+                if key not in edge_weight or c > edge_weight[key]:
+                    edge_weight[key] = c
 
     degree: dict[str, int] = {d.id: 0 for d in docs}
     edges = []

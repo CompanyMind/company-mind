@@ -134,18 +134,29 @@ export async function generateTitle(text: string): Promise<string> {
 }
 
 // Starter questions are a nicety, not a critical path — any failure (network,
-// non-2xx) must fall back to an empty list rather than break the Ask page.
+// non-2xx, unparseable body) must fall back to an empty list rather than break
+// the Ask page.
+//
+// The try/catch is the half that was missing. Only the non-2xx branch existed,
+// so an engine that was DOWN rather than merely unhappy — a restart, an
+// unreachable host, exactly what an outage looks like from here — rejected out
+// of /api/suggestions as an unhandled 500, on the page the product opens on.
+// Same shape as generateTitle above, deliberately.
 export async function getSuggestions(
   workspaceId: string,
   userId: string,
   role: string,
 ): Promise<string[]> {
-  const qs = new URLSearchParams({ workspace_id: workspaceId, user_id: userId, role })
-  const res = await fetch(`${env.ENGINE_BASE_URL}/suggestions?${qs}`, {
-    headers: { 'x-engine-secret': env.ENGINE_INTERNAL_SECRET },
-    cache: 'no-store',
-  })
-  if (!res.ok) return []
-  const data = (await res.json()) as { questions?: string[] }
-  return data.questions ?? []
+  try {
+    const qs = new URLSearchParams({ workspace_id: workspaceId, user_id: userId, role })
+    const res = await fetch(`${env.ENGINE_BASE_URL}/suggestions?${qs}`, {
+      headers: { 'x-engine-secret': env.ENGINE_INTERNAL_SECRET },
+      cache: 'no-store',
+    })
+    if (!res.ok) return []
+    const data = (await res.json()) as { questions?: string[] }
+    return data.questions ?? []
+  } catch {
+    return []
+  }
 }

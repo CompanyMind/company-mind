@@ -1,7 +1,8 @@
 import 'server-only'
-import { count, eq, isNull, sql } from 'drizzle-orm'
+import { count, eq, sql } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { env } from '@/lib/env'
+import { enginePath } from '@/lib/engine-url'
 import { memberships, sessions, users, workspaces } from '@/lib/db/schema'
 import { hashPassword } from '@/lib/auth/password'
 import { generateTempPassword } from '@/lib/auth/admin-users'
@@ -141,7 +142,7 @@ export async function createFirm(opts: {
 /** Knowledge-side setup. Returns false rather than throwing — see createFirm. */
 export async function bootstrapWorkspace(workspaceId: string): Promise<boolean> {
   try {
-    const res = await fetch(`${env.ENGINE_BASE_URL}/workspaces/${workspaceId}/bootstrap`, {
+    const res = await fetch(`${env.ENGINE_BASE_URL}${enginePath`/workspaces/${workspaceId}/bootstrap`}`, {
       method: 'POST',
       headers: { 'x-engine-secret': env.ENGINE_INTERNAL_SECRET },
       cache: 'no-store',
@@ -207,14 +208,4 @@ export async function resetOwnerPassword(
   // Any session opened with the old password dies with it.
   await db.delete(sessions).where(eq(sessions.userId, userId))
   return { ok: true, tempPassword }
-}
-
-/** Users with no membership at all — a platform operator, or leftover rows. */
-export async function countUnattachedUsers(): Promise<number> {
-  const [row] = await db
-    .select({ n: count() })
-    .from(users)
-    .leftJoin(memberships, eq(memberships.userId, users.id))
-    .where(isNull(memberships.userId))
-  return row?.n ?? 0
 }

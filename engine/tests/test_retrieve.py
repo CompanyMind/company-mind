@@ -168,3 +168,109 @@ def test_retrieve_does_not_hold_a_connection_during_rerank(monkeypatch):
         with psycopg.connect(DB) as conn:
             with conn.transaction():
                 conn.execute("DELETE FROM workspaces WHERE id=%s", (ws,))
+
+
+class _CountingConn:
+    """Delegates to a real connection while counting neighbour-window lookups."""
+
+    def __init__(self, inner):
+        self._inner = inner
+        self.window_queries = 0
+
+    def execute(self, sql, params=None):
+        if "SELECT document_id, ordinal, text FROM chunks" in sql or (
+            "SELECT text FROM chunks" in sql and "ordinal BETWEEN" in sql
+        ):
+            self.window_queries += 1
+        return self._inner.execute(sql, params)
+
+    def __getattr__(self, name):
+        return getattr(self._inner, name)
+
+
+def _seed_multi_chunk_doc(conn, ws, texts: list[str]) -> str:
+    """One document with several consecutive chunks."""
+    doc = uuid.uuid4()
+    conn.execute(
+        "INSERT INTO documents (id, workspace_id, filename, mime, bytes, storage_key, status) "
+        "VALUES (%s,%s,'multi.txt','text/plain',1,'k','indexed')",
+        (doc, ws),
+    )
+    for ordinal, text in enumerate(texts):
+        vec = FakeEmbeddings(1024).embed([text])[0]
+        lit = "[" + ",".join(str(x) for x in vec) + "]"
+        conn.execute(
+            "INSERT INTO chunks (document_id, workspace_id, ordinal, text, page, "
+            "char_start, char_end, token_count, embedding) "
+            "VALUES (%s,%s,%s,%s,1,0,%s,1,%s::vector)",
+            (doc, ws, ordinal, text, len(text), lit),
+        )
+    return str(doc)
+
+
+def test_neighbor_expansion_joins_the_surrounding_chunks_in_one_query():
+    """`context` is ordinal-1, ordinal, ordinal+1 concatenated in order, so a
+    heading or caveat split across a chunk boundary comes back with its body.
+    It used to cost one query per result — final_k of them, in series, inside
+    the latency the person is waiting through.
+    """
+    ws = uuid.uuid4()
+    texts = ["alpha heading", "beta the important body", "gamma trailing caveat", "delta unrelated"]
+    with psycopg.connect(DB) as conn:
+        conn.autocommit = True
+        conn.execute("INSERT INTO workspaces (id,name,slug) VALUES (%s,'r',%s)", (ws, str(ws)))
+        doc = _seed_multi_chunk_doc(conn, str(ws), texts)
+        rows = conn.execute(
+            "SELECT id, ordinal FROM chunks WHERE document_id=%s ORDER BY ordinal", (doc,)
+        ).fetchall()
+        by_ordinal = {r[1]: str(r[0]) for r in rows}
+
+        from app.ask.retrieve import Retrieved, _expand_neighbors
+
+        meta = {by_ordinal[o]: {"ordinal": o} for o in by_ordinal}
+        results = [
+            Retrieved(by_ordinal[1], doc, "multi.txt", 1, 0, 1, texts[1], 0.0, texts[1]),
+            Retrieved(by_ordinal[2], doc, "multi.txt", 1, 0, 1, texts[2], 0.0, texts[2]),
+        ]
+        counting = _CountingConn(conn)
+        _expand_neighbors(counting, str(ws), results, meta)
+    try:
+        # ordinal 1 pulls 0,1,2 — in order.
+        assert results[0].context == "\n".join(texts[0:3])
+        # ordinal 2 pulls 1,2,3.
+        assert results[1].context == "\n".join(texts[1:4])
+        # The matched span itself is untouched: citations point at it.
+        assert results[0].text == texts[1]
+        assert counting.window_queries == 1, (
+            f"expected one query for all results, got {counting.window_queries}"
+        )
+    finally:
+        with psycopg.connect(DB) as conn:
+            with conn.transaction():
+                conn.execute("DELETE FROM workspaces WHERE id=%s", (ws,))
+
+
+def test_neighbor_expansion_at_a_document_edge_falls_back_to_what_exists():
+    """ordinal 0 has no predecessor; the window must not go empty or error."""
+    ws = uuid.uuid4()
+    texts = ["only heading", "second chunk"]
+    with psycopg.connect(DB) as conn:
+        conn.autocommit = True
+        conn.execute("INSERT INTO workspaces (id,name,slug) VALUES (%s,'r',%s)", (ws, str(ws)))
+        doc = _seed_multi_chunk_doc(conn, str(ws), texts)
+        rows = conn.execute(
+            "SELECT id, ordinal FROM chunks WHERE document_id=%s ORDER BY ordinal", (doc,)
+        ).fetchall()
+        by_ordinal = {r[1]: str(r[0]) for r in rows}
+
+        from app.ask.retrieve import Retrieved, _expand_neighbors
+
+        meta = {by_ordinal[o]: {"ordinal": o} for o in by_ordinal}
+        results = [Retrieved(by_ordinal[0], doc, "multi.txt", 1, 0, 1, texts[0], 0.0, texts[0])]
+        _expand_neighbors(conn, str(ws), results, meta)
+    try:
+        assert results[0].context == "\n".join(texts)
+    finally:
+        with psycopg.connect(DB) as conn:
+            with conn.transaction():
+                conn.execute("DELETE FROM workspaces WHERE id=%s", (ws,))

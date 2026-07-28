@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { fakeSession, fakeOwner } from '@/test/session'
 import { NextRequest } from 'next/server'
 import { getCurrentUser } from '@/lib/auth/current-user'
 import { getOwner } from '@/lib/auth/require-owner'
@@ -33,8 +34,8 @@ const mockDismissFinding = vi.mocked(dismissFinding)
 // role is 'member' deliberately: these routes gate on getOwner(), which is mocked
 // per-test below. Defaulting the session's own role to the least privilege means
 // a route that starts reading auth.role directly cannot silently pass as owner.
-const AUTHED = { user: { id: 'u1' } as never, workspace: { id: 'w1' } as never, role: 'member' as const }
-const OWNER = { userId: 'u1', workspaceId: 'w1' }
+const AUTHED = fakeSession({ role: 'member' })
+const OWNER = fakeOwner()
 
 beforeEach(() => {
   vi.resetAllMocks()

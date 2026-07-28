@@ -126,3 +126,62 @@ def test_job_lifecycle():
         with psycopg.connect(DB) as conn:
             with conn.transaction():
                 conn.execute("DELETE FROM workspaces WHERE id=%s", (ws,))
+
+
+class _CountingConn:
+    """Delegates to a real connection while counting statements. The N+1 in
+    load_docs was invisible to every correctness test — the answer was right, it
+    just cost one query per row of query_log. Counting is the only way that
+    regression stays fixed."""
+
+    def __init__(self, inner):
+        self._inner = inner
+        self.chunk_lookups = 0
+        self.total = 0
+
+    def execute(self, sql, params=None):
+        self.total += 1
+        if "SELECT DISTINCT document_id FROM chunks" in sql:
+            self.chunk_lookups += 1
+        return self._inner.execute(sql, params)
+
+    def __getattr__(self, name):
+        return getattr(self._inner, name)
+
+
+def test_load_docs_resolves_retrieved_docs_in_one_query():
+    """`retrieved` is one boolean per document. It used to cost one chunks
+    lookup per row of query_log — 10k logged questions, 10k queries, twice per
+    document-graph request."""
+    ws, ev = uuid.uuid4(), uuid.uuid4()
+    d1, d2 = uuid.uuid4(), uuid.uuid4()
+    dim = 1024
+    v1 = [1.0] + [0.0] * (dim - 1)
+    v2 = [0.0, 1.0] + [0.0] * (dim - 2)
+    with psycopg.connect(DB) as conn:
+        register_vector(conn)
+        with conn.transaction():
+            _seed(conn, ws, ev, [(d1, v1, ev), (d2, v2, ev)])
+            # The chunk that belongs to d1, cited across MANY logged questions.
+            chunk = conn.execute(
+                "SELECT id FROM chunks WHERE document_id=%s", (d1,)
+            ).fetchone()[0]
+            for _ in range(25):
+                conn.execute(
+                    "INSERT INTO query_log (workspace_id,user_id,question,retrieved_chunk_ids) "
+                    "VALUES (%s,NULL,'q',%s)",
+                    (ws, [chunk]),
+                )
+        counting = _CountingConn(conn)
+        docs = load_docs(counting, str(ws))
+    try:
+        by_id = {d.id: d for d in docs}
+        assert by_id[str(d1)].retrieved is True, "d1's chunk was retrieved 25 times"
+        assert by_id[str(d2)].retrieved is False, "d2 was never retrieved"
+        assert counting.chunk_lookups == 1, (
+            f"expected one chunk lookup regardless of log size, got {counting.chunk_lookups}"
+        )
+    finally:
+        with psycopg.connect(DB) as conn:
+            with conn.transaction():
+                conn.execute("DELETE FROM workspaces WHERE id=%s", (ws,))

@@ -1,6 +1,7 @@
 import 'server-only'
 import { env } from '@/lib/env'
 import { mapDocument, type DocumentRow } from '@/lib/engine'
+import { enginePath } from '@/lib/engine-url'
 
 export type DocumentWithGroups = DocumentRow
 
@@ -46,7 +47,7 @@ export async function getDocument(
     role: caller.role,
   })
   const res = await fetch(
-    `${env.ENGINE_BASE_URL}/documents/${encodeURIComponent(documentId)}?${qs}`,
+    `${env.ENGINE_BASE_URL}${enginePath`/documents/${documentId}`}?${qs}`,
     { headers: { 'x-engine-secret': env.ENGINE_INTERNAL_SECRET }, cache: 'no-store' },
   )
   if (res.status === 404) return null
@@ -70,7 +71,7 @@ export async function deleteDocument(
 ): Promise<string | null> {
   const qs = new URLSearchParams({ workspace_id: workspaceId })
   const res = await fetch(
-    `${env.ENGINE_BASE_URL}/documents/${encodeURIComponent(documentId)}?${qs}`,
+    `${env.ENGINE_BASE_URL}${enginePath`/documents/${documentId}`}?${qs}`,
     { method: 'DELETE', headers: { 'x-engine-secret': env.ENGINE_INTERNAL_SECRET } },
   )
   if (res.status === 404) return null

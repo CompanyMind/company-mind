@@ -1,5 +1,6 @@
 import 'server-only'
 import { env } from '@/lib/env'
+import { enginePath } from '@/lib/engine-url'
 
 // The engine owns the Atlas graph (topics, findings, jobs). This is a thin
 // client over its internal API — the single boundary that maps snake_case
@@ -111,7 +112,7 @@ export async function getTopic(
   asGroup?: string,
 ): Promise<{ nodes: DocNode[] }> {
   const qs = graphQuery(ws, userId, role, asGroup)
-  const data = (await engineJson(`/graph/topic/${topicId}?${qs}`)) as { nodes: EngineDocNode[] }
+  const data = (await engineJson(`${enginePath`/graph/topic/${topicId}`}?${qs}`)) as { nodes: EngineDocNode[] }
   return {
     nodes: data.nodes.map((n) => ({
       id: n.id,
@@ -176,7 +177,7 @@ export async function rebuildGraph(ws: string): Promise<JobInfo | null> {
 }
 
 export async function dismissFinding(ws: string, id: string): Promise<boolean> {
-  const res = await engineFetch(`/graph/findings/${id}/dismiss`, {
+  const res = await engineFetch(enginePath`/graph/findings/${id}/dismiss`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ workspace_id: ws }),
