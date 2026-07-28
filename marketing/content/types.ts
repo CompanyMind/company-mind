@@ -173,7 +173,7 @@ export type HomeCtaCopy = {
 
 /** The pricing beat on the homepage. The plans themselves come from `pricing`. */
 export type HomePricingCopy = {
-  label: string
+  /** No eyebrow: the headline IS the section's name here. */
   headline: Headline
   body: string
   /** Link through to the full /pricing page. */
@@ -339,7 +339,8 @@ export type Plan = {
 
 export type PricingCopy = {
   meta: Meta
-  hero: { label: string; headline: Headline; sub: string }
+  /** No eyebrow: the headline IS the section's name here. */
+  hero: { headline: Headline; sub: string }
   plans: Plan[]
   /** Billing terms under the grid. Currency, cadence, tax. */
   plansNote: string

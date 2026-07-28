@@ -70,7 +70,6 @@ export default async function PricingPage({ params }: { params: Promise<{ locale
         <div className="shell">
           <div className="grid items-center gap-12 lg:grid-cols-[1fr_16rem] lg:gap-20">
             <div>
-              <p className="mono-label">{t.hero.label}</p>
               <h1 className="mt-6 font-display text-display-lg text-ink">
                 {t.hero.headline.map((line, i) => (
                   <DecodeText key={line} as="span" text={line} className="block" delay={i * 110} />

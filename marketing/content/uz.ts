@@ -265,8 +265,7 @@ export const uz: Dictionary = {
     },
 
     pricing: {
-      label: 'Narxlar',
-      headline: ['Uchta tarif.', 'Ikkitasining narxi shu yerda.'],
+      headline: ['Narxlar.'],
       body: 'Individual va Jamoa tariflarining narxi ochiq — dastur bir xil, faqat hajmi har xil. Korxona tarifi esa oʻz serveringizda ishlaydi, shuning uchun uning narxi sahifada turmaydi: infratuzilmangizga qarab hisoblanadi.',
       more: 'Tariflarning toʻliq roʻyxati',
     },
@@ -762,8 +761,7 @@ export const uz: Dictionary = {
     },
 
     hero: {
-      label: 'Narxlar',
-      headline: ['Uchta tarif,', 'ikkitasining narxi shu yerda.'],
+      headline: ['Narxlar.'],
       sub: 'Individual va Jamoa — bir xil dastur, faqat hajmi har xil, shuning uchun ikkalasining ham narxi ochiq. Korxona tarifi esa oʻz serveringizda, oʻz chegarangiz ichida ishlaydi: bu qancha turishi infratuzilmaga bogʻliq, shuning uchun uni bosib qoʻymaymiz, hisoblab beramiz.',
     },
 
