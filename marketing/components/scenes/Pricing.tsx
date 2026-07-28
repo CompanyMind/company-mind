@@ -49,8 +49,6 @@ export function Pricing({
     >
       <div className="flex items-center md:sticky md:top-0 md:h-dvh">
         <div className="shell w-full">
-          <p className="mono-label mb-6">{copy.label}</p>
-
           {/* Headline LEFT, standfirst RIGHT — not stacked like the other
               scenes. Three price cards are the tallest block on the page, and
               a stacked header pushed the grid down into the telemetry rail in
