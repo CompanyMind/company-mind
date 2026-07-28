@@ -9,6 +9,7 @@
  * here is on the arguments getDocument actually receives.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { fakeSession } from '@/test/session'
 import { getCurrentUser } from '@/lib/auth/current-user'
 import { getDocument } from '@/lib/documents'
 import { readFile } from '@/lib/storage'
@@ -22,11 +23,7 @@ const mockGetCurrentUser = vi.mocked(getCurrentUser)
 const mockGetDocument = vi.mocked(getDocument)
 const mockReadFile = vi.mocked(readFile)
 
-const MEMBER = {
-  user: { id: 'u1' } as never,
-  workspace: { id: 'w1' } as never,
-  role: 'member' as const,
-}
+const MEMBER = fakeSession({ role: 'member' })
 const DOC = {
   id: 'd1',
   filename: 'handbook.pdf',

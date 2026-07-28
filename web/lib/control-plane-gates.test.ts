@@ -13,6 +13,7 @@
  * with the write already landed is not a fix.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { fakeSession } from '@/test/session'
 import { getCurrentUser } from '@/lib/auth/current-user'
 import { getOwner } from '@/lib/auth/require-owner'
 import { verifyCsrf } from '@/lib/csrf'
@@ -82,11 +83,7 @@ const mockGetCurrentUser = vi.mocked(getCurrentUser)
 const mockGetOwner = vi.mocked(getOwner)
 const mockVerifyCsrf = vi.mocked(verifyCsrf)
 
-const MEMBER = {
-  user: { id: 'u1' } as never,
-  workspace: { id: 'w1' } as never,
-  role: 'member' as const,
-}
+const MEMBER = fakeSession({ role: 'member' })
 
 const params = (id: string) => ({ params: Promise.resolve({ id }) })
 const req = (body: unknown = {}) =>

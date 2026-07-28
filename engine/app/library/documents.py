@@ -30,13 +30,20 @@ def list_documents(
         params.append(folder)
     sql += " ORDER BY d.created_at DESC"
     rows = conn.execute(sql, tuple(params)).fetchall()
-    dg = conn.execute(
-        "SELECT document_id, group_id FROM document_groups WHERE workspace_id=%s",
-        (workspace_id,),
-    ).fetchall()
+    # Group tags for the documents actually being returned — not for the whole
+    # workspace. This read the entire document_groups table on every listing,
+    # including a member's three-file view of a firm with ten thousand
+    # documents, then discarded almost all of it in Python.
+    doc_ids = [str(r[0]) for r in rows]
     groups_by_doc: dict[str, list[str]] = {}
-    for did, gid in dg:
-        groups_by_doc.setdefault(str(did), []).append(str(gid))
+    if doc_ids:
+        dg = conn.execute(
+            "SELECT document_id, group_id FROM document_groups "
+            "WHERE workspace_id=%s AND document_id = ANY(%s::uuid[])",
+            (workspace_id, doc_ids),
+        ).fetchall()
+        for did, gid in dg:
+            groups_by_doc.setdefault(str(did), []).append(str(gid))
     return [
         {
             "id": str(r[0]),

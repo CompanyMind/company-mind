@@ -36,9 +36,10 @@ export async function GET() {
   })
 }
 
-// GET stays member-reachable: the Access page's read-only explainer needs it, and
-// knowing which groups exist is not the same as being able to change them. Every
-// mutation below is owner-only.
+// Owner-only, like the GET above — the two used to disagree in comment form,
+// with this one claiming "GET stays member-reachable" directly beneath a GET
+// that calls getOwner(). The GET is right (it returns a staff directory); the
+// comment was left over from before it was tightened.
 export async function POST(req: Request) {
   const owner = await getOwner()
   if (!owner) return NextResponse.json({ error: 'forbidden' }, { status: 403 })

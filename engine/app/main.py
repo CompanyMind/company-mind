@@ -15,8 +15,8 @@ from .library import groups as lib_groups
 from .library import documents as lib_documents
 from .library import folders as lib_folders
 from .library import usage as lib_usage
-from .library.organize import NothingToOrganize, organize_unfiled
-from .library.suggest import suggest_questions
+from .library.organize import NothingToOrganize, organize_unfiled_pooled
+from .library.suggest import suggest_questions_pooled
 from .telegram import api as tg_api, store as tg_store
 from .graph import service as graph_service
 
@@ -151,11 +151,12 @@ class OrganizeBody(BaseModel):
 
 @app.post("/folders/organize", dependencies=[Depends(require_secret)])
 def folders_organize(body: OrganizeBody):
-    with get_conn() as conn:
-        try:
-            return organize_unfiled(conn, body.workspace_id)
-        except NothingToOrganize as e:
-            raise HTTPException(status_code=400, detail=str(e)) from e
+    # No `with get_conn()` here on purpose: organise makes one chat call per
+    # cluster, and the pooled variant releases the connection around them.
+    try:
+        return organize_unfiled_pooled(body.workspace_id)
+    except NothingToOrganize as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 class DocFolderBody(BaseModel):
@@ -238,8 +239,9 @@ def source(chunk_id: str, workspace_id: str, user_id: str = "", role: str = "mem
 
 @app.get("/suggestions", dependencies=[Depends(require_secret)])
 def suggestions(workspace_id: str, user_id: str = "", role: str = "member"):
-    with get_conn() as conn:
-        return {"questions": suggest_questions(conn, workspace_id, user_id, role)}
+    # Same reason as /folders/organize: one chat call per folder, so the
+    # connection is released before they run.
+    return {"questions": suggest_questions_pooled(workspace_id, user_id, role)}
 
 
 @app.get("/groups", dependencies=[Depends(require_secret)])

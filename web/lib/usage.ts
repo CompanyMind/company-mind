@@ -1,5 +1,6 @@
 import 'server-only'
 import { env } from '@/lib/env'
+import { seg } from '@/lib/engine-url'
 
 // The engine owns query_log, documents and folders. This is a thin client
 // over its internal /usage/summary endpoint — aggregate-only by design (see
@@ -83,7 +84,7 @@ function mapCounters(c: EngineCounters): UsageCounters {
 }
 
 export async function getUsageSummary(days = 30): Promise<UsageSummary> {
-  const res = await engineFetch(`/usage/summary?days=${days}`)
+  const res = await engineFetch(`/usage/summary?days=${seg(String(days))}`)
   if (!res.ok) throw new Error(`engine /usage/summary responded ${res.status}`)
   const data = (await res.json()) as EngineUsageSummary
   return {

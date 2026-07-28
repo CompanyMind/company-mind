@@ -1,116 +1,42 @@
 import 'server-only'
-import { eq, max } from 'drizzle-orm'
-import { db } from '@/lib/db/client'
-import { memberships, sessions, users, workspaces } from '@/lib/db/schema'
-import { hashPassword } from '@/lib/auth/password'
+
+/**
+ * What is left of the old cross-firm admin panel.
+ *
+ * `createUser`, `listAdminUsers`, `blockUser` and `unblockUser` lived here and
+ * were deleted: the three-tier split (docs/superpowers/specs/2026-07-27-
+ * tenancy-and-three-tier-admin-design.md) moved people management INTO the firm
+ * — `lib/people.ts`, owner-gated, scoped to the caller's own workspace — and
+ * left these with zero callers.
+ *
+ * They are gone rather than kept "just in case", for two reasons. CLAUDE.md is
+ * explicit: *"The platform tier manages firms, not people — resist re-adding a
+ * cross-firm create-user route, which is the thing the tier split exists to
+ * remove."* A working `createUser({ workspaceId, role })` sitting in the tree is
+ * that route, one import away. And it was the only one of the three
+ * user-creation paths that was NOT transactional — `people.ts::createPerson` and
+ * `platform/firms.ts::createFirm` both wrap the user + membership inserts in
+ * `db.transaction`, while this one did two bare inserts, so a failure on the
+ * second left a user with no membership: unable to sign in, with their email
+ * address permanently taken.
+ *
+ * `listAdminUsers` also carried the unscoped `sessions` aggregate that
+ * `lib/people.ts` had copied (see AUDIT.md B5) — deleting it removed one of the
+ * two copies outright.
+ *
+ * The two survivors below are the ones with live callers.
+ */
 
 /** Pure guard, unit-tested: blocking yourself locks you out of the only
- *  surface that could unblock you. */
+ *  surface that could unblock you. Used by lib/people.ts::setPersonBlocked. */
 export function wouldBlockSelf(actorId: string, targetId: string): boolean {
   return actorId === targetId
 }
 
-export async function blockUser(
-  actorId: string,
-  targetId: string,
-): Promise<'ok' | 'self' | 'notfound'> {
-  if (wouldBlockSelf(actorId, targetId)) return 'self'
-  const target = await db.query.users.findFirst({ where: eq(users.id, targetId) })
-  if (!target) return 'notfound'
-  await db.update(users).set({ blockedAt: new Date() }).where(eq(users.id, targetId))
-  // Setting the flag alone is theatre — an existing cookie would keep working
-  // until it expired. Deleting the sessions is what makes blocking immediate.
-  await db.delete(sessions).where(eq(sessions.userId, targetId))
-  return 'ok'
-}
-
-export async function unblockUser(targetId: string): Promise<boolean> {
-  const target = await db.query.users.findFirst({ where: eq(users.id, targetId) })
-  if (!target) return false
-  await db.update(users).set({ blockedAt: null }).where(eq(users.id, targetId))
-  return true
-}
-
-export type AdminUserRow = {
-  id: string
-  email: string
-  name: string | null
-  workspace: string | null
-  role: string | null
-  createdAt: Date
-  lastLoginAt: Date | null
-  blocked: boolean
-  isSuperAdmin: boolean
-}
-
-export async function listAdminUsers(): Promise<AdminUserRow[]> {
-  const rows = await db
-    .select({
-      id: users.id,
-      email: users.email,
-      name: users.name,
-      createdAt: users.createdAt,
-      blockedAt: users.blockedAt,
-      isSuperAdmin: users.isSuperAdmin,
-      workspace: workspaces.name,
-      role: memberships.role,
-    })
-    .from(users)
-    .leftJoin(memberships, eq(memberships.userId, users.id))
-    .leftJoin(workspaces, eq(workspaces.id, memberships.workspaceId))
-    .orderBy(users.email)
-
-  // Last login = the newest session row for that user. Sessions are deleted on
-  // block and on expiry, so this is "recently active", not "ever logged in" —
-  // labelled accordingly in the UI rather than overstated.
-  const latest = await db
-    .select({ userId: sessions.userId, last: max(sessions.createdAt) })
-    .from(sessions)
-    .groupBy(sessions.userId)
-  const lastById = new Map(latest.map((r) => [r.userId, r.last]))
-
-  return rows.map((r) => ({
-    id: r.id,
-    email: r.email,
-    name: r.name,
-    workspace: r.workspace,
-    role: r.role,
-    createdAt: r.createdAt,
-    lastLoginAt: lastById.get(r.id) ?? null,
-    blocked: r.blockedAt !== null,
-    isSuperAdmin: r.isSuperAdmin,
-  }))
-}
-
+/** Used by lib/people.ts::createPerson and lib/platform/firms.ts::createFirm. */
 export function generateTempPassword(): string {
-  // 18 URL-safe chars from crypto randomness. Shown once to the admin and
-  // handed over out of band; there is no in-product change-password flow yet.
+  // 18 URL-safe chars from crypto randomness. Shown once to whoever created the
+  // account and handed over out of band; the holder must change it on first
+  // sign-in (users.must_change_password).
   return Buffer.from(crypto.getRandomValues(new Uint8Array(14))).toString('base64url')
-}
-
-export async function createUser(opts: {
-  email: string
-  name: string | null
-  workspaceId: string
-  role: 'owner' | 'member'
-}): Promise<{ id: string; tempPassword: string } | 'duplicate'> {
-  const existing = await db.query.users.findFirst({ where: eq(users.email, opts.email) })
-  if (existing) return 'duplicate'
-  const tempPassword = generateTempPassword()
-  const [row] = await db
-    .insert(users)
-    .values({
-      email: opts.email,
-      name: opts.name,
-      passwordHash: await hashPassword(tempPassword),
-      // Never set from the panel — the platform super-admin is seed-only.
-      isSuperAdmin: false,
-    })
-    .returning({ id: users.id })
-  await db.insert(memberships).values({
-    userId: row.id,
-    workspaceId: opts.workspaceId,
-    role: opts.role,
-  })
-  return { id: row.id, tempPassword }
 }

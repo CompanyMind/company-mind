@@ -1,8 +1,5 @@
-import { and, eq } from 'drizzle-orm'
 import { getCurrentUser } from '@/lib/auth/current-user'
 import { getSource } from '@/lib/source'
-import { db } from '@/lib/db/client'
-import { memberships } from '@/lib/db/schema'
 import { SourceDoc } from './SourceDoc'
 
 export const runtime = 'nodejs'
@@ -10,19 +7,12 @@ export const runtime = 'nodejs'
 export default async function SourcePage({ params }: { params: Promise<{ chunkId: string }> }) {
   const auth = await getCurrentUser()
   const { chunkId } = await params
-  // Role comes from the auth-owned memberships table; the engine resolves the
-  // group-level access itself and returns the source (or null).
-  const mem = auth
-    ? await db.query.memberships.findFirst({
-        where: and(
-          eq(memberships.userId, auth.user.id),
-          eq(memberships.workspaceId, auth.workspace.id),
-        ),
-      })
-    : null
-  const src = auth
-    ? await getSource(chunkId, auth.workspace.id, auth.user.id, mem?.role ?? 'member')
-    : null
+  // Role rides on the session — validateSessionToken already read the
+  // membership row to resolve the workspace, and carries `role` alongside it.
+  // This used to re-query `memberships` for the same value on every source
+  // view. The engine resolves the group-level access itself and returns the
+  // source, or null.
+  const src = auth ? await getSource(chunkId, auth.workspace.id, auth.user.id, auth.role) : null
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-6">

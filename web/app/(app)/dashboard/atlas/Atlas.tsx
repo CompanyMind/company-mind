@@ -223,7 +223,15 @@ export function Atlas({
   const containerRef = useRef<HTMLDivElement>(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
   const mounted = useRef(true)
-  useEffect(() => () => void (mounted.current = false), [])
+  /** The pending rebuild poll, so unmount can cancel it. */
+  const pollTimer = useRef<number | undefined>(undefined)
+  useEffect(
+    () => () => {
+      mounted.current = false
+      if (pollTimer.current !== undefined) window.clearTimeout(pollTimer.current)
+    },
+    [],
+  )
 
   useEffect(() => {
     const el = containerRef.current
@@ -264,16 +272,25 @@ export function Atlas({
 
   const rebuild = useCallback(async () => {
     setRebuilding(true)
-    await fetch('/api/graph/rebuild', {
+    // The response status was ignored: a rejected rebuild (403, engine down)
+    // left the button spinning through a poll that would never see a job start.
+    const res = await fetch('/api/graph/rebuild', {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'x-csrf-token': csrf },
       body: JSON.stringify({}),
     })
+    if (!res.ok) {
+      setRebuilding(false)
+      return
+    }
     const poll = async () => {
       const job = await loadGraph()
       if (!mounted.current) return
-      if (job?.status === 'running') setTimeout(poll, 1500)
-      else {
+      if (job?.status === 'running') {
+        // Tracked so unmounting stops the chain instead of leaving one more
+        // tick to fire and setState on a component that is gone.
+        pollTimer.current = window.setTimeout(poll, 1500)
+      } else {
         setRebuilding(false)
         void loadFindings()
       }

@@ -53,6 +53,30 @@ jobs:
         working-directory: web
       - run: npm test
         working-directory: web
+      # `next build` does NOT typecheck test files, and vitest does not
+      # typecheck at all — so `tsc` sat at 44 errors with CI green. This is the
+      # step that would have said so.
+      - run: npm run typecheck
+        working-directory: web
       # Must succeed with no env and no database — see Global Constraints.
       - run: npm run build
         working-directory: web
+
+  # The marketing site is a separate deployable and was never built or
+  # typechecked here — a compile error in it would have reached production with
+  # a green tick on the commit that caused it.
+  marketing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: marketing/package-lock.json
+      - run: npm ci
+        working-directory: marketing
+      - run: npm run typecheck
+        working-directory: marketing
+      - run: npm run build
+        working-directory: marketing

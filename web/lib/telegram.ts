@@ -1,5 +1,6 @@
 import 'server-only'
 import { env } from '@/lib/env'
+import { enginePath, seg } from '@/lib/engine-url'
 
 // All Telegram state lives in the engine's knowledge DB. These are thin clients.
 async function engineFetch(path: string, init?: RequestInit): Promise<Response> {
@@ -40,7 +41,7 @@ export async function disconnectTelegram(workspaceId: string): Promise<void> {
 export async function getTelegramStatus(
   workspaceId: string,
 ): Promise<{ connected: boolean; username: string | null }> {
-  return engineJson(`/telegram/status?workspace_id=${workspaceId}`) as Promise<{
+  return engineJson(`/telegram/status?workspace_id=${seg(workspaceId)}`) as Promise<{
     connected: boolean
     username: string | null
   }>
@@ -63,7 +64,7 @@ type EngineLink = {
 }
 
 export async function listLinks(workspaceId: string): Promise<LinkRow[]> {
-  const data = (await engineJson(`/telegram/links?workspace_id=${workspaceId}`)) as {
+  const data = (await engineJson(`/telegram/links?workspace_id=${seg(workspaceId)}`)) as {
     links: EngineLink[]
   }
   return data.links.map((l) => ({
@@ -80,7 +81,7 @@ export async function setLinkStatus(
   workspaceId: string,
   action: string,
 ): Promise<'ok' | 'notfound' | 'unknown'> {
-  const res = await engineFetch(`/telegram/links/${id}`, {
+  const res = await engineFetch(enginePath`/telegram/links/${id}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ workspace_id: workspaceId, action }),
@@ -96,7 +97,7 @@ export async function setTelegramLinkGroups(
   workspaceId: string,
   groupIds: string[],
 ): Promise<void> {
-  await engineJson(`/telegram/links/${id}/groups`, {
+  await engineJson(enginePath`/telegram/links/${id}/groups`, {
     method: 'PUT',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ workspace_id: workspaceId, group_ids: groupIds }),

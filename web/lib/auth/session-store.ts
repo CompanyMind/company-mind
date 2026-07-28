@@ -31,43 +31,65 @@ export async function createSession(
   return { token, expires }
 }
 
+/**
+ * Resolve a session cookie to its principal.
+ *
+ * ONE query, not four. This used to be four sequential `findFirst` calls —
+ * sessions, then users, then memberships, then workspaces — each awaiting the
+ * last, on every authenticated request AND every server render of every page.
+ * They are all equality joins on primary keys, so the database can do in one
+ * round-trip what four awaits did in four.
+ *
+ * The guards are unchanged and stay in the same order, because each one means
+ * something different and they are the reason this function is a choke point:
+ * expiry (with the row deleted on the way out), blocking, membership, and
+ * workspace suspension. `memberships.user_id` is uniquely indexed
+ * (`memberships_one_workspace_per_user`), so the join cannot fan out — one user
+ * has exactly one workspace, which is the invariant the old `findFirst` with no
+ * ORDER BY was quietly depending on anyway.
+ */
 export async function validateSessionToken(token: string): Promise<Session | null> {
-  const row = await db.query.sessions.findFirst({
-    where: eq(sessions.tokenHash, hashToken(token)),
-  })
+  const [row] = await db
+    .select({
+      sessionId: sessions.id,
+      expiresAt: sessions.expiresAt,
+      user: users,
+      workspace: workspaces,
+      role: memberships.role,
+    })
+    .from(sessions)
+    .innerJoin(users, eq(users.id, sessions.userId))
+    .innerJoin(memberships, eq(memberships.userId, users.id))
+    .innerJoin(workspaces, eq(workspaces.id, memberships.workspaceId))
+    .where(eq(sessions.tokenHash, hashToken(token)))
+    .limit(1)
+
+  // No row means: no such session, OR the user/membership/workspace it points
+  // at is gone. All four are "not signed in", and none of them is worth
+  // distinguishing to the caller.
   if (!row) return null
+
   if (row.expiresAt.getTime() < Date.now()) {
-    await db.delete(sessions).where(eq(sessions.id, row.id))
+    await db.delete(sessions).where(eq(sessions.id, row.sessionId))
     return null
   }
-  const user = await db.query.users.findFirst({ where: eq(users.id, row.userId) })
-  if (!user) return null
   // Blocking is enforced HERE because every authenticated request already
   // funnels through this function — getCurrentUser, the ask route, the source
   // viewer, every API route. Checking anywhere else would leave a surface open.
   // The session rows are deleted at block time too; this is the belt to that
   // braces, and it also covers a session minted in a race with the block.
-  if (user.blockedAt) return null
-  // v1: one workspace per user via their first membership.
-  const membership = await db.query.memberships.findFirst({
-    where: eq(memberships.userId, user.id),
-  })
-  if (!membership) return null
-  const workspace = await db.query.workspaces.findFirst({
-    where: eq(workspaces.id, membership.workspaceId),
-  })
-  if (!workspace) return null
+  if (row.user.blockedAt) return null
   // Suspension sits beside blocking, at the same choke point and for the same
   // reason: setting a flag the request path never reads would let a suspended
   // firm keep working until every cookie expired.
-  if (workspace.suspendedAt) return null
+  if (row.workspace.suspendedAt) return null
   // Anything that is not exactly 'owner' is a member. Never widen here: an
   // unrecognised role string must fall to the least privilege, not the most.
   return {
-    sessionId: row.id,
-    user,
-    workspace,
-    role: membership.role === 'owner' ? 'owner' : 'member',
+    sessionId: row.sessionId,
+    user: row.user,
+    workspace: row.workspace,
+    role: row.role === 'owner' ? 'owner' : 'member',
   }
 }
 

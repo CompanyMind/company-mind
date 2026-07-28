@@ -8,10 +8,13 @@ makes it testable under the fake providers.
 Only unfiled documents are touched: a user's own filing is never overwritten.
 """
 
+from dataclasses import dataclass, field
+
 import numpy as np
 from sklearn.cluster import KMeans
 
 from ..ask.answer import get_chat_call
+from ..db import get_conn
 from ..graph.cluster import keywords_per_cluster
 from ..graph.label import label_cluster
 from ..settings import settings
@@ -72,7 +75,26 @@ def _unique_name(conn, workspace_id: str, base: str) -> str:
         name = f"{base} {n}"
 
 
-def organize_unfiled(conn, workspace_id: str) -> dict:
+@dataclass
+class Cluster:
+    """One prospective folder: its members, its keywords, and — once
+    `label_plan` has run — the name the model (or the deterministic fallback)
+    gave it."""
+
+    members: list[str]
+    keywords: list[str]
+    titles: list[str]
+    label: str = ""
+
+
+@dataclass
+class OrganizePlan:
+    clusters: list[Cluster] = field(default_factory=list)
+
+
+def plan_organize(conn, workspace_id: str) -> OrganizePlan:
+    """Phase 1 — DB read + clustering. No network, so it is safe to hold a
+    pooled connection here."""
     doc_ids, vectors, texts = _load_unfiled(conn, workspace_id)
     if not doc_ids:
         raise NothingToOrganize("no unfiled documents with embeddings")
@@ -85,29 +107,67 @@ def organize_unfiled(conn, workspace_id: str) -> dict:
             n_clusters=min(k, len(doc_ids)), random_state=settings.graph_seed, n_init=10
         ).fit_predict(vectors)
     )
-
     kw = keywords_per_cluster(texts, labels)
-    call = get_chat_call()
+    return OrganizePlan(
+        clusters=[
+            Cluster(
+                members=[d for d, lab in zip(doc_ids, labels) if int(lab) == cluster],
+                keywords=kw.get(cluster, []),
+                titles=[t for t, lab in zip(texts, labels) if int(lab) == cluster][:5],
+            )
+            for cluster in sorted({int(x) for x in labels})
+        ]
+    )
 
+
+def label_plan(plan: OrganizePlan) -> OrganizePlan:
+    """Phase 2 — one chat call per cluster. Takes NO connection, deliberately:
+    each call has a 60s timeout and the pool has ten connections shared with
+    ask, ingest, Telegram and Atlas. `label_cluster` already falls back to
+    deterministic keyword labels when no model is configured or a call fails,
+    so this phase cannot fail the run."""
+    call = get_chat_call()
+    for c in plan.clusters:
+        c.label = label_cluster(c.keywords, c.titles, call=call)
+    return plan
+
+
+def apply_organize(conn, workspace_id: str, plan: OrganizePlan) -> dict:
+    """Phase 3 — DB writes. No network."""
     created: list[dict] = []
     organized = 0
-    for cluster in sorted({int(x) for x in labels}):
-        members = [d for d, lab in zip(doc_ids, labels) if int(lab) == cluster]
-        titles = [t for t, lab in zip(texts, labels) if int(lab) == cluster][:5]
-        base = label_cluster(kw.get(cluster, []), titles, call=call)
+    for c in plan.clusters:
         folder = lib_folders.create_folder(
             conn,
             workspace_id,
-            _unique_name(conn, workspace_id, base),
+            _unique_name(conn, workspace_id, c.label),
             origin="ai",
-            keywords=kw.get(cluster, []),
+            keywords=c.keywords,
         )
         if folder is None:  # lost a race; skip rather than crash the whole run
             continue
-        for doc_id in members:
+        for doc_id in c.members:
             lib_folders.set_document_folder(conn, workspace_id, doc_id, folder["id"])
             organized += 1
         created.append(
-            {"id": folder["id"], "name": folder["name"], "document_count": len(members)}
+            {"id": folder["id"], "name": folder["name"], "document_count": len(c.members)}
         )
     return {"folders": created, "organized": organized}
+
+
+def organize_unfiled(conn, workspace_id: str) -> dict:
+    """All three phases on a caller-supplied connection.
+
+    Kept for direct/test callers that already own a connection. The API path
+    must NOT use this — see organize_unfiled_pooled, which is the same work with
+    the connection released around the model calls."""
+    return apply_organize(conn, workspace_id, label_plan(plan_organize(conn, workspace_id)))
+
+
+def organize_unfiled_pooled(workspace_id: str) -> dict:
+    """The API path: read, release, call the model, re-acquire, write."""
+    with get_conn() as conn:
+        plan = plan_organize(conn, workspace_id)
+    labelled = label_plan(plan)  # network — no connection held
+    with get_conn() as conn:
+        return apply_organize(conn, workspace_id, labelled)

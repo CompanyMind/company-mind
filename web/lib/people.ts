@@ -1,5 +1,5 @@
 import 'server-only'
-import { and, eq, max } from 'drizzle-orm'
+import { and, eq, inArray, max } from 'drizzle-orm'
 import { db } from '@/lib/db/client'
 import { memberships, sessions, users } from '@/lib/db/schema'
 import { hashPassword } from '@/lib/auth/password'
@@ -39,10 +39,19 @@ export async function listPeople(workspaceId: string): Promise<PersonRow[]> {
 
   // "Recently active", not "ever logged in": sessions are deleted on block, on
   // suspension and on expiry. Labelled that way in the UI rather than overstated.
-  const latest = await db
-    .select({ userId: sessions.userId, last: max(sessions.createdAt) })
-    .from(sessions)
-    .groupBy(sessions.userId)
+  //
+  // Scoped to THIS firm's users. It used to aggregate the entire `sessions`
+  // table — every firm on the deployment — and then discard all but these rows
+  // in JS, so the cost of rendering one firm's People page grew with total
+  // platform traffic rather than with the size of that firm.
+  const userIds = rows.map((r) => r.id)
+  const latest = userIds.length
+    ? await db
+        .select({ userId: sessions.userId, last: max(sessions.createdAt) })
+        .from(sessions)
+        .where(inArray(sessions.userId, userIds))
+        .groupBy(sessions.userId)
+    : []
   const lastById = new Map(latest.map((r) => [r.userId, r.last]))
 
   return rows.map((r) => ({

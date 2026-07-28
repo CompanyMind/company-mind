@@ -1,6 +1,50 @@
+from contextlib import contextmanager
+
 import pytest
 
 from app.settings import settings
+
+
+@pytest.fixture
+def track_checkouts():
+    """Count pooled connections a module currently holds.
+
+    Deterministic on purpose. The obvious probe — reading the pool's own
+    `pool_size - pool_available` — races: psycopg_pool hands a released
+    connection back on a worker thread, so a check taken immediately after a
+    `with get_conn()` block exits can still see it as busy. Wrapping the
+    module's own `get_conn` counts enters and exits instead, which is exactly
+    the question being asked ("is a connection held right now") and cannot
+    drift.
+
+    Usage:
+
+        with track_checkouts(some_module) as held:
+            ...
+            assert held() == 0   # inside a callback, e.g. a stubbed model call
+    """
+
+    @contextmanager
+    def _track(module, attr: str = "get_conn"):
+        original = getattr(module, attr)
+        depth = {"n": 0}
+
+        @contextmanager
+        def wrapper(*args, **kwargs):
+            with original(*args, **kwargs) as conn:
+                depth["n"] += 1
+                try:
+                    yield conn
+                finally:
+                    depth["n"] -= 1
+
+        setattr(module, attr, wrapper)
+        try:
+            yield lambda: depth["n"]
+        finally:
+            setattr(module, attr, original)
+
+    return _track
 
 
 @pytest.fixture(autouse=True, scope="session")

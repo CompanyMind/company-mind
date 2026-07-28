@@ -63,23 +63,34 @@ def list_links(conn, workspace_id: str) -> list[dict]:
 
 
 def set_link_status(conn, workspace_id: str, link_id: str, action: str) -> str:
-    """Returns 'ok', 'notfound', or 'unknown' (bad action)."""
-    found = conn.execute(
-        "SELECT 1 FROM telegram_links WHERE id=%s AND workspace_id=%s", (link_id, workspace_id)
-    ).fetchone()
-    if not found:
-        return "notfound"
-    if action == "approve":
-        with conn.transaction():
-            conn.execute(
-                "UPDATE telegram_links SET status='approved', approved_at=now() WHERE id=%s",
-                (link_id,),
-            )
-    elif action == "block":
-        with conn.transaction():
-            conn.execute("UPDATE telegram_links SET status='blocked' WHERE id=%s", (link_id,))
-    else:
+    """Returns 'ok', 'notfound', or 'unknown' (bad action).
+
+    The existence check and the write are ONE transaction, and both UPDATEs
+    carry workspace_id. Previously the check ran outside the transaction and the
+    UPDATEs matched on id alone — so the workspace scoping lived entirely in a
+    SELECT taken a moment earlier, which is a scoping story rather than a
+    scoping mechanism. Approving a Telegram identity grants document access, so
+    this is a control-plane write and the predicate belongs on the write."""
+    if action not in ("approve", "block"):
         return "unknown"
+    with conn.transaction():
+        found = conn.execute(
+            "SELECT 1 FROM telegram_links WHERE id=%s AND workspace_id=%s",
+            (link_id, workspace_id),
+        ).fetchone()
+        if not found:
+            return "notfound"
+        if action == "approve":
+            conn.execute(
+                "UPDATE telegram_links SET status='approved', approved_at=now() "
+                "WHERE id=%s AND workspace_id=%s",
+                (link_id, workspace_id),
+            )
+        else:
+            conn.execute(
+                "UPDATE telegram_links SET status='blocked' WHERE id=%s AND workspace_id=%s",
+                (link_id, workspace_id),
+            )
     return "ok"
 
 

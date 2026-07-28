@@ -13,6 +13,8 @@
  * identical in a passing test that only checked "some user id was used".
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import type { Session } from '@/lib/auth/session-store'
+import { fakeSession } from '@/test/session'
 import { NextRequest } from 'next/server'
 import { getCurrentUser } from '@/lib/auth/current-user'
 import { verifyCsrf } from '@/lib/csrf'
@@ -37,11 +39,7 @@ vi.mock('@/lib/chat', () => ({
 const mockGetCurrentUser = vi.mocked(getCurrentUser)
 const mockVerifyCsrf = vi.mocked(verifyCsrf)
 
-const ALICE = {
-  user: { id: 'alice' } as never,
-  workspace: { id: 'w1' } as never,
-  role: 'member' as const,
-}
+const ALICE = fakeSession({ user: { id: 'alice' } as Session['user'], role: 'member' })
 
 const params = (id: string) => ({ params: Promise.resolve({ id }) })
 

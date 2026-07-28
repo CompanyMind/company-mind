@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
         ...lead,
         locale,
         at: new Date().toISOString(),
-        source: 'compbrain-site',
+        source: 'companymind-site',
       }),
       signal: AbortSignal.timeout(8000),
     })

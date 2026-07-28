@@ -86,15 +86,42 @@ def _to_retrieved(cid: str, m: dict) -> Retrieved:
 def _expand_neighbors(conn, ws, results: list[Retrieved], meta: dict) -> None:
     # Attach ordinal±1 text as `context` so split headings/caveats return.
     # Citations still point to the matched chunk (its `text` is unchanged).
+    #
+    # ONE query, not one per result. This used to issue final_k (8) separate
+    # round-trips, in series, on the ask path — inside the latency the person is
+    # actually sitting and waiting through. The windows are unioned into a
+    # single WHERE over (document_id, ordinal), which is exactly what
+    # chunks_doc_ordinal_idx serves.
+    if not results:
+        return
+
+    # document_id -> the set of ordinals any of its results needs.
+    wanted: dict[str, set[int]] = {}
     for r in results:
         ordinal = meta[r.chunk_id]["ordinal"]
-        rows = conn.execute(
-            "SELECT text FROM chunks "
-            "WHERE workspace_id = %s AND document_id = %s AND ordinal BETWEEN %s AND %s "
-            "ORDER BY ordinal",
-            (ws, r.document_id, ordinal - 1, ordinal + 1),
-        ).fetchall()
-        r.context = "\n".join(row[0] for row in rows) if rows else r.text
+        wanted.setdefault(r.document_id, set()).update((ordinal - 1, ordinal, ordinal + 1))
+
+    clauses: list[str] = []
+    params: list = [ws]
+    for doc_id, ordinals in wanted.items():
+        clauses.append("(document_id = %s AND ordinal = ANY(%s))")
+        params.extend([doc_id, sorted(ordinals)])
+
+    rows = conn.execute(
+        "SELECT document_id, ordinal, text FROM chunks "
+        "WHERE workspace_id = %s AND (" + " OR ".join(clauses) + ")",
+        tuple(params),
+    ).fetchall()
+
+    by_doc: dict[str, dict[int, str]] = {}
+    for doc_id, ordinal, text in rows:
+        by_doc.setdefault(str(doc_id), {})[ordinal] = text
+
+    for r in results:
+        ordinal = meta[r.chunk_id]["ordinal"]
+        texts = by_doc.get(r.document_id, {})
+        window = [texts[o] for o in (ordinal - 1, ordinal, ordinal + 1) if o in texts]
+        r.context = "\n".join(window) if window else r.text
 
 
 def retrieve(
