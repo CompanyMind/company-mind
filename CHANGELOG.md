@@ -86,6 +86,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   price summary matches. The $1,500 comparison (a hundred Individual seats) is
   unchanged, and the claim that Team is cheaper per person than a single seat
   still holds at $13 against $15.
+- **The pricing headline stopped being a riddle.** "Two prices. One
+  conversation." required you to already know the pricing structure to decode
+  it, and "two prices" read as though there were only two plans when there are
+  three. It now says what is actually on the page — "Three plans. Two of them
+  priced here." — in all three languages, in both places it appears. The Uzbek
+  closing headline lost its dangling "oʻsha" ("that one conversation"), which
+  had been pointing back at the riddle; English and Russian were already
+  self-contained there.
 - **The Uzbek marketing copy stops over-translating.** The file claimed to be
   rewritten rather than translated, but three habits gave it away as calque, and
   all three are now fixed across the site (founder review, 2026-07-28):
