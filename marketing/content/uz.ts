@@ -66,7 +66,7 @@ export const uz: Dictionary = {
 
   footer: {
     blurb:
-      'Kompaniyangizdagi barcha bilim uchun bitta miya. Oʻz serverlaringizda ishlaydi, har bir javob manbasini koʻrsatadi.',
+      'Kompaniyangizdagi barcha maʼlumot uchun bitta tizim. Oʻz serverlaringizda ishlaydi, har bir javob manbasini koʻrsatadi.',
     status: 'tashqariga chiqqan maʼlumot: 0 bayt',
     groups: [
       {
@@ -99,9 +99,9 @@ export const uz: Dictionary = {
    * ----------------------------------------------------------------------- */
   home: {
     hero: {
-      eyebrow: 'Kompaniya ichidagi bilim tizimi',
+      eyebrow: 'Kompaniya ichidagi maʼlumot tizimi',
       headline: ['Kompaniyangizdagi', 'barcha maʼlumotlar —', 'oʻz serveringizda.'],
-      sub: 'Har bir fayl, yozishma, rasm va qoʻngʻiroq bitta miyaga yigʻiladi. Bu miya toʻliq sizning serverlaringizda ishlaydi.',
+      sub: 'Har bir fayl, yozishma, rasm va qoʻngʻiroq bitta tizimga yigʻiladi. Bu tizim toʻliq sizning serverlaringizda ishlaydi.',
       scrollCue: 'Pastga',
       systemOnline: 'tizim ishlayapti',
       egressLabel: 'tashqariga chiqdi:',
@@ -134,7 +134,7 @@ export const uz: Dictionary = {
 
     turn: {
       label: 'Yechim',
-      headline: ['Bitta miya.', 'Ichida — hammasi.'],
+      headline: ['Bitta tizim.', 'Ichida — hammasi.'],
       body: 'CompanyMind kompaniyangizdagi har bir manbani oʻqib chiqadi va bittayu bitta bogʻlangan indeksga yigʻadi. Nusxalar birlashadi, format ahamiyatsiz boʻlib qoladi. Sochilib yotgan narsa savol berish mumkin boʻlgan yagona manbaga aylanadi.',
       seal: 'Bularning birortasi ham serveringizdan chiqmadi.',
     },
@@ -211,8 +211,8 @@ export const uz: Dictionary = {
         },
         {
           n: '03',
-          title: 'Ruxsatlarni biladi',
-          body: 'Miya sizda allaqachon bor kirish tartibiga boʻysunadi. Har kim faqat oʻziga ruxsat berilgan hujjatlardan javob oladi. Hech narsa hamma oʻqiy oladigan umumiy uyumga aylanmaydi.',
+          title: 'Kirish huquqlarini hisobga oladi',
+          body: 'Tizim sizda allaqachon bor kirish tartibiga boʻysunadi. Har kim faqat oʻziga ruxsat berilgan hujjatlardan javob oladi. Hech narsa hamma oʻqiy oladigan umumiy uyumga aylanmaydi.',
         },
         {
           n: '04',
@@ -267,7 +267,7 @@ export const uz: Dictionary = {
     pricing: {
       label: 'Narxlar',
       headline: ['Ikkita narx.', 'Bitta suhbat.'],
-      body: 'Individual va Jamoa tariflarining narxi ochiq — bu bitta dasturning ikki oʻlchami. Korxona tarifi esa oʻz uskunangizda ishlaydi, shuning uchun uning narxi sahifada turmaydi: infratuzilmangizga qarab hisoblanadi.',
+      body: 'Individual va Jamoa tariflarining narxi ochiq — dastur bir xil, faqat hajmi har xil. Korxona tarifi esa oʻz serveringizda ishlaydi, shuning uchun uning narxi sahifada turmaydi: infratuzilmangizga qarab hisoblanadi.',
       more: 'Tariflarning toʻliq roʻyxati',
     },
 
@@ -305,7 +305,7 @@ export const uz: Dictionary = {
     },
 
     canvasAlt:
-      'Iliq qogʻoz ustidagi jonli chizma. Chizilgan chegara — infratuzilmangizning qirrasi. Uning ichida hujjatlar, yozishmalar, PDF fayllar, rasmlar, xatlar, jadvallar va ovozli xabarlar tartibsiz suzib yuradi; baʼzilari takrorlangan, baʼzilari xiralashib yoʻqolgan. Sahifa pastga surilgani sari ular ichkariga tortilib, yagona bogʻlangan toʻrga — bitta miyaga aylanadi. Savol shu toʻrdan oʻtib javob qaytaradi, javobning har bir qismidan esa oʻzi olingan aniq manbaga chiziq tortiladi. Hech narsa chegaradan tashqariga chiqmaydi.',
+      'Iliq qogʻoz ustidagi jonli chizma. Chizilgan chegara — infratuzilmangizning qirrasi. Uning ichida hujjatlar, yozishmalar, PDF fayllar, rasmlar, xatlar, jadvallar va ovozli xabarlar tartibsiz suzib yuradi; baʼzilari takrorlangan, baʼzilari xiralashib yoʻqolgan. Sahifa pastga surilgani sari ular ichkariga tortilib, yagona bogʻlangan toʻrga aylanadi. Savol shu toʻrdan oʻtib javob qaytaradi, javobning har bir qismidan esa oʻzi olingan aniq manbaga chiziq tortiladi. Hech narsa chegaradan tashqariga chiqmaydi.',
   },
 
   /* -------------------------------------------------------------------------
@@ -325,7 +325,7 @@ export const uz: Dictionary = {
     hero: {
       eyebrow: 'Qanday ishlaydi',
       headline: ['Hammasi kiradi.', 'Bitta javob chiqadi.', 'Manbasiz — hech narsa.'],
-      sub: 'CompanyMind kompaniyangizda allaqachon bor har bir manbani oʻqiydi, ularni yagona bogʻlangan indeksga yigʻadi va javobni oʻsha indeksdan quradi. Javobdagi har bir jumla oʻzi olingan hujjatni koʻrsatadi. Bularning bari sizning uskunangizda bajariladi.',
+      sub: 'CompanyMind kompaniyangizda allaqachon bor har bir manbani oʻqiydi, ularni yagona bogʻlangan indeksga yigʻadi va javobni oʻsha indeksdan quradi. Javobdagi har bir jumla oʻzi olingan hujjatni koʻrsatadi. Bularning bari sizning serveringizda bajariladi.',
       pipeline: ['oʻqish', 'yigʻish', 'soʻrash', 'manba'],
     },
 
@@ -333,7 +333,7 @@ export const uz: Dictionary = {
       chapter: '01',
       label: 'Oʻqish',
       headline: ['Bor narsangizning hammasi.', 'Faqat tartiblisi emas.'],
-      body: 'CompanyMind’ni umumiy papkaga, pochta qutisiga, yozishmalar eksportiga yoki skanlar jildiga ulang — u topganini oʻqiydi. Shartnoma ham, unutilgan jadval ham, suratga olingan doska ham, bir soatlik qoʻngʻiroq ham bir xil koʻrinishda keladi: miya tushunadigan matn va asl nusxaga qaytadigan havola.',
+      body: 'CompanyMind’ni umumiy papkaga, pochta qutisiga, yozishmalar eksportiga yoki skanlar jildiga ulang — u topganini oʻqiydi. Shartnoma ham, unutilgan jadval ham, suratga olingan doska ham, bir soatlik qoʻngʻiroq ham bir xil koʻrinishda keladi: tizim tushunadigan matn va asl nusxaga qaytadigan havola.',
       sources: [
         {
           kind: 'doc',
@@ -383,7 +383,7 @@ export const uz: Dictionary = {
       chapter: '02',
       label: 'Yigʻish',
       headline: ['Sochilgan holda kiradi.', 'Bogʻlangan holda chiqadi.'],
-      body: 'Fayllarni oʻqish — ishning oson qismi. Miya keyin paydo boʻladi: nusxalar birlashadi, formatlar ahamiyatini yoʻqotadi va bitta narsa haqidagi hamma maʼlumot yonma-yon turadi.',
+      body: 'Fayllarni oʻqish — ishning oson qismi. Asosiy ish keyin boshlanadi: nusxalar birlashadi, formatlar ahamiyatini yoʻqotadi va bitta narsa haqidagi hamma maʼlumot yonma-yon turadi.',
       beats: [
         {
           title: 'Nusxalar birlashadi',
@@ -470,7 +470,7 @@ export const uz: Dictionary = {
       pipeline: [
         {
           title: 'Oʻqiydi',
-          body: 'Savolni sizning uskunangizda ishlayotgan model indeksingizga qarab tushunadi. Savol binodan chiqmaydi.',
+          body: 'Savolni sizning serveringizda ishlayotgan model indeksingizga qarab tushunadi. Savol binodan chiqmaydi.',
         },
         {
           title: 'Qidiradi',
@@ -502,7 +502,7 @@ export const uz: Dictionary = {
     close: {
       label: 'Keyingisi',
       headline: ['Bularning hech biri', 'tashqariga chiqmaydi.'],
-      body: 'Bu sahifadagi har bir qadam — oʻqish, indeks, model, javob, audit jurnali — siz nazorat qiladigan uskunada bajariladi. Yoʻlda birovning buluti yoʻq, chunki umuman bulut yoʻq. Bu qanday qurilgani va mavjud majburiyatlaringiz uchun nimani anglatishi — alohida sahifada.',
+      body: 'Bu sahifadagi har bir qadam — oʻqish, indeks, model, javob, audit jurnali — siz nazorat qiladigan serverda bajariladi. Yoʻlda birovning buluti yoʻq, chunki umuman bulut yoʻq. Bu qanday qurilgani va mavjud majburiyatlaringiz uchun nimani anglatishi — alohida sahifada.',
       primary: { label: 'Arxitekturani koʻrish', href: ROUTES.security },
       secondary: { label: 'Hamkor boʻling', href: ROUTES.contact },
     },
@@ -541,7 +541,7 @@ export const uz: Dictionary = {
         {
           n: '01',
           name: 'Oʻz serveringiz',
-          line: 'Toza temirda yoki oʻz virtualizatsiyangizda — siz egalik qiladigan, oʻzingiz joylashtirgan va tekshirib turadigan uskunada.',
+          line: 'Toza temirda yoki oʻz virtualizatsiyangizda — siz egalik qiladigan, oʻzingiz joylashtirgan va tekshirib turadigan serverda.',
         },
         {
           n: '02',
@@ -569,7 +569,7 @@ export const uz: Dictionary = {
         },
         {
           label: 'Indeks',
-          title: 'Bitta miya',
+          title: 'Bitta tizim',
           line: 'Lokal tahlil qilinadi, vektorga aylanadi va bogʻlanadi. Har bir manbaning kirish huquqi u bilan birga yuradi.',
         },
         {
@@ -640,7 +640,7 @@ export const uz: Dictionary = {
       ],
       close: 'Hech kimning huquqi kengaymaydi. Hech narsa tekislanmaydi.',
       closeNote:
-        'Foydalanuvchi miyada aynan asosiy tizimlarda koʻradigan narsani koʻradi. Juma kuni katalogingizda kimningdir huquqini bekor qiling — keyingi savolgayoq miya buni biladi.',
+        'Foydalanuvchi tizimda aynan asosiy tizimlarda koʻradigan narsani koʻradi. Juma kuni katalogingizda kimningdir huquqini bekor qiling — keyingi savolgayoq tizim buni biladi.',
       trace: {
         label: 'Qidiruv · soʻrovchiga qarab filtrlangan',
         asker: 'soʻrovchi: j.reyes · guruh: tahlilchilar',
@@ -764,7 +764,7 @@ export const uz: Dictionary = {
     hero: {
       label: 'Narxlar',
       headline: ['Ikkita narx', 'va bitta suhbat.'],
-      sub: 'Individual va Jamoa — bitta dasturning ikki oʻlchami, shuning uchun ikkalasining ham narxi ochiq. Korxona tarifi esa oʻz uskunangizda, oʻz chegarangiz ichida ishlaydi: bu qancha turishi infratuzilmaga bogʻliq, shuning uchun uni bosib qoʻymaymiz, hisoblab beramiz.',
+      sub: 'Individual va Jamoa — bitta dasturning ikki oʻlchami, shuning uchun ikkalasining ham narxi ochiq. Korxona tarifi esa oʻz serveringizda, oʻz chegarangiz ichida ishlaydi: bu qancha turishi infratuzilmaga bogʻliq, shuning uchun uni bosib qoʻymaymiz, hisoblab beramiz.',
     },
 
     plans: [
@@ -794,7 +794,7 @@ export const uz: Dictionary = {
         // pulsi va bosh sahifadagi CTA uchun saqlangan).
         name: 'Jamoa',
         badge: '100 kishigacha',
-        who: 'Miyani savoli bor har bir xodim oldiga qoʻyishga tayyor kompaniya uchun.',
+        who: 'Savoli bor har bir xodimga ochib bermoqchi boʻlgan kompaniyalar uchun.',
         price: '$1 300',
         period: '/ oyiga',
         priceNote:
@@ -802,13 +802,13 @@ export const uz: Dictionary = {
         features: [
           'Individualdagi hamma narsa, butun kompaniyaga ochilgan.',
           'Kirish guruhlari: har kim faqat oʻziga ruxsat berilgan hujjatlardan javob oladi.',
-          'Egalik paneli: xodim qoʻshish, guruh berish, ortiqcha ochilganini koʻrish.',
+          'Admin panel: xodim qoʻshish, guruh berish, kim nimani koʻra olishini nazorat qilish.',
           'Ish maydoni uchun bitta Telegram bot: odamlarni tasdiqlash va har biriga guruh.',
           'Audit eksporti: har bir savol, javob va manba jurnal tizimingizga.',
           'Bizda joylashtiriladi yoki oʻz VPC’ingizga oʻrnatiladi — narx bir xil.',
           '100 000 tagacha hujjat va 1 TB manba.',
         ],
-        cta: 'Jamoa uchun hisoblatish',
+        cta: 'Jamoa uchun narx olish',
       },
       {
         id: '03',
@@ -818,12 +818,12 @@ export const uz: Dictionary = {
         price: 'Kelishiladi',
         period: '',
         priceNote:
-          'Infratuzilmangizga qarab hisoblanadi: qancha maʼlumot oʻqiladi, necha kishi soʻraydi va kimning uskunasida ishlaydi. Air-gap oʻrnatmasi alohida loyiha.',
+          'Infratuzilmangizga qarab hisoblanadi: qancha maʼlumot oʻqiladi, necha kishi soʻraydi va kimning serverida ishlaydi. Air-gap oʻrnatmasi alohida loyiha.',
         features: [
           'Jamoadagi hamma narsa, tashqariga umuman yoʻlsiz.',
           'Cheklanmagan xodim, cheklanmagan hujjat.',
           'Air-gap oʻrnatma: modellar, indeks va interfeys birga keladi, oflayn ishlaydi.',
-          'Sizning uskunangiz, sizning javonlaringiz, sizning jismoniy nazoratingiz.',
+          'Sizning serverlaringiz, sizning javonlaringiz, sizning jismoniy nazoratingiz.',
           'IdP orqali SSO; ruxsatlar har bir soʻrovda qaytadan tekshiriladi.',
           'Sohangizga moslashtirilgan modellar — oʻz chegarangiz ichida oʻqitiladi.',
           'Oflayn yangilanish: siz olib kiradigan va oʻrnatishni oʻzingiz hal qiladigan imzolangan paket.',
@@ -842,7 +842,7 @@ export const uz: Dictionary = {
       items: [
         {
           label: 'Joylashtirish',
-          value: 'Har bir oʻlchamda bitta dastur. Tariflar orasida hajm oʻzgaradi, ochiqlik emas.',
+          value: 'Dastur hamma tarifda bir xil. Tariflar orasida faqat hajm farq qiladi, imkoniyatlar emas.',
         },
         {
           label: 'Tashqariga chiqish',
@@ -867,7 +867,7 @@ export const uz: Dictionary = {
       items: [
         {
           q: 'Nega Korxona tarifining narxi yoʻq?',
-          a: 'Chunki ichki oʻrnatma qutidagi mahsulot emas. Narx qancha maʼlumot oʻqilishiga, necha kishi savol berishiga va kimning uskunasida ishlashiga bogʻliq: shifoxonadagi air-gap javon bilan VPC butunlay boshqa loyiha. Individual va Jamoa — hajmi maʼlum bitta dastur, shuning uchun ularning narxi ochiq turadi. Korxona tarifi bitta suhbatdan keyin hisoblanadi va oʻsha hisob haqiqatga toʻgʻri keladi.',
+          a: 'Chunki ichki oʻrnatma qutidagi mahsulot emas. Narx qancha maʼlumot oʻqilishiga, necha kishi savol berishiga va kimning serverida ishlashiga bogʻliq: shifoxonadagi air-gap javon bilan VPC butunlay boshqa loyiha. Individual va Jamoa — hajmi maʼlum bitta dastur, shuning uchun ularning narxi ochiq turadi. Korxona tarifi bitta suhbatdan keyin hisoblanadi va oʻsha hisob haqiqatga toʻgʻri keladi.',
         },
         {
           q: 'Jamoa — Individualning yuz barobarimi?',
@@ -891,7 +891,7 @@ export const uz: Dictionary = {
         },
         {
           q: 'Kichikdan boshlab oʻsish mumkinmi?',
-          a: 'Ha, va yoʻlda hech narsa koʻchirilmaydi. Har bir tarif bitta dasturni ishlatadi — kichigi qiziqarli qismlari olib tashlangan demo emas. Oʻsish — qamrovni kengaytirish: koʻproq odam, koʻproq manba va oxir-oqibat oʻz uskunangiz.',
+          a: 'Ha, va yoʻlda hech narsa koʻchirilmaydi. Har bir tarif bitta dasturni ishlatadi — kichigi qiziqarli qismlari olib tashlangan demo emas. Oʻsish — qamrovni kengaytirish: koʻproq odam, koʻproq manba va oxir-oqibat oʻz serveringiz.',
         },
       ],
     },
@@ -927,7 +927,7 @@ export const uz: Dictionary = {
       label: 'Pozitsiya',
       headline: ['Imkoniyat bitta shart', 'bilan keldi.'],
       body: [
-        'Soʻnggi uch yildagi har bir jiddiy sakrash bir xil yoʻl bilan yetkazildi — endpoint sifatida. Undan foydalanish uchun maʼlumotingizni siz nazorat qilmaydigan kompaniyaga, siz tekshira olmaydigan uskunaga, siz yozmagan shartlar asosida yuborishingiz kerak. Koʻpchilik biznes uchun bu maqbul kelishuv. Baʼzilari uchun esa suhbat birinchi uchrashuvdayoq tugaydi.',
+        'Soʻnggi uch yildagi har bir jiddiy sakrash bir xil yoʻl bilan yetkazildi — endpoint sifatida. Undan foydalanish uchun maʼlumotingizni siz nazorat qilmaydigan kompaniyaga, siz tekshira olmaydigan serverga, siz yozmagan shartlar asosida yuborishingiz kerak. Koʻpchilik biznes uchun bu maqbul kelishuv. Baʼzilari uchun esa suhbat birinchi uchrashuvdayoq tugaydi.',
         'Bu ehtiyotkorlik ham, texnologiyadan qoʻrqish ham emas — bu ish tartibi. Nazoratchiga vendorning maxfiylik siyosati bilan javob bera olmaysiz. Advokatlik siriga tegishli materialni birovning jurnaliga qoʻya olmaysiz. Bu muassasalar ishlaydigan qoidalar koʻndirsa boʻladigan xohish emas: aynan oʻsha qoidalar tufayli ularga bu maʼlumot ishonib topshirilgan.',
       ],
       ledger: {
@@ -974,7 +974,7 @@ export const uz: Dictionary = {
         {
           n: '03',
           title: 'Nazorat — imkoniyatning narxi emas.',
-          body: 'Kuchli AI bilan oʻz maʼlumotingiz ustidan nazorat orasida tanlash texnologiyaning xossasi emas, sanoat yetkazib berishni shunday tanlaganining natijasi. Modellar oʻz uskunangizda ishlasa va indeks oʻz disklaringizda tursa, tanlash zarurati yoʻqoladi. Qurish qiyinroq, lekin imkonsiz emas.',
+          body: 'Kuchli AI bilan oʻz maʼlumotingiz ustidan nazorat orasida tanlash texnologiyaning xossasi emas, sanoat yetkazib berishni shunday tanlaganining natijasi. Modellar oʻz serveringizda ishlasa va indeks oʻz disklaringizda tursa, tanlash zarurati yoʻqoladi. Qurish qiyinroq, lekin imkonsiz emas.',
         },
       ],
     },
@@ -1007,7 +1007,7 @@ export const uz: Dictionary = {
     lab: {
       label: 'Jamoa',
       headline: ['Kichik jamoa —', 'ataylab.'],
-      body: 'Mustaqil oʻrnatiladigan dastur sotuv muammosiga aylanishidan ancha oldin muhandislik muammosi. U biz hech qachon kirmagan binoga, biz nazorat qilmaydigan uskunaga, internetsiz va xonada CompanyMind’dan hech kim boʻlmagan holda oʻrnatilishi kerak. Bunday ish butun tizimni boshida tuta oladigan kichik jamoaga qulay. Quyida u qanday boʻlinadi.',
+      body: 'Mustaqil oʻrnatiladigan dastur sotuv muammosiga aylanishidan ancha oldin muhandislik muammosi. U biz hech qachon kirmagan binoga, biz nazorat qilmaydigan serverga, internetsiz va xonada CompanyMind’dan hech kim boʻlmagan holda oʻrnatilishi kerak. Bunday ish butun tizimni boshida tuta oladigan kichik jamoaga qulay. Quyida u qanday boʻlinadi.',
       note: 'Bular — rollar, portret emas. Ismlar haqiqiy odamlar paydo boʻlganda qoʻyiladi.',
       roles: [
         {
@@ -1082,7 +1082,7 @@ export const uz: Dictionary = {
         },
         {
           label: 'Oʻrnata olasiz',
-          line: 'Siz tomondan kimdir bizga uskuna va ishlaydigan tarmoq ajrata oladi.',
+          line: 'Siz tomondan kimdir bizga server va ishlaydigan tarmoq ajrata oladi.',
         },
         {
           label: 'Biz bilan bahslashasiz',
