@@ -80,6 +80,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Team is $1,300 a month, up from $1,200.** Changed everywhere it appears in
+  all three locales, including the figures derived from it — the per-head price
+  in the plan note and in the FAQ answer is $13 now, not $12, and the README's
+  price summary matches. The $1,500 comparison (a hundred Individual seats) is
+  unchanged, and the claim that Team is cheaper per person than a single seat
+  still holds at $13 against $15.
+- **The Uzbek landing headline says "maʼlumotlar", not "bilim"** — data rather
+  than knowledge. Applied to the hero headline and to the identical sentence
+  used as the page tagline, so the two cannot drift. English and Russian are
+  unchanged; this is a wording preference in Uzbek, not a change of positioning.
 - **The deterministic fake providers are test-only now.** They used to engage
   whenever no model credentials were present, so a deployment missing one
   environment variable served placeholder text — and that text reads exactly
@@ -126,6 +136,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A folder's header scrolled away with its documents.** The Sources folder
+  route scrolled the whole page, so in a folder holding more files than fit, the
+  way back to Sources and the name of the folder you were standing in both slid
+  off the top — leaving no way to tell which folder you were looking at without
+  scrolling back up. It is a fixed-height column whose list scrolls now, the
+  same shape the thread route already used.
 - **Answers displayed citations that pointed at nothing.** Found live on
   production: the two most recent threads carried seven and eight `[n]` markers
   and *zero* stored citations. `resolve_citations` drops any marker past the

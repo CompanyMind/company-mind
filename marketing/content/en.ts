@@ -773,7 +773,7 @@ export const en: Dictionary = {
     meta: {
       title: 'Pricing',
       description:
-        'Three ways to run CompanyMind: $15 a month for one person, $1,200 a month for a team of up to 100, and a quoted Enterprise install for air-gapped and on-premise estates.',
+        'Three ways to run CompanyMind: $15 a month for one person, $1,300 a month for a team of up to 100, and a quoted Enterprise install for air-gapped and on-premise estates.',
     },
 
     hero: {
@@ -809,10 +809,10 @@ export const en: Dictionary = {
         name: 'Team',
         badge: 'Up to 100 people',
         who: 'For a company ready to put the brain in front of everyone who needs to ask it something.',
-        price: '$1,200',
+        price: '$1,300',
         period: '/ month',
         priceNote:
-          'Up to 100 people — $12 a head, less than a single seat costs on its own, and nobody counting them. Beyond 100, you are in Enterprise.',
+          'Up to 100 people — $13 a head, less than a single seat costs on its own, and nobody counting them. Beyond 100, you are in Enterprise.',
         features: [
           'Everything in Individual, opened to the whole company.',
           'Access groups: each person is answered only from what they were already cleared to see.',
@@ -890,7 +890,7 @@ export const en: Dictionary = {
         },
         {
           q: 'Is Team really just Individual times a hundred?',
-          a: 'It is less than that. A hundred times would be $1,500; Team is $1,200, which is $12 a head — cheaper per person than a single seat. The software is not a multiple either: a hundred people need access groups, an owner who can assign them, and an audit trail, and those only exist above one person. What you are not paying for is a per-seat meter. Add somebody on a Tuesday and nothing changes on the invoice.',
+          a: 'It is less than that. A hundred times would be $1,500; Team is $1,300, which is $13 a head — cheaper per person than a single seat. The software is not a multiple either: a hundred people need access groups, an owner who can assign them, and an audit trail, and those only exist above one person. What you are not paying for is a per-seat meter. Add somebody on a Tuesday and nothing changes on the invoice.',
         },
         {
           q: 'What does "on-prem" mean here, exactly?',
