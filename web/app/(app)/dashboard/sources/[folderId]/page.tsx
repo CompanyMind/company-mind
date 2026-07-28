@@ -31,30 +31,44 @@ export default async function FolderPage({
   if (folderId !== 'unfiled' && !folder) notFound()
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-6">
-      <Link
-        href="/dashboard/sources"
-        className="font-mono text-[0.6875rem] uppercase tracking-[0.1em] text-ink-soft underline underline-offset-2 hover:text-ink"
-      >
-        ← Sources
-      </Link>
-      {folder ? (
-        <FolderHeader
-          id={folder.id}
-          name={folder.name}
-          csrf={csrf}
-          canManage={auth.role === 'owner'}
-        />
-      ) : (
-        <h1 className="mt-3 font-display text-2xl text-ink">{dict.panels.sources.unfiled}</h1>
-      )}
-      <DocumentList
-        csrf={csrf}
-        folder={folderId}
-        initialDoc={doc}
-        canManage={auth.role === 'owner'}
-        dict={dict}
-      />
+    // A fixed-height column whose LIST scrolls, not the page — the same shape
+    // the thread route uses. The whole page used to scroll, so the way back to
+    // Sources and the name of the folder you are in both slid off the top the
+    // moment a folder held more documents than fit; in a folder of 40 files you
+    // could not tell which folder you were looking at without scrolling back up.
+    <div className="flex h-dvh flex-col max-md:h-[calc(100dvh-3.5rem)]">
+      <header className="shrink-0 border-b border-line px-6 pb-4 pt-6">
+        <div className="mx-auto max-w-3xl">
+          <Link
+            href="/dashboard/sources"
+            className="font-mono text-[0.6875rem] uppercase tracking-[0.1em] text-ink-soft underline underline-offset-2 hover:text-ink"
+          >
+            ← Sources
+          </Link>
+          {folder ? (
+            <FolderHeader
+              id={folder.id}
+              name={folder.name}
+              csrf={csrf}
+              canManage={auth.role === 'owner'}
+            />
+          ) : (
+            <h1 className="mt-3 font-display text-2xl text-ink">{dict.panels.sources.unfiled}</h1>
+          )}
+        </div>
+      </header>
+
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-8">
+        <div className="mx-auto max-w-3xl">
+          <DocumentList
+            csrf={csrf}
+            folder={folderId}
+            initialDoc={doc}
+            canManage={auth.role === 'owner'}
+            dict={dict}
+          />
+        </div>
+      </div>
     </div>
   )
 }

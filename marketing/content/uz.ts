@@ -41,7 +41,7 @@ import type { Dictionary } from './types'
 
 export const uz: Dictionary = {
   site: {
-    tagline: 'Kompaniyangizdagi barcha bilim — oʻz serveringizda.',
+    tagline: 'Kompaniyangizdagi barcha maʼlumotlar — oʻz serveringizda.',
     description:
       'CompanyMind kompaniyangizdagi har bir faylni, yozishmani, rasmni va qoʻngʻiroqni oʻqib chiqib, savol berish mumkin boʻlgan yagona bilim markaziga aylantiradi. Hammasi oʻz serverlaringizda ishlaydi, har bir javob esa manbasini koʻrsatadi.',
   },
@@ -100,7 +100,7 @@ export const uz: Dictionary = {
   home: {
     hero: {
       eyebrow: 'Kompaniya ichidagi bilim tizimi',
-      headline: ['Kompaniyangizdagi', 'barcha bilim —', 'oʻz serveringizda.'],
+      headline: ['Kompaniyangizdagi', 'barcha maʼlumotlar —', 'oʻz serveringizda.'],
       sub: 'Har bir fayl, yozishma, rasm va qoʻngʻiroq bitta miyaga yigʻiladi. Bu miya toʻliq sizning serverlaringizda ishlaydi.',
       scrollCue: 'Pastga',
       systemOnline: 'tizim ishlayapti',
@@ -758,7 +758,7 @@ export const uz: Dictionary = {
     meta: {
       title: 'Narxlar',
       description:
-        'CompanyMind’dan foydalanishning uch yoʻli: bir kishi uchun oyiga $15, 100 kishigacha jamoa uchun oyiga $1 200 va air-gap hamda ichki oʻrnatmalar uchun alohida hisoblanadigan Korxona tarifi.',
+        'CompanyMind’dan foydalanishning uch yoʻli: bir kishi uchun oyiga $15, 100 kishigacha jamoa uchun oyiga $1 300 va air-gap hamda ichki oʻrnatmalar uchun alohida hisoblanadigan Korxona tarifi.',
     },
 
     hero: {
@@ -795,10 +795,10 @@ export const uz: Dictionary = {
         name: 'Jamoa',
         badge: '100 kishigacha',
         who: 'Miyani savoli bor har bir xodim oldiga qoʻyishga tayyor kompaniya uchun.',
-        price: '$1 200',
+        price: '$1 300',
         period: '/ oyiga',
         priceNote:
-          '100 kishigacha — bir kishiga $12, yaʼni yakka tarifdan ham arzon. Oʻrindiqlarni hech kim sanamaydi. 100 dan oshsa — Korxona tarifi.',
+          '100 kishigacha — bir kishiga $13, yaʼni yakka tarifdan ham arzon. Oʻrindiqlarni hech kim sanamaydi. 100 dan oshsa — Korxona tarifi.',
         features: [
           'Individualdagi hamma narsa, butun kompaniyaga ochilgan.',
           'Kirish guruhlari: har kim faqat oʻziga ruxsat berilgan hujjatlardan javob oladi.',
@@ -871,7 +871,7 @@ export const uz: Dictionary = {
         },
         {
           q: 'Jamoa — Individualning yuz barobarimi?',
-          a: 'Yoʻq, arzonroq: yuz barobari $1 500 boʻlardi, biz esa $1 200 deymiz. Yaʼni bir kishiga $12 — yakka tarifdan ham past. Dastur tomondan ham bu oddiy koʻpaytma emas: yuz kishiga kirish guruhlari, ularni taqsimlaydigan egasi va audit jurnali kerak, bular bir kishilik tarifda umuman yoʻq. Siz toʻlamaydigan narsa — har bir oʻrindiq uchun hisoblagich: seshanba kuni yangi odam qoʻshsangiz, hisob-fakturada hech narsa oʻzgarmaydi.',
+          a: 'Yoʻq, arzonroq: yuz barobari $1 500 boʻlardi, biz esa $1 300 deymiz. Yaʼni bir kishiga $13 — yakka tarifdan ham past. Dastur tomondan ham bu oddiy koʻpaytma emas: yuz kishiga kirish guruhlari, ularni taqsimlaydigan egasi va audit jurnali kerak, bular bir kishilik tarifda umuman yoʻq. Siz toʻlamaydigan narsa — har bir oʻrindiq uchun hisoblagich: seshanba kuni yangi odam qoʻshsangiz, hisob-fakturada hech narsa oʻzgarmaydi.',
         },
         {
           q: '«Ichki oʻrnatma» bu yerda aniq nimani anglatadi?',

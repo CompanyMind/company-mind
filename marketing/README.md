@@ -113,7 +113,7 @@ CompanyMind is **pre-launch**: no customers, no revenue, **no certifications**. 
   from traction. Do not add latency or accuracy figures; they are unverifiable until there is a real
   deployment.
 - **Prices are the one exception, added deliberately on 2026-07-27.** Individual ($15/mo) and Team
-  ($1,200/mo, up to 100 people) carry published figures; Enterprise is quoted, and the page says
+  ($1,300/mo, up to 100 people) carry published figures; Enterprise is quoted, and the page says
   why in one sentence rather than hiding behind "contact sales". The plans live once, in each
   dictionary's `pricing.plans`, and are rendered by both `/pricing` and the homepage scene — do not
   copy a price into a second place. Everything else above is unchanged and still binding: no SLAs,
