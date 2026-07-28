@@ -40,6 +40,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Signing out sent people to a dead hostname.** The logout redirect resolved
+  to `https://<container-id>:3000/login`, which exists only inside the compose
+  network, so the browser failed with `DNS_PROBE_POSSIBLE`. `request.url` in a
+  Next route handler is built from the server's own listening socket, not from
+  the `Host` header — verified in production at three layers (through nginx,
+  direct with the correct `Host`, direct with none: all three produced the
+  container address, so the header genuinely is not consulted). nginx was
+  forwarding correctly the whole time; only the scheme travels, via
+  `X-Forwarded-Proto`. Both redirects now emit a relative `Location`, which is
+  what Next's own middleware already did — and why being redirected TO login
+  always worked while logging OUT did not.
+- **The marketing contact form lost every no-JS enquiry**, the same bug in the
+  same shape: the fallback redirect answered
+  `https://<container-id>:3001/uz/contact?sent=0`. That is the one page on the
+  site where a dropped submission costs real money, and the no-JS path is the
+  one the route's own comment calls "not hypothetical" for locked-down
+  enterprise browsers.
+
 - **The engine held a pooled connection across model calls in three places** —
   AI organise, starter suggestions, and the whole Atlas build — an invariant the
   codebase states in prose three times and enforced nowhere. With ten

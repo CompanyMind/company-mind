@@ -92,10 +92,30 @@ function localeFrom(raw: Record<string, unknown>): Locale {
   return typeof value === 'string' && isLocale(value) ? value : defaultLocale
 }
 
-/** No-JS path: send the browser back to the page, which renders the outcome. */
-function redirectToContact(request: NextRequest, locale: Locale, ok: boolean) {
+/**
+ * No-JS path: send the browser back to the page, which renders the outcome.
+ *
+ * The `Location` is RELATIVE and must stay that way. `request.url` in a route
+ * handler is the server's own listening socket — in Docker, the container id
+ * and internal port — not the `Host` header, which Next does not consult here.
+ * This used to build an absolute URL from it and answered
+ * `https://348ddc8da4cb:3001/uz/contact?sent=0`, a hostname that resolves only
+ * inside the compose network. Every design-partner enquiry submitted without
+ * JavaScript landed on a browser DNS error — on the one page of this site where
+ * that costs actual money, and on exactly the path the header comment above
+ * says is "not hypothetical" for locked-down enterprise browsers.
+ *
+ * RFC 7231 §7.1.2 permits a relative URI-reference in `Location`; the browser
+ * resolves it against the URL it actually requested, which is the public one.
+ * `localePath` always returns a rooted path, so this is unambiguous.
+ * (Found alongside the identical bug in web's logout route, 2026-07-28.)
+ */
+function redirectToContact(_request: NextRequest, locale: Locale, ok: boolean) {
   const path = localePath(locale, '/contact')
-  return NextResponse.redirect(new URL(`${path}?sent=${ok ? '1' : '0'}`, request.url), 303)
+  return new NextResponse(null, {
+    status: 303,
+    headers: { location: `${path}?sent=${ok ? '1' : '0'}` },
+  })
 }
 
 export async function POST(request: NextRequest) {
