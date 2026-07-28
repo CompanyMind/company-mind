@@ -266,7 +266,7 @@ export const uz: Dictionary = {
 
     pricing: {
       label: 'Narxlar',
-      headline: ['Ikkita narx.', 'Bitta suhbat.'],
+      headline: ['Uchta tarif.', 'Ikkitasining narxi shu yerda.'],
       body: 'Individual va Jamoa tariflarining narxi ochiq — dastur bir xil, faqat hajmi har xil. Korxona tarifi esa oʻz serveringizda ishlaydi, shuning uchun uning narxi sahifada turmaydi: infratuzilmangizga qarab hisoblanadi.',
       more: 'Tariflarning toʻliq roʻyxati',
     },
@@ -763,8 +763,8 @@ export const uz: Dictionary = {
 
     hero: {
       label: 'Narxlar',
-      headline: ['Ikkita narx', 'va bitta suhbat.'],
-      sub: 'Individual va Jamoa — bitta dasturning ikki oʻlchami, shuning uchun ikkalasining ham narxi ochiq. Korxona tarifi esa oʻz serveringizda, oʻz chegarangiz ichida ishlaydi: bu qancha turishi infratuzilmaga bogʻliq, shuning uchun uni bosib qoʻymaymiz, hisoblab beramiz.',
+      headline: ['Uchta tarif,', 'ikkitasining narxi shu yerda.'],
+      sub: 'Individual va Jamoa — bir xil dastur, faqat hajmi har xil, shuning uchun ikkalasining ham narxi ochiq. Korxona tarifi esa oʻz serveringizda, oʻz chegarangiz ichida ishlaydi: bu qancha turishi infratuzilmaga bogʻliq, shuning uchun uni bosib qoʻymaymiz, hisoblab beramiz.',
     },
 
     plans: [
@@ -898,7 +898,7 @@ export const uz: Dictionary = {
 
     cta: {
       label: 'Hamkorlik',
-      headline: ['Har bir tarif oʻsha', 'bitta suhbatdan boshlanadi.'],
+      headline: ['Har bir tarif bitta', 'suhbatdan boshlanadi.'],
       body: 'CompanyMind hali bozorga chiqmagan. Biz uni shu muammoni yaxshi biladigan bir nechta jamoa bilan birga quryapmiz. Nima sochilib yotganini va u qayerga chiqa olmasligini ayting — biz joylashtirish qanday boʻlishini aytamiz.',
       submit: 'Suhbatni boshlash',
       href: ROUTES.contact,

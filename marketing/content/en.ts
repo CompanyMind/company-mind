@@ -262,7 +262,7 @@ export const en: Dictionary = {
 
     pricing: {
       label: 'Pricing',
-      headline: ['Two prices.', 'One conversation.'],
+      headline: ['Three plans.', 'Two of them priced here.'],
       body: 'Individual and Team are priced in the open, because they are the same software at two sizes. Enterprise runs on your own hardware behind your own walls, so it is quoted against your estate instead of printed on a page.',
       more: 'See what is in each plan',
     },
@@ -778,7 +778,7 @@ export const en: Dictionary = {
 
     hero: {
       label: 'Pricing',
-      headline: ['Two prices,', 'and one conversation.'],
+      headline: ['Three plans,', 'two of them priced here.'],
       sub: 'Individual and Team are the same software at two sizes, so both carry a number. Enterprise runs on your hardware inside your own walls — what that costs depends on the estate, so we quote it rather than print it.',
     },
 
