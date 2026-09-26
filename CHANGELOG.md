@@ -40,6 +40,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The engine and bot containers re-downloaded ~34 packages on every start.**
+  The image was built with `uv sync --no-dev`, but the `uv run` in the CMD (and
+  in the bot's compose command) re-syncs the default groups at launch — so each
+  boot fetched the dev group (pytest, ranx → numba/pandas/matplotlib) from the
+  network: slow restarts, and a hard failure on a host without internet. The
+  image now installs from `uv.lock` (`--locked`, previously the lockfile wasn't
+  even copied in) and sets `UV_NO_SYNC=1`, so a start installs nothing.
+
 - **Signing out sent people to a dead hostname.** The logout redirect resolved
   to `https://<container-id>:3000/login`, which exists only inside the compose
   network, so the browser failed with `DNS_PROBE_POSSIBLE`. `request.url` in a
