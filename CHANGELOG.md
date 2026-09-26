@@ -115,6 +115,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Deployment config for the hosted instance, in `deploy/`.** The nginx site
+  (`app.companymind.uz` → web, `companymind.uz`/`www` → marketing, Let's Encrypt
+  via certbot), the server-only compose override that binds every container port
+  to 127.0.0.1, and a runbook covering sync, migrations, seeding and TLS. Until
+  now this existed only on the droplet.
+
 - **The contact form delivers again — by email.** Enquiries now go to
   `LEAD_EMAIL_TO` via Resend, with `reply_to` set to the person who wrote in, so
   answering is one keystroke and the thread starts in the right place. The
