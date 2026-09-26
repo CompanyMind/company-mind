@@ -23,6 +23,8 @@ docker compose up engine bot -d      # knowledge engine + Telegram worker
 
 Or containerize everything: `docker compose build && docker compose up -d`.
 
+The hosted instance (companymind.uz): see `deploy/README.md`.
+
 ## Architecture
 
 Mid-migration to a **domain-drawn** service boundary (knowledge vs auth), not a
